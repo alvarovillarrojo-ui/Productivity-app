@@ -4,15 +4,15 @@
 // - Quick-add form
 // - List with one-click done/missed, edit and delete
 // - Bulk actions: generate recurring tasks, copy unfinished tasks to next week
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import * as repo from '../data/repo'
 import { useActiveCycle, useGoals, useTactics, useWeekTasks } from '../data/hooks'
-import type { Cycle, Goal, Tactic } from '../data/types'
+import type { Cycle } from '../data/types'
 import { useI18n } from '../i18n'
 import NoActiveCycle from '../components/NoActiveCycle'
-import NumberField from '../components/NumberField'
-import TacticSelect, { tacticLabel } from '../components/TacticSelect'
+import QuickAdd from '../components/QuickAdd'
+import { tacticLabel } from '../components/TacticSelect'
 import TaskEditForm from '../components/TaskEditForm'
 import TaskRow from '../components/TaskRow'
 import { pctClass } from '../components/pctClass'
@@ -142,81 +142,5 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
         {message && <span className="flash">{message}</span>}
       </div>
     </section>
-  )
-}
-
-// ---------- quick add ----------
-
-interface QuickAddProps {
-  cycle: Cycle
-  week: number
-  goals: Goal[]
-  tactics: Tactic[]
-  minDate: string
-  maxDate: string
-}
-
-/**
- * Title + tactic + optional date/hours, Enter to add. The chosen tactic is
- * kept after adding, so several tasks for the same tactic are quick to enter.
- */
-function QuickAdd({ cycle, week, goals, tactics, minDate, maxDate }: QuickAddProps) {
-  const { t } = useI18n()
-  const titleRef = useRef<HTMLInputElement>(null)
-  const [title, setTitle] = useState('')
-  // undefined = not chosen yet (use the first active tactic);
-  // null = "Other"; text = a tactic id.
-  const [tacticId, setTacticId] = useState<string | null | undefined>(undefined)
-  const [date, setDate] = useState('')
-  const [hours, setHours] = useState<number | null>(null)
-
-  const firstActive = tactics.find((x) => x.active)?.id ?? null
-  const chosen = tacticId === undefined ? firstActive : tacticId
-  const dateOk = !date || (date >= minDate && date <= maxDate)
-
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!title.trim() || !dateOk) return
-    const task = {
-      cycle_id: cycle.id,
-      week_number: week,
-      title: title.trim(),
-      tactic_id: chosen,
-      planned_date: date || null,
-      planned_hours: hours,
-    }
-    // Clear the form BEFORE saving, so anything typed while saving isn't lost.
-    setTitle('')
-    setDate('')
-    setHours(null)
-    titleRef.current?.focus()
-    await repo.createTask(task)
-  }
-
-  return (
-    <form className="card quick-add" onSubmit={add}>
-      <input
-        ref={titleRef}
-        className="grow"
-        placeholder={t.tasks.newPlaceholder}
-        aria-label={t.tasks.newTitle}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <TacticSelect goals={goals} tactics={tactics} value={chosen} onChange={setTacticId} />
-      <input
-        type="date"
-        aria-label={t.tasks.dateOptional}
-        min={minDate}
-        max={maxDate}
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-      />
-      <NumberField className="num small" ariaLabel={t.tasks.hoursOptional} placeholder="h" value={hours} onChange={setHours} />
-      <button className="btn primary" type="submit" disabled={!title.trim() || !dateOk}>
-        {t.common.add}
-      </button>
-      {!dateOk && <span className="bad">{t.tasks.dateInWeek}</span>}
-    </form>
   )
 }
