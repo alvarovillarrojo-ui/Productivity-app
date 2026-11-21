@@ -133,6 +133,13 @@ describe('tasks', () => {
     expect(titles).toEqual(['mon', 'wed', 'undated'])
   })
 
+  it('createTasks keeps the given order', async () => {
+    const { cycle } = await seed()
+    const titles = ['A (1/3)', 'A (2/3)', 'A (3/3)', 'B', 'C']
+    await repo.createTasks(titles.map((title) => ({ cycle_id: cycle.id, week_number: 1, title })))
+    expect((await repo.listTasksForWeek(cycle.id, 1)).map((t) => t.title)).toEqual(titles)
+  })
+
   it('marking done copies planned hours; undoing removes them', async () => {
     const { cycle } = await seed()
     const t = await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', planned_hours: 2 })

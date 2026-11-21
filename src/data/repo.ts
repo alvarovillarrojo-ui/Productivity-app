@@ -242,7 +242,7 @@ function sortTasks(tasks: Task[]): Task[] {
 export type NewTask = Pick<Task, 'cycle_id' | 'week_number' | 'title'> &
   Partial<Omit<Task, AutoFields | 'cycle_id' | 'week_number' | 'title'>>
 
-function buildTask(data: NewTask): Task {
+function buildTask(data: NewTask, createdAt = now()): Task {
   return {
     tactic_id: null,
     planned_date: null,
@@ -253,8 +253,8 @@ function buildTask(data: NewTask): Task {
     notes: '',
     ...data,
     id: newId(),
-    created_at: now(),
-    updated_at: now(),
+    created_at: createdAt,
+    updated_at: createdAt,
   }
 }
 
@@ -266,7 +266,10 @@ export async function createTask(data: NewTask): Promise<Task> {
 
 /** Creates many tasks at once (all or nothing). */
 export async function createTasks(list: NewTask[]): Promise<Task[]> {
-  const tasks = list.map(buildTask)
+  // Each task gets a creation time 1 ms after the previous one, so they keep
+  // the given order when the list is sorted (e.g. "Run (1/3)", "(2/3)", "(3/3)").
+  const start = Date.now()
+  const tasks = list.map((t, i) => buildTask(t, new Date(start + i).toISOString()))
   await db.tasks.bulkAdd(tasks)
   return tasks
 }
