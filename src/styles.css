@@ -41,3 +41,18 @@ h2 { font-size: 1.15rem; margin: 1.25rem 0 0.5rem; }
 .topbar nav a.active { background: var(--text); color: var(--bg); }
 
 .content { max-width: 960px; margin: 0 auto; padding: 1.25rem; }
+
+.storage-status {
+  max-width: 960px;
+  margin: 2rem auto 0;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.storage-status .ok { color: var(--good); }
+.storage-status .warn { color: var(--warn); }

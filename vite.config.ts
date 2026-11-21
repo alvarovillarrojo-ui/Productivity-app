@@ -17,6 +17,11 @@ const base = process.env.BASE_PATH ?? '/'
 export default defineConfig({
   base,
   server: { port: PORT, strictPort: true },
+  // Pre-bundle these libraries when the dev server starts, so it never has to
+  // re-bundle them halfway through a session (which can load React twice).
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'dexie', 'dexie-react-hooks', 'recharts'],
+  },
   preview: { port: PORT, strictPort: true },
   plugins: [
     react(),

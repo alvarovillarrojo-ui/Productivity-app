@@ -1,0 +1,39 @@
+// The browser database (IndexedDB), set up with Dexie.
+//
+// Only `repo.ts` should import this file. The rest of the app talks to
+// `repo.ts`, so storage can later be swapped (e.g. for a cloud database)
+// without touching the screens.
+import Dexie, { type EntityTable } from 'dexie'
+import type { Cycle, Goal, Tactic, Task } from './types'
+
+/** One row of the settings table: a key and its value. */
+export interface SettingRow {
+  key: string
+  value: unknown
+}
+
+export const DB_NAME = 'twelve-week-tracker'
+
+export class TrackerDB extends Dexie {
+  cycles!: EntityTable<Cycle, 'id'>
+  goals!: EntityTable<Goal, 'id'>
+  tactics!: EntityTable<Tactic, 'id'>
+  tasks!: EntityTable<Task, 'id'>
+  settings!: EntityTable<SettingRow, 'key'>
+
+  constructor(name = DB_NAME) {
+    super(name)
+    // The strings list the fields we search by (indexes), not all fields.
+    // The first one is the primary key. If the structure ever changes, add a
+    // `this.version(2)` block below instead of editing this one.
+    this.version(1).stores({
+      cycles: 'id, status',
+      goals: 'id, cycle_id',
+      tactics: 'id, goal_id',
+      tasks: 'id, cycle_id, [cycle_id+week_number], tactic_id',
+      settings: 'key',
+    })
+  }
+}
+
+export const db = new TrackerDB()

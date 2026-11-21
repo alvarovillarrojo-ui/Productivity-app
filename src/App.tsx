@@ -7,6 +7,7 @@ import TrackingScreen from './screens/TrackingScreen'
 import DataScreen from './screens/DataScreen'
 import AboutScreen from './screens/AboutScreen'
 import SetupScreen from './screens/SetupScreen'
+import StorageStatus from './components/StorageStatus'
 
 // The pages shown in the navigation bar, in order.
 const NAV_ITEMS = [
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <StorageStatus />
     </div>
   )
 }

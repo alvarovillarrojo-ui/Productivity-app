@@ -1,0 +1,349 @@
+// Data-access layer: the ONLY place that reads or writes stored data.
+//
+// Screens call these functions and never touch the database directly. To move
+// to a cloud database later, rewrite this file (and `useLive.ts`) and keep the
+// same function names; the UI does not need to change.
+import { db } from './db'
+import type {
+  AllData,
+  Cycle,
+  CycleStatus,
+  Goal,
+  PersistStatus,
+  SettingKey,
+  SettingValues,
+  Tactic,
+  Task,
+  TaskStatus,
+} from './types'
+
+// ---------- helpers ----------
+
+/** A new random id. */
+export const newId = (): string => crypto.randomUUID()
+
+/** Current time as an ISO timestamp. */
+const now = (): string => new Date().toISOString()
+
+/** Fields the repo fills in automatically when creating a record. */
+type AutoFields = 'id' | 'created_at' | 'updated_at'
+
+// ---------- cycles ----------
+
+export async function listCycles(): Promise<Cycle[]> {
+  const cycles = await db.cycles.toArray()
+  // Newest first.
+  return cycles.sort((a, b) => b.start_date.localeCompare(a.start_date))
+}
+
+export async function getCycle(id: string): Promise<Cycle | undefined> {
+  return db.cycles.get(id)
+}
+
+/** The cycle currently being executed, if any (there is at most one). */
+export async function getActiveCycle(): Promise<Cycle | undefined> {
+  return db.cycles.where('status').equals('active').first()
+}
+
+export async function createCycle(
+  data: Omit<Cycle, AutoFields | 'status'> & { status?: CycleStatus },
+): Promise<Cycle> {
+  const cycle: Cycle = {
+    ...data,
+    status: data.status ?? 'planning',
+    id: newId(),
+    created_at: now(),
+    updated_at: now(),
+  }
+  if (cycle.status === 'active') await assertNoOtherActive(cycle.id)
+  await db.cycles.add(cycle)
+  return cycle
+}
+
+export async function updateCycle(
+  id: string,
+  changes: Partial<Omit<Cycle, AutoFields>>,
+): Promise<void> {
+  if (changes.status === 'active') await assertNoOtherActive(id)
+  await db.cycles.update(id, { ...changes, updated_at: now() })
+}
+
+/** Only one cycle may be active at a time; close the old one first. */
+async function assertNoOtherActive(id: string): Promise<void> {
+  const active = await getActiveCycle()
+  if (active && active.id !== id) {
+    throw new Error(`Cycle "${active.name}" is still active. Close it before starting another.`)
+  }
+}
+
+/** Deletes a cycle and everything inside it (goals, tactics, tasks). */
+export async function deleteCycle(id: string): Promise<void> {
+  await db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
+    const goalIds = (await db.goals.where('cycle_id').equals(id).primaryKeys()) as string[]
+    await db.tactics.where('goal_id').anyOf(goalIds).delete()
+    await db.goals.where('cycle_id').equals(id).delete()
+    await db.tasks.where('cycle_id').equals(id).delete()
+    await db.cycles.delete(id)
+  })
+}
+
+// ---------- goals ----------
+
+/** Goals of a cycle, in display order. */
+export async function listGoals(cycleId: string): Promise<Goal[]> {
+  const goals = await db.goals.where('cycle_id').equals(cycleId).toArray()
+  return goals.sort((a, b) => a.sort_order - b.sort_order)
+}
+
+export async function createGoal(
+  data: Omit<Goal, 'id' | 'sort_order'> & { sort_order?: number },
+): Promise<Goal> {
+  const count = await db.goals.where('cycle_id').equals(data.cycle_id).count()
+  const goal: Goal = { ...data, sort_order: data.sort_order ?? count, id: newId() }
+  await db.goals.add(goal)
+  return goal
+}
+
+export async function updateGoal(id: string, changes: Partial<Omit<Goal, 'id'>>): Promise<void> {
+  await db.goals.update(id, changes)
+}
+
+/**
+ * Deletes a goal and its tactics. Tasks that were linked to those tactics are
+ * kept but become "Other" (tactic_id = null), so no history is lost.
+ */
+export async function deleteGoal(id: string): Promise<void> {
+  await db.transaction('rw', db.goals, db.tactics, db.tasks, async () => {
+    const tacticIds = (await db.tactics.where('goal_id').equals(id).primaryKeys()) as string[]
+    await unlinkTasksFromTactics(tacticIds)
+    await db.tactics.where('goal_id').equals(id).delete()
+    await db.goals.delete(id)
+  })
+}
+
+// ---------- tactics ----------
+
+/** Tactics of one goal, in display order. */
+export async function listTactics(goalId: string): Promise<Tactic[]> {
+  const tactics = await db.tactics.where('goal_id').equals(goalId).toArray()
+  return tactics.sort((a, b) => a.sort_order - b.sort_order)
+}
+
+/** All tactics of all goals in a cycle, in display order. */
+export async function listTacticsForCycle(cycleId: string): Promise<Tactic[]> {
+  const goals = await listGoals(cycleId)
+  const goalOrder = new Map(goals.map((g) => [g.id, g.sort_order]))
+  const tactics = await db.tactics.where('goal_id').anyOf([...goalOrder.keys()]).toArray()
+  return tactics.sort(
+    (a, b) =>
+      goalOrder.get(a.goal_id)! - goalOrder.get(b.goal_id)! || a.sort_order - b.sort_order,
+  )
+}
+
+export async function createTactic(
+  data: Omit<Tactic, 'id' | 'sort_order' | 'active'> & { sort_order?: number; active?: boolean },
+): Promise<Tactic> {
+  const count = await db.tactics.where('goal_id').equals(data.goal_id).count()
+  const tactic: Tactic = {
+    ...data,
+    active: data.active ?? true,
+    sort_order: data.sort_order ?? count,
+    id: newId(),
+  }
+  await db.tactics.add(tactic)
+  return tactic
+}
+
+export async function updateTactic(
+  id: string,
+  changes: Partial<Omit<Tactic, 'id'>>,
+): Promise<void> {
+  await db.tactics.update(id, changes)
+}
+
+/** Deletes a tactic. Its tasks are kept and become "Other". */
+export async function deleteTactic(id: string): Promise<void> {
+  await db.transaction('rw', db.tactics, db.tasks, async () => {
+    await unlinkTasksFromTactics([id])
+    await db.tactics.delete(id)
+  })
+}
+
+async function unlinkTasksFromTactics(tacticIds: string[]): Promise<void> {
+  if (tacticIds.length === 0) return
+  await db.tasks
+    .where('tactic_id')
+    .anyOf(tacticIds)
+    .modify({ tactic_id: null, updated_at: now() })
+}
+
+// ---------- tasks ----------
+
+/** Tasks of one week, sorted by date (undated last), then by creation. */
+export async function listTasksForWeek(cycleId: string, week: number): Promise<Task[]> {
+  const tasks = await db.tasks.where('[cycle_id+week_number]').equals([cycleId, week]).toArray()
+  return sortTasks(tasks)
+}
+
+/** All tasks in a cycle. */
+export async function listTasksForCycle(cycleId: string): Promise<Task[]> {
+  return sortTasks(await db.tasks.where('cycle_id').equals(cycleId).toArray())
+}
+
+function sortTasks(tasks: Task[]): Task[] {
+  return tasks.sort(
+    (a, b) =>
+      (a.planned_date ?? '9999').localeCompare(b.planned_date ?? '9999') ||
+      a.created_at.localeCompare(b.created_at),
+  )
+}
+
+/** What you need to give to create a task; everything else has defaults. */
+export type NewTask = Pick<Task, 'cycle_id' | 'week_number' | 'title'> &
+  Partial<Omit<Task, AutoFields | 'cycle_id' | 'week_number' | 'title'>>
+
+function buildTask(data: NewTask): Task {
+  return {
+    tactic_id: null,
+    planned_date: null,
+    planned_hours: null,
+    actual_hours: null,
+    status: 'todo',
+    miss_reason: null,
+    notes: '',
+    ...data,
+    id: newId(),
+    created_at: now(),
+    updated_at: now(),
+  }
+}
+
+export async function createTask(data: NewTask): Promise<Task> {
+  const task = buildTask(data)
+  await db.tasks.add(task)
+  return task
+}
+
+/** Creates many tasks at once (all or nothing). */
+export async function createTasks(list: NewTask[]): Promise<Task[]> {
+  const tasks = list.map(buildTask)
+  await db.tasks.bulkAdd(tasks)
+  return tasks
+}
+
+export async function updateTask(
+  id: string,
+  changes: Partial<Omit<Task, AutoFields>>,
+): Promise<void> {
+  await db.tasks.update(id, { ...changes, updated_at: now() })
+}
+
+/**
+ * The one-click action from Home: mark a task done / missed / back to todo.
+ *
+ * To save typing at night: when a task is marked DONE and no actual hours are
+ * filled in, the planned hours are copied over. If it is later moved away
+ * from done, that automatic value is removed again.
+ */
+export async function setTaskStatus(id: string, status: TaskStatus): Promise<void> {
+  const task = await db.tasks.get(id)
+  if (!task) return
+  let actual = task.actual_hours
+  if (status === 'done' && actual === null) {
+    actual = task.planned_hours
+  } else if (status !== 'done' && task.status === 'done' && actual === task.planned_hours) {
+    actual = null
+  }
+  await updateTask(id, { status, actual_hours: actual })
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await db.tasks.delete(id)
+}
+
+// ---------- settings (device-specific, not in backups) ----------
+
+export async function getSetting<K extends SettingKey>(
+  key: K,
+): Promise<SettingValues[K] | undefined> {
+  const row = await db.settings.get(key)
+  return row?.value as SettingValues[K] | undefined
+}
+
+export async function setSetting<K extends SettingKey>(
+  key: K,
+  value: SettingValues[K],
+): Promise<void> {
+  await db.settings.put({ key, value })
+}
+
+export async function deleteSetting(key: SettingKey): Promise<void> {
+  await db.settings.delete(key)
+}
+
+// ---------- whole database (backup / restore / import) ----------
+
+/** Everything the user created, for a full backup. */
+export async function exportAll(): Promise<AllData> {
+  const [cycles, goals, tactics, tasks] = await Promise.all([
+    db.cycles.toArray(),
+    db.goals.toArray(),
+    db.tactics.toArray(),
+    db.tasks.toArray(),
+  ])
+  return { cycles, goals, tactics, tasks }
+}
+
+/**
+ * RESTORE: deletes all current cycles, goals, tactics and tasks and replaces
+ * them with `data`. Settings (backup folder etc.) are kept. Runs as one
+ * transaction: if anything fails, nothing changes.
+ */
+export async function replaceAll(data: AllData): Promise<void> {
+  await db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
+    await Promise.all([db.cycles.clear(), db.goals.clear(), db.tactics.clear(), db.tasks.clear()])
+    await db.cycles.bulkAdd(data.cycles)
+    await db.goals.bulkAdd(data.goals)
+    await db.tactics.bulkAdd(data.tactics)
+    await db.tasks.bulkAdd(data.tasks)
+  })
+}
+
+/**
+ * IMPORT: adds new records without changing or deleting existing ones.
+ * Runs as one transaction: either everything is added or nothing is.
+ */
+export async function addAll(data: AllData): Promise<void> {
+  await db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
+    for (const c of data.cycles) if (c.status === 'active') await assertNoOtherActive(c.id)
+    await db.cycles.bulkAdd(data.cycles)
+    await db.goals.bulkAdd(data.goals)
+    await db.tactics.bulkAdd(data.tactics)
+    await db.tasks.bulkAdd(data.tasks)
+  })
+}
+
+/** True when nothing has been created yet (first run). */
+export async function isEmpty(): Promise<boolean> {
+  return (await db.cycles.count()) === 0
+}
+
+// ---------- persistent storage ----------
+
+/**
+ * Asks the browser to keep our data even when the disk is low ("persistent
+ * storage"). Without it, the browser may delete the data of sites you
+ * haven't visited in a while. Chrome/Edge decide automatically (it is more
+ * likely to be granted once the app is installed), so we ask again on every
+ * start until it is granted. The result is saved and shown in the app.
+ */
+export async function requestPersistentStorage(): Promise<PersistStatus> {
+  let status: PersistStatus = 'unsupported'
+  if (typeof navigator !== 'undefined' && navigator.storage?.persist) {
+    const already = await navigator.storage.persisted()
+    const granted = already || (await navigator.storage.persist())
+    status = granted ? 'granted' : 'not-granted'
+  }
+  await setSetting('storagePersisted', status)
+  return status
+}
