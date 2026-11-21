@@ -1,0 +1,24 @@
+# Dependencies and build output
+node_modules/
+dist/
+dev-dist/
+*.tsbuildinfo
+
+# PERSONAL DATA — never commit
+private/
+exports/
+backups/
+*_backup*.json
+*-backup-*.json
+week_*_report.json
+week_*_report.md
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+.claude/settings.local.json
