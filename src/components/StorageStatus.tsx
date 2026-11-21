@@ -3,31 +3,29 @@
 import { useEffect } from 'react'
 import { getSetting, requestPersistentStorage } from '../data/repo'
 import { useLiveMaybe } from '../data/useLive'
-
-const LABELS = {
-  granted: { text: 'Storage: persistent ✓', className: 'ok' },
-  'not-granted': {
-    text: 'Storage: not persistent. The browser may clear data when disk is low, so back up regularly.',
-    className: 'warn',
-  },
-  unsupported: {
-    text: 'Storage: this browser cannot guarantee persistence, so back up regularly.',
-    className: 'warn',
-  },
-} as const
+import { useI18n } from '../i18n'
 
 export default function StorageStatus() {
+  const { t } = useI18n()
+
   // Ask once when the app opens (the browser remembers the answer).
   useEffect(() => {
     requestPersistentStorage().catch(() => {})
   }, [])
 
   const status = useLiveMaybe(() => getSetting('storagePersisted'), [])
-  const label = status ? LABELS[status] : null
+  const label =
+    status === 'granted'
+      ? { text: t.storage.granted, className: 'ok' }
+      : status === 'not-granted'
+        ? { text: t.storage.notGranted, className: 'warn' }
+        : status === 'unsupported'
+          ? { text: t.storage.unsupported, className: 'warn' }
+          : null
 
   return (
     <footer className="storage-status">
-      <span>Your data stays on this device. Nothing is sent anywhere.</span>
+      <span>{t.storage.local}</span>
       {label && <span className={label.className}>{label.text}</span>}
     </footer>
   )

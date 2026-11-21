@@ -2,8 +2,8 @@
 // Clicking the button that is already on puts the task back to "to do".
 import { setTaskStatus } from '../data/repo'
 import type { Task, TaskStatus } from '../data/types'
+import { useI18n } from '../i18n'
 import { formatHours } from '../logic/metrics'
-import { formatShortDate } from '../logic/weeks'
 
 interface Props {
   task: Task
@@ -18,13 +18,14 @@ interface Props {
 }
 
 export default function TaskRow({ task, context, showDate = true, overdue, onEdit, onDelete }: Props) {
+  const { t, date } = useI18n()
   const toggle = (status: TaskStatus) => setTaskStatus(task.id, task.status === status ? 'todo' : status)
 
   const hours =
     task.actual_hours !== null
       ? formatHours(task.actual_hours)
       : task.planned_hours !== null
-        ? `${formatHours(task.planned_hours)} planned`
+        ? `${formatHours(task.planned_hours)} ${t.tasks.planned}`
         : null
 
   return (
@@ -32,8 +33,8 @@ export default function TaskRow({ task, context, showDate = true, overdue, onEdi
       <div className="status-buttons">
         <button
           className={task.status === 'done' ? 'sb done on' : 'sb done'}
-          title={task.status === 'done' ? 'Done (click to undo)' : 'Mark done'}
-          aria-label={`Mark "${task.title}" done`}
+          title={task.status === 'done' ? t.tasks.doneUndo : t.tasks.markDone(task.title)}
+          aria-label={t.tasks.markDone(task.title)}
           aria-pressed={task.status === 'done'}
           onClick={() => toggle('done')}
         >
@@ -41,8 +42,8 @@ export default function TaskRow({ task, context, showDate = true, overdue, onEdi
         </button>
         <button
           className={task.status === 'missed' ? 'sb missed on' : 'sb missed'}
-          title={task.status === 'missed' ? 'Missed (click to undo)' : 'Mark missed'}
-          aria-label={`Mark "${task.title}" missed`}
+          title={task.status === 'missed' ? t.tasks.missedUndo : t.tasks.markMissed(task.title)}
+          aria-label={t.tasks.markMissed(task.title)}
           aria-pressed={task.status === 'missed'}
           onClick={() => toggle('missed')}
         >
@@ -53,7 +54,7 @@ export default function TaskRow({ task, context, showDate = true, overdue, onEdi
         <span className="task-title">{task.title}</span>
         <span className="task-meta">
           {showDate && task.planned_date && (
-            <span className={overdue ? 'bad' : undefined}>{formatShortDate(task.planned_date)} · </span>
+            <span className={overdue ? 'bad' : undefined}>{date(task.planned_date)} · </span>
           )}
           {context}
           {hours && ` · ${hours}`}
@@ -63,11 +64,11 @@ export default function TaskRow({ task, context, showDate = true, overdue, onEdi
         <div className="task-actions">
           {onEdit && (
             <button className="link" onClick={onEdit}>
-              Edit
+              {t.common.edit}
             </button>
           )}
           {onDelete && (
-            <button className="link danger" aria-label={`Delete "${task.title}"`} onClick={onDelete}>
+            <button className="link danger" aria-label={t.tasks.deleteTask(task.title)} onClick={onDelete}>
               ✕
             </button>
           )}

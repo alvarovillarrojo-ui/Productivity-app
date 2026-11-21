@@ -75,19 +75,24 @@ describe('carry-over', () => {
 describe('validation', () => {
   const base = createDraft({ previous: null, cycleCount: 0, today: '2026-11-21' })
 
+  const codes = (list: { code: string }[]) => list.map((i) => i.code)
+
   it('requires a Monday start date', () => {
-    expect(validateStep({ ...base, startDate: '2026-11-24' }, 'cycle')).toContain(
-      'The start date must be a Monday.',
-    )
+    expect(codes(validateStep({ ...base, startDate: '2026-11-24' }, 'cycle'))).toContain('notMonday')
     expect(validateStep(base, 'cycle')).toEqual([])
   })
 
   it('requires at least one named goal with a target', () => {
-    expect(validateStep(base, 'goals')).toContain('Add at least one goal.')
+    expect(codes(validateStep(base, 'goals'))).toContain('noGoals')
     const ok = { ...base, goals: [{ ...blankGoal(), name: 'Fitness', weekly_hours_target: 5 }] }
     expect(validateStep(ok, 'goals')).toEqual([])
     const bad = { ...base, goals: [{ ...blankGoal(), name: 'Fitness', weekly_hours_target: 2, weekly_hours_minimum: 3 }] }
-    expect(validateStep(bad, 'goals')[0]).toMatch(/minimum/)
+    expect(validateStep(bad, 'goals')[0]).toMatchObject({ code: 'minAboveTarget', goal: 'Fitness' })
+  })
+
+  it('uses the default cycle name in the chosen language', () => {
+    const d = createDraft({ previous: null, cycleCount: 2, today: '2026-11-21', cycleName: (n) => `Ciclo ${n}` })
+    expect(d.cycleName).toBe('Ciclo 3')
   })
 
   it('warns (without blocking) above 3 goals', () => {

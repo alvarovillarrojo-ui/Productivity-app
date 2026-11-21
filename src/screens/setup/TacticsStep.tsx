@@ -1,61 +1,61 @@
 // Step f) Tactics — 2–4 per goal, each with an optional weekly frequency.
 import NumberField from '../../components/NumberField'
+import { useI18n } from '../../i18n'
 import { blankTactic, filledGoals, tacticWarnings, type DraftGoal, type DraftTactic } from './draft'
 import type { StepProps } from './stepProps'
 
 export default function TacticsStep({ draft, change }: StepProps) {
+  const { t } = useI18n()
+  const tt = t.setup.tactics
   const setTactics = (goal: DraftGoal, tactics: DraftTactic[]) =>
     change({ goals: draft.goals.map((g) => (g.key === goal.key ? { ...g, tactics } : g)) })
 
   const updateTactic = (goal: DraftGoal, key: string, patch: Partial<DraftTactic>) =>
-    setTactics(goal, goal.tactics.map((t) => (t.key === key ? { ...t, ...patch } : t)))
+    setTactics(goal, goal.tactics.map((x) => (x.key === key ? { ...x, ...patch } : x)))
 
   return (
     <div className="stack">
-      <p className="muted">
-        2–4 tactics per goal works best. “Times per week” is optional: with it, the Tasks screen can
-        create that many tasks each week for you.
-      </p>
+      <p className="muted">{tt.hint}</p>
       {filledGoals(draft).map((goal) => (
         <div key={goal.key} className="card">
           <h2>{goal.name}</h2>
-          {goal.tactics.map((t) => (
-            <div key={t.key} className="row">
+          {goal.tactics.map((x) => (
+            <div key={x.key} className="row">
               <input
                 className="grow"
-                value={t.name}
-                placeholder="e.g. Run 5 km"
-                aria-label="Tactic name"
-                onChange={(e) => updateTactic(goal, t.key, { name: e.target.value })}
+                value={x.name}
+                placeholder={tt.placeholder}
+                aria-label={tt.name}
+                onChange={(e) => updateTactic(goal, x.key, { name: e.target.value })}
               />
               <NumberField
-                value={t.weekly_frequency}
+                value={x.weekly_frequency}
                 step={1}
                 min={1}
                 max={14}
                 placeholder="–"
-                ariaLabel="Times per week"
+                ariaLabel={t.common.timesPerWeek}
                 className="num small"
-                onChange={(v) => updateTactic(goal, t.key, { weekly_frequency: v })}
+                onChange={(v) => updateTactic(goal, x.key, { weekly_frequency: v })}
               />
-              <span className="muted">× / week</span>
+              <span className="muted">{t.common.perWeek}</span>
               <button
                 className="link danger"
-                aria-label="Remove tactic"
-                onClick={() => setTactics(goal, goal.tactics.filter((x) => x.key !== t.key))}
+                aria-label={tt.remove}
+                onClick={() => setTactics(goal, goal.tactics.filter((y) => y.key !== x.key))}
               >
                 ✕
               </button>
             </div>
           ))}
           <button className="link" onClick={() => setTactics(goal, [...goal.tactics, blankTactic()])}>
-            + Add tactic
+            {tt.addTactic}
           </button>
         </div>
       ))}
-      {tacticWarnings(draft).map((w) => (
-        <p key={w} className="warn-box">
-          {w}
+      {tacticWarnings(draft).map((w, i) => (
+        <p key={i} className="warn-box">
+          {t.setup.issue(w)}
         </p>
       ))}
     </div>

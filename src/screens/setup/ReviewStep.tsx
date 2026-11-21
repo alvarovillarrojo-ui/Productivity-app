@@ -1,5 +1,6 @@
 // Step b) Review last cycle — final numbers, then choose what to carry over.
 import type { Cycle, Task } from '../../data/types'
+import { useI18n } from '../../i18n'
 import { bestAndWorstWeeks, cycleExecution, cycleTotals, formatPct } from '../../logic/metrics'
 import { pctClass } from '../../components/pctClass'
 import { todayISO } from '../../logic/weeks'
@@ -11,6 +12,8 @@ interface Props extends StepProps {
 }
 
 export default function ReviewStep({ draft, change, previous }: Props) {
+  const { t } = useI18n()
+  const r = t.setup.review
   const { cycle, goals, tactics, tasks } = previous
   const weeks = cycleExecution(cycle, tasks, goals, tactics, todayISO())
   const totals = cycleTotals(weeks, goals)
@@ -25,7 +28,7 @@ export default function ReviewStep({ draft, change, previous }: Props) {
         <h2>{cycle.name}</h2>
         <p className="big-number">
           <span className={pctClass(totals.overall.pct)}>{formatPct(totals.overall.pct)}</span>
-          <span className="muted"> overall execution</span>
+          <span className="muted"> {r.overall}</span>
         </p>
         <table className="table">
           <tbody>
@@ -41,21 +44,18 @@ export default function ReviewStep({ draft, change, previous }: Props) {
         </table>
         {bw ? (
           <p className="muted">
-            Best week: {bw.best.week} ({formatPct(bw.best.overall.pct)}) · Worst week: {bw.worst.week} (
-            {formatPct(bw.worst.overall.pct)})
+            {r.bestWorst(bw.best.week, formatPct(bw.best.overall.pct), bw.worst.week, formatPct(bw.worst.overall.pct))}
           </p>
         ) : (
-          <p className="muted">No tracked tasks in this cycle.</p>
+          <p className="muted">{r.noTasks}</p>
         )}
-        {cycle.status === 'active' && (
-          <p className="note">This cycle will be closed when you press “Start cycle” at the end.</p>
-        )}
+        {cycle.status === 'active' && <p className="note">{r.willClose}</p>}
       </div>
 
       <div className="card">
-        <h2>Carry over to the new cycle</h2>
-        <p className="muted">Ticked goals and tactics are copied. You can still edit them in the next steps.</p>
-        {goals.length === 0 && <p className="muted">The last cycle had no goals.</p>}
+        <h2>{r.carryTitle}</h2>
+        <p className="muted">{r.carryHint}</p>
+        {goals.length === 0 && <p className="muted">{r.noGoals}</p>}
         {goals.map((g) => {
           const goalOn = draft.carryGoalIds.includes(g.id)
           return (
@@ -70,19 +70,19 @@ export default function ReviewStep({ draft, change, previous }: Props) {
               </label>
               <div className="carry-tactics">
                 {tactics
-                  .filter((t) => t.goal_id === g.id)
-                  .map((t) => (
-                    <label key={t.id} className={goalOn ? '' : 'disabled'}>
+                  .filter((x) => x.goal_id === g.id)
+                  .map((x) => (
+                    <label key={x.id} className={goalOn ? '' : 'disabled'}>
                       <input
                         type="checkbox"
                         disabled={!goalOn}
-                        checked={goalOn && draft.carryTacticIds.includes(t.id)}
+                        checked={goalOn && draft.carryTacticIds.includes(x.id)}
                         onChange={(e) =>
-                          change({ carryTacticIds: toggle(draft.carryTacticIds, t.id, e.target.checked) })
+                          change({ carryTacticIds: toggle(draft.carryTacticIds, x.id, e.target.checked) })
                         }
                       />{' '}
-                      {t.name}
-                      {!t.active && <span className="muted"> (inactive)</span>}
+                      {x.name}
+                      {!x.active && <span className="muted"> {t.common.inactive}</span>}
                     </label>
                   ))}
               </div>

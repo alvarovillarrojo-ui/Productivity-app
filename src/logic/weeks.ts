@@ -127,9 +127,9 @@ export function lastCompletedWeek(cycle: CycleDates, today: ISODate): number | n
   return week >= 1 ? week : null
 }
 
-/** Short readable date, e.g. "Mon 9 Nov". */
-export function formatShortDate(date: ISODate): string {
-  return new Date(toUTC(date)).toLocaleDateString('en-GB', {
+/** Short readable date, e.g. "Mon 9 Nov" (en-GB) or "lun 9 nov" (es-ES). */
+export function formatShortDate(date: ISODate, locale = 'en-GB'): string {
+  return new Date(toUTC(date)).toLocaleDateString(locale, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

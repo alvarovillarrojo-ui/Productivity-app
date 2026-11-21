@@ -83,6 +83,8 @@ export function createDraft(opts: {
   previous: PreviousCycle | null
   cycleCount: number
   today: string
+  /** Default name in the user's language, e.g. (n) => `Cycle ${n}`. */
+  cycleName?: (n: number) => string
 }): WizardDraft {
   const { previous } = opts
   return {
@@ -93,7 +95,7 @@ export function createDraft(opts: {
     carryGoalIds: previous?.goals.map((g) => g.id) ?? [],
     carryTacticIds: previous?.tactics.filter((t) => t.active).map((t) => t.id) ?? [],
     vision: previous?.vision ?? '',
-    cycleName: `Cycle ${opts.cycleCount + 1}`,
+    cycleName: (opts.cycleName ?? ((n: number) => `Cycle ${n}`))(opts.cycleCount + 1),
     startDate: nextMonday(opts.today),
     lengthWeeks: 12,
     goals: previous ? [] : [blankGoal()],
@@ -166,32 +168,54 @@ export function filledTactics(goal: DraftGoal): DraftTactic[] {
 }
 
 /**
- * Problems that block moving on from a step. Empty list = OK.
- * Messages are written for the user.
+ * A problem or hint found in the draft. It is a CODE plus details, not text:
+ * the screen turns it into English or Spanish (see `setup.issue` in i18n).
  */
-export function validateStep(draft: WizardDraft, step: StepId): string[] {
-  const errors: string[] = []
+export interface DraftIssue {
+  code:
+    | 'cycleName'
+    | 'startDate'
+    | 'notMonday'
+    | 'length'
+    | 'noGoals'
+    | 'goalName'
+    | 'goalTarget'
+    | 'minAboveTarget'
+    | 'frequency'
+    | 'tooManyGoals'
+    | 'noTactics'
+  /** Goal name (empty if not typed yet). */
+  goal?: string
+  /** Goal position (0-based), used when the goal has no name yet. */
+  index?: number
+  tactic?: string
+  count?: number
+}
+
+/** Problems that block moving on from a step. Empty list = OK. */
+export function validateStep(draft: WizardDraft, step: StepId): DraftIssue[] {
+  const errors: DraftIssue[] = []
   if (step === 'cycle' || step === 'summary') {
-    if (draft.cycleName.trim() === '') errors.push('Give the cycle a name.')
-    if (!isValidDate(draft.startDate)) errors.push('Choose a start date.')
-    else if (!isMonday(draft.startDate)) errors.push('The start date must be a Monday.')
+    if (draft.cycleName.trim() === '') errors.push({ code: 'cycleName' })
+    if (!isValidDate(draft.startDate)) errors.push({ code: 'startDate' })
+    else if (!isMonday(draft.startDate)) errors.push({ code: 'notMonday' })
     if (!Number.isInteger(draft.lengthWeeks) || draft.lengthWeeks < 1 || draft.lengthWeeks > 52)
-      errors.push('Length must be between 1 and 52 weeks.')
+      errors.push({ code: 'length' })
   }
   if (step === 'goals' || step === 'summary') {
     const goals = filledGoals(draft)
-    if (goals.length === 0) errors.push('Add at least one goal.')
-    for (const [i, g] of goals.entries()) {
-      const label = g.name.trim() || `Goal ${i + 1}`
-      if (g.name.trim() === '') errors.push(`${label}: give it a name.`)
+    if (goals.length === 0) errors.push({ code: 'noGoals' })
+    for (const [index, g] of goals.entries()) {
+      const goal = g.name.trim()
+      if (goal === '') errors.push({ code: 'goalName', goal, index })
       if (g.weekly_hours_target === null || g.weekly_hours_target < 0)
-        errors.push(`${label}: set a weekly hours target (0 is allowed).`)
+        errors.push({ code: 'goalTarget', goal, index })
       if (
         g.weekly_hours_minimum !== null &&
         g.weekly_hours_target !== null &&
         g.weekly_hours_minimum > g.weekly_hours_target
       )
-        errors.push(`${label}: the minimum can't be higher than the target.`)
+        errors.push({ code: 'minAboveTarget', goal, index })
     }
   }
   if (step === 'tactics' || step === 'summary') {
@@ -199,29 +223,22 @@ export function validateStep(draft: WizardDraft, step: StepId): string[] {
       for (const t of filledTactics(g)) {
         const f = t.weekly_frequency
         if (f !== null && (!Number.isInteger(f) || f < 1 || f > 14))
-          errors.push(`${g.name} → ${t.name}: frequency must be a whole number from 1 to 14.`)
+          errors.push({ code: 'frequency', goal: g.name, tactic: t.name })
       }
     }
   }
   return errors
 }
 
-/** Gentle (non-blocking) hints. */
-export function goalWarnings(draft: WizardDraft): string[] {
-  const hints: string[] = []
+/** Gentle (non-blocking) hint when there are too many goals. */
+export function goalWarnings(draft: WizardDraft): DraftIssue[] {
   const count = filledGoals(draft).length
-  if (count > MAX_RECOMMENDED_GOALS)
-    hints.push(
-      `You have ${count} goals. Fewer goals usually means better execution. Consider keeping 1–3.`,
-    )
-  return hints
+  return count > MAX_RECOMMENDED_GOALS ? [{ code: 'tooManyGoals', count }] : []
 }
 
-export function tacticWarnings(draft: WizardDraft): string[] {
+/** Gentle hint for goals without any tactic. */
+export function tacticWarnings(draft: WizardDraft): DraftIssue[] {
   return filledGoals(draft)
     .filter((g) => filledTactics(g).length === 0)
-    .map(
-      (g) =>
-        `"${g.name}" has no tactics yet. Its tasks can't count towards execution % until it has one.`,
-    )
+    .map((g) => ({ code: 'noTactics', goal: g.name }))
 }

@@ -1,23 +1,26 @@
 // Step a) Welcome — first run only.
 import { Link } from 'react-router-dom'
+import { useI18n } from '../../i18n'
 
 export default function WelcomeStep({ onStart }: { onStart: () => void }) {
+  const { t } = useI18n()
+  const w = t.setup.welcome
   return (
     <div className="stack">
       <div className="card">
         <ul className="welcome-list">
-          <li>Plan a 12-week cycle: a few goals, and the tactics that make them happen.</li>
-          <li>Each week, list your tasks and tick them off every evening.</li>
-          <li>See your execution % and hours, and aim for 85% or more.</li>
+          <li>{w.line1}</li>
+          <li>{w.line2}</li>
+          <li>{w.line3}</li>
         </ul>
-        <p className="note">🔒 Your data stays on this device. No account, nothing is sent anywhere.</p>
+        <p className="note">{w.privacy}</p>
       </div>
       <button className="btn primary big" onClick={onStart}>
-        Set up my first cycle
+        {w.start}
       </button>
       <p className="muted">
-        Already have data? <Link to="/data?action=import">Import a cycle from file</Link> or{' '}
-        <Link to="/data?action=restore">restore from backup</Link>.
+        {w.alreadyHaveData} <Link to="/data?action=import">{w.importFile}</Link> {w.or}{' '}
+        <Link to="/data?action=restore">{w.restoreBackup}</Link>.
       </p>
     </div>
   )

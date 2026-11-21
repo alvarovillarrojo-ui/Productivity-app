@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { updateTask } from '../data/repo'
 import type { Goal, Tactic, Task } from '../data/types'
+import { useI18n } from '../i18n'
 import NumberField from './NumberField'
 import TacticSelect from './TacticSelect'
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, onClose }: Props) {
+  const { t } = useI18n()
   const [form, setForm] = useState(task)
   const set = (patch: Partial<Task>) => setForm({ ...form, ...patch })
   const dateOk = !form.planned_date || (form.planned_date >= minDate && form.planned_date <= maxDate)
@@ -41,7 +43,7 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
         <div className="row">
           <input
             className="grow"
-            aria-label="Title"
+            aria-label={t.tasks.edit.title}
             value={form.title}
             autoFocus
             onChange={(e) => set({ title: e.target.value })}
@@ -50,7 +52,7 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
         </div>
         <div className="row">
           <label className="field">
-            <span>Date</span>
+            <span>{t.tasks.edit.date}</span>
             <input
               type="date"
               min={minDate}
@@ -60,25 +62,25 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
             />
           </label>
           <label className="field">
-            <span>Planned h</span>
+            <span>{t.tasks.edit.plannedH}</span>
             <NumberField className="num small" value={form.planned_hours} placeholder="–" onChange={(v) => set({ planned_hours: v })} />
           </label>
           <label className="field">
-            <span>Actual h</span>
+            <span>{t.tasks.edit.actualH}</span>
             <NumberField className="num small" value={form.actual_hours} placeholder="–" onChange={(v) => set({ actual_hours: v })} />
           </label>
           <label className="field grow">
-            <span>Notes</span>
+            <span>{t.tasks.edit.notes}</span>
             <input value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
           </label>
         </div>
-        {!dateOk && <p className="bad">The date must be inside this week.</p>}
+        {!dateOk && <p className="bad">{t.tasks.edit.dateInWeek}</p>}
         <div className="row">
           <button className="btn primary" type="submit" disabled={!valid}>
-            Save
+            {t.common.save}
           </button>
           <button className="btn" type="button" onClick={onClose}>
-            Cancel
+            {t.common.cancel}
           </button>
         </div>
       </form>

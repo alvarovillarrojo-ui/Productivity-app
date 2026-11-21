@@ -12,10 +12,12 @@ import {
   filledTactics,
   getSteps,
   validateStep,
+  type DraftIssue,
   type PreviousCycle,
   type StepId,
   type WizardDraft,
 } from './setup/draft'
+import { useI18n } from '../i18n'
 import WelcomeStep from './setup/WelcomeStep'
 import ReviewStep from './setup/ReviewStep'
 import VisionStep from './setup/VisionStep'
@@ -23,32 +25,6 @@ import CycleStep from './setup/CycleStep'
 import GoalsStep from './setup/GoalsStep'
 import TacticsStep from './setup/TacticsStep'
 import SummaryStep from './setup/SummaryStep'
-
-/** Title and one-line explanation shown at the top of each step. */
-const STEP_INFO: Record<StepId, { title: string; hint: string }> = {
-  welcome: { title: 'Welcome', hint: 'Set up your first 12-week cycle in a few minutes.' },
-  review: {
-    title: 'Review last cycle',
-    hint: 'See how the last cycle went and choose what to keep for the next one.',
-  },
-  vision: {
-    title: 'Vision',
-    hint: 'Optional: the long-term life you want. Your goals should move you towards it.',
-  },
-  cycle: {
-    title: 'Cycle',
-    hint: 'A cycle is a 12-week "year": short enough to create urgency, long enough to achieve something.',
-  },
-  goals: {
-    title: 'Goals',
-    hint: 'What do you want to achieve in these 12 weeks? Fewer goals = more focus.',
-  },
-  tactics: {
-    title: 'Tactics',
-    hint: 'The repeatable actions that make each goal happen. Your weekly tasks will come from these.',
-  },
-  summary: { title: 'Summary', hint: 'Check everything, then start the cycle.' },
-}
 
 /** What the wizard loads before it can show anything. */
 interface Loaded {
@@ -73,10 +49,13 @@ async function loadPrevious(): Promise<Loaded> {
 }
 
 export default function SetupScreen() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [draft, setDraft] = useState<WizardDraft | null>(null)
-  const [errors, setErrors] = useState<string[]>([])
+  // Problems are stored as codes (or plain text for unexpected errors) and
+  // translated when shown, so switching language updates them too.
+  const [errors, setErrors] = useState<(DraftIssue | string)[]>([])
   const [starting, setStarting] = useState(false)
 
   // Load the previous cycle and any unfinished draft (once).
@@ -86,15 +65,21 @@ export default function SetupScreen() {
       const saved = (await repo.getSetting('wizardDraft')) as WizardDraft | undefined
       const usable = saved?.version === 1 && saved.previousCycleId === (data.previous?.id ?? null)
       setLoaded(data)
-      setDraft(
-        usable
-          ? saved
-          : createDraft({ previous: data.previous, cycleCount: data.cycleCount, today: todayISO() }),
-      )
+      setDraft(usable ? saved : newDraft(data))
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (!loaded || !draft) return <p className="muted">Loading…</p>
+  function newDraft(data: Loaded): WizardDraft {
+    return createDraft({
+      previous: data.previous,
+      cycleCount: data.cycleCount,
+      today: todayISO(),
+      cycleName: t.setup.defaultCycleName,
+    })
+  }
+
+  if (!loaded || !draft) return <p className="muted">{t.common.loading}</p>
 
   const steps = getSteps(loaded.cycleCount === 0, loaded.previous !== null)
   const step = steps.includes(draft.step) ? draft.step : steps[0]
@@ -122,10 +107,10 @@ export default function SetupScreen() {
   const back = () => goTo(steps[index - 1])
 
   const startOver = async () => {
-    if (!confirm('Discard everything entered in this wizard and start again?')) return
+    if (!confirm(t.setup.confirmStartOver)) return
     await repo.deleteSetting('wizardDraft')
     setErrors([])
-    setDraft(createDraft({ previous: loaded.previous, cycleCount: loaded.cycleCount, today: todayISO() }))
+    setDraft(newDraft(loaded))
   }
 
   const start = async () => {
@@ -161,7 +146,7 @@ export default function SetupScreen() {
     }
   }
 
-  const info = STEP_INFO[step]
+  const info = t.setup.steps[step]
   const props = { draft, change }
 
   return (
@@ -173,7 +158,7 @@ export default function SetupScreen() {
           ))}
         </div>
         <button className="link" onClick={startOver}>
-          Start over
+          {t.setup.startOver}
         </button>
       </div>
       <h1>{info.title}</h1>
@@ -189,8 +174,8 @@ export default function SetupScreen() {
 
       {errors.length > 0 && (
         <ul className="errors" role="alert">
-          {errors.map((e) => (
-            <li key={e}>{e}</li>
+          {errors.map((e, i) => (
+            <li key={i}>{typeof e === 'string' ? e : t.setup.issue(e)}</li>
           ))}
         </ul>
       )}
@@ -198,15 +183,15 @@ export default function SetupScreen() {
       {step !== 'welcome' && (
         <div className="wizard-nav">
           <button className="btn" onClick={back} disabled={index === 0}>
-            Back
+            {t.common.back}
           </button>
           {step === 'summary' ? (
             <button className="btn primary" onClick={start} disabled={starting}>
-              {starting ? 'Starting…' : 'Start cycle'}
+              {starting ? t.setup.starting : t.setup.startCycle}
             </button>
           ) : (
             <button className="btn primary" onClick={next}>
-              Next
+              {t.common.next}
             </button>
           )}
         </div>

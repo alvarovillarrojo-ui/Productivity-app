@@ -1,5 +1,7 @@
 import Placeholder from './Placeholder'
+import { useI18n } from '../i18n'
 
 export default function DataScreen() {
-  return <Placeholder title="Data" step="step 9" />
+  const { t, lang } = useI18n()
+  return <Placeholder title={t.nav.data} step={lang === 'es' ? 'el paso 9' : 'step 9'} />
 }
