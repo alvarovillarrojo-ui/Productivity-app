@@ -53,6 +53,33 @@ describe('cycles', () => {
     ).rejects.toThrow(/still active/)
   })
 
+  it('startNewCycle closes the old cycle and creates the new one with goals and tactics', async () => {
+    const { cycle: old } = await seed()
+    const created = await repo.startNewCycle({
+      cycle: { name: 'Cycle 2', start_date: '2026-04-06', length_weeks: 12, vision: null, notes: '' },
+      goals: [
+        {
+          name: 'Learning',
+          description: '',
+          weekly_hours_target: 4,
+          weekly_hours_minimum: null,
+          tactics: [
+            { name: 'Read', description: '', weekly_frequency: 5 },
+            { name: 'Write', description: '', weekly_frequency: null },
+          ],
+        },
+      ],
+    })
+    expect((await repo.getCycle(old.id))?.status).toBe('closed')
+    expect((await repo.getActiveCycle())?.id).toBe(created.id)
+    const [goal] = await repo.listGoals(created.id)
+    expect(goal.name).toBe('Learning')
+    expect((await repo.listTactics(goal.id)).map((t) => [t.name, t.sort_order])).toEqual([
+      ['Read', 0],
+      ['Write', 1],
+    ])
+  })
+
   it('deleting a cycle removes its goals, tactics and tasks', async () => {
     const { cycle, tactic } = await seed()
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })

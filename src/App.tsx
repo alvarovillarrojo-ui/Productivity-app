@@ -1,6 +1,6 @@
 // App layout: top navigation bar + the current screen.
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
-import HomeScreen from './screens/HomeScreen'
+import HomeGate from './components/HomeGate'
 import TasksScreen from './screens/TasksScreen'
 import GoalsScreen from './screens/GoalsScreen'
 import TrackingScreen from './screens/TrackingScreen'
@@ -34,7 +34,7 @@ export default function App() {
       </header>
       <main className="content">
         <Routes>
-          <Route path="/" element={<HomeScreen />} />
+          <Route path="/" element={<HomeGate />} />
           <Route path="/tasks" element={<TasksScreen />} />
           <Route path="/goals" element={<GoalsScreen />} />
           <Route path="/tracking" element={<TrackingScreen />} />

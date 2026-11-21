@@ -76,6 +76,46 @@ async function assertNoOtherActive(id: string): Promise<void> {
   }
 }
 
+/** A complete new cycle as produced by the setup wizard. */
+export interface NewCyclePlan {
+  cycle: Omit<Cycle, AutoFields | 'status'>
+  goals: Array<
+    Omit<Goal, 'id' | 'cycle_id' | 'sort_order'> & {
+      tactics: Array<Omit<Tactic, 'id' | 'goal_id' | 'sort_order' | 'active'>>
+    }
+  >
+}
+
+/**
+ * "Start cycle" from the setup wizard: closes the currently active cycle (if
+ * any) and creates the new active cycle with its goals and tactics.
+ * One transaction: if anything fails, nothing changes.
+ */
+export async function startNewCycle(plan: NewCyclePlan): Promise<Cycle> {
+  return db.transaction('rw', db.cycles, db.goals, db.tactics, async () => {
+    await db.cycles
+      .where('status')
+      .equals('active')
+      .modify({ status: 'closed', updated_at: now() })
+    const cycle: Cycle = {
+      ...plan.cycle,
+      status: 'active',
+      id: newId(),
+      created_at: now(),
+      updated_at: now(),
+    }
+    await db.cycles.add(cycle)
+    for (const [gi, { tactics, ...g }] of plan.goals.entries()) {
+      const goal: Goal = { ...g, id: newId(), cycle_id: cycle.id, sort_order: gi }
+      await db.goals.add(goal)
+      await db.tactics.bulkAdd(
+        tactics.map((t, ti) => ({ ...t, id: newId(), goal_id: goal.id, sort_order: ti, active: true })),
+      )
+    }
+    return cycle
+  })
+}
+
 /** Deletes a cycle and everything inside it (goals, tactics, tasks). */
 export async function deleteCycle(id: string): Promise<void> {
   await db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
