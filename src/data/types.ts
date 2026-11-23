@@ -72,6 +72,8 @@ export interface Task {
   /** Null = "Other": shown, but not counted in execution %. */
   tactic_id: string | null
   planned_date: ISODate | null
+  /** Start time "HH:MM" in the calendar (v0.2). Missing/null = not placed at a time. */
+  start_time?: string | null
   planned_hours: number | null
   actual_hours: number | null
   status: TaskStatus
@@ -136,6 +138,25 @@ export interface HabitCheck {
   date: ISODate
 }
 
+/**
+ * Something in the calendar that isn't a task: a class, an exam, a meeting.
+ * No times = all day. A weekly event repeats every week on the same weekday
+ * (until `repeat_until`, or forever).
+ */
+export interface CalendarEvent {
+  id: string
+  title: string
+  date: ISODate
+  /** "HH:MM", or null for an all-day event. */
+  start_time: string | null
+  end_time: string | null
+  repeat_weekly: boolean
+  repeat_until: ISODate | null
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
 /** All user data in one object: what a backup contains. */
 export interface AllData {
   cycles: Cycle[]
@@ -144,6 +165,7 @@ export interface AllData {
   tasks: Task[]
   habits: Habit[]
   habit_checks: HabitCheck[]
+  events: CalendarEvent[]
 }
 
 /**

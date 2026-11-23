@@ -86,7 +86,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [] })
   })
 })
 
@@ -179,7 +179,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -192,6 +192,7 @@ describe('backup data', () => {
       tactics: [],
       habits: [],
       habit_checks: [],
+      events: [],
       tasks: [
         {
           id: repo.newId(),

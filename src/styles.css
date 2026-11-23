@@ -311,3 +311,79 @@ h3 { font-size: 1rem; margin: 0.5rem 0; }
 .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .habit-form h3 { margin: 0.4rem 0 0; font-size: 0.9rem; color: var(--accent); }
 .suggestion-group p { margin: 0 0 0.35rem; }
+
+/* ---------- modal ---------- */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 1rem 1rem; z-index: 50; overflow-y: auto; }
+.modal { width: min(32rem, 100%); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
+.modal h2 { margin: 0; }
+.modal h3 { margin: 0.25rem 0 0; }
+.modal-close { font-size: 1.5rem; line-height: 1; color: var(--muted); }
+
+/* ---------- calendar ---------- */
+.tabs.compact { margin: 0; }
+.cal-label { font-size: 1.05rem; }
+.week-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.week-grid { display: grid; grid-template-columns: 3.2rem repeat(7, minmax(5.5rem, 1fr)); min-width: 44rem; }
+.wk-corner, .wk-head { position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.4rem 0.3rem; text-align: center; font-size: 0.85rem; z-index: 2; }
+.wk-head.today { color: var(--accent); }
+.wk-head span { text-transform: capitalize; }
+.wk-allday { border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); padding: 2px; min-height: 1.8rem; display: flex; flex-direction: column; gap: 2px; }
+.wk-allday-label { font-size: 0.65rem; color: var(--muted); text-align: right; padding: 0.3rem 0.35rem; border-bottom: 1px solid var(--border); line-height: 1.1; }
+.wk-hours { display: flex; flex-direction: column; }
+.wk-hour { font-size: 0.7rem; color: var(--muted); text-align: right; padding: 0 0.35rem; transform: translateY(-0.45rem); }
+.wk-hours .wk-hour:first-child { transform: none; }
+.wk-col {
+  position: relative;
+  border-left: 1px solid var(--border);
+  background-image: linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  cursor: cell;
+}
+.wk-col.today { background-color: #f8fafc; }
+.cal-item {
+  position: absolute;
+  font: inherit;
+  font-size: 0.75rem;
+  color: #fff;
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 1px 4px;
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.cal-item.compact { position: static; width: 100%; }
+.cal-item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-item-time { opacity: 0.9; font-size: 0.7rem; }
+.cal-item.status-done { opacity: 0.55; }
+.cal-item.status-missed { opacity: 0.55; text-decoration: line-through; }
+.cal-item.event { background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(255, 255, 255, 0.12) 6px 12px); }
+.now-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--bad); pointer-events: none; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.month-head { background: var(--surface); text-align: center; font-size: 0.8rem; color: var(--muted); padding: 0.35rem; text-transform: capitalize; }
+.month-cell {
+  font: inherit;
+  text-align: left;
+  min-height: 5.5rem;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  min-width: 0;
+}
+.month-cell:nth-child(7n + 1) { border-left: none; }
+.month-cell:hover { background: var(--surface); }
+.month-cell.out { color: var(--muted); background: #fafafa; }
+.month-cell.today .month-day { background: var(--accent); color: #fff; border-radius: 999px; padding: 0 0.4rem; }
+.month-day { font-weight: 600; font-size: 0.85rem; align-self: flex-start; }
+.month-item { font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.month-item.done { text-decoration: line-through; color: var(--muted); }
+.dot-color { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; margin-right: 0.25rem; vertical-align: middle; }
+@media (max-width: 600px) { .month-cell { min-height: 4rem; } .month-item { font-size: 0.65rem; } }

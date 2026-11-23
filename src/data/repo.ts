@@ -8,6 +8,7 @@ import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
 import { planRecurring, weeksToPrepare } from '../logic/taskActions'
 import type {
   AllData,
+  CalendarEvent,
   Cycle,
   CycleStatus,
   Goal,
@@ -383,10 +384,33 @@ export async function toggleHabitCheck(habitId: string, date: ISODate): Promise<
   })
 }
 
+// ---------- calendar events ----------
+
+/** All events (there are few; repeats are expanded in logic/calendar.ts). */
+export async function listEvents(): Promise<CalendarEvent[]> {
+  return db.events.toArray()
+}
+
+export type NewEvent = Omit<CalendarEvent, AutoFields>
+
+export async function createEvent(data: NewEvent): Promise<CalendarEvent> {
+  const event: CalendarEvent = { ...data, id: newId(), created_at: now(), updated_at: now() }
+  await db.events.add(event)
+  return event
+}
+
+export async function updateEvent(id: string, changes: Partial<NewEvent>): Promise<void> {
+  await db.events.update(id, { ...changes, updated_at: now() })
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  await db.events.delete(id)
+}
+
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */

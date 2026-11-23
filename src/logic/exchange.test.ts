@@ -202,6 +202,10 @@ describe('backup', () => {
   const data: AllData = {
     cycles: [cycle], goals, tactics, tasks: [task({ id: 'k1' })],
     habits: [habit], habit_checks: [{ id: 'h1|2026-11-10', habit_id: 'h1', date: '2026-11-10' }],
+    events: [{
+      id: 'e1', title: 'Corporate Finance', date: '2026-11-10', start_time: '09:00', end_time: '10:30',
+      repeat_weekly: true, repeat_until: null, notes: '', created_at: 'x', updated_at: 'x',
+    }],
   }
 
   it('round-trips through JSON', () => {
@@ -216,6 +220,7 @@ describe('backup', () => {
     const old = buildBackup(data, 'x') as unknown as { data: Record<string, unknown> }
     delete old.data.habits
     delete old.data.habit_checks
+    delete old.data.events
     const r = parseBackup(JSON.parse(JSON.stringify(old)))
     expect(r.issues).toEqual([])
     expect(r.data!.habits).toEqual([])

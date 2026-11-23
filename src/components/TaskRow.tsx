@@ -56,6 +56,7 @@ export default function TaskRow({ task, context, showDate = true, overdue, onEdi
           {showDate && task.planned_date && (
             <span className={overdue ? 'bad' : undefined}>{date(task.planned_date)} · </span>
           )}
+          {task.planned_date && task.start_time && <span>🕘 {task.start_time} · </span>}
           {context}
           {hours && ` · ${hours}`}
         </span>

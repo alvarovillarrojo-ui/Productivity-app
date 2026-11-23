@@ -30,6 +30,8 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
       title: form.title.trim(),
       tactic_id: form.tactic_id,
       planned_date: form.planned_date || null,
+      // A time only makes sense with a date.
+      start_time: form.planned_date ? form.start_time || null : null,
       planned_hours: form.planned_hours,
       actual_hours: form.actual_hours,
       notes: form.notes,
@@ -59,6 +61,16 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
               max={maxDate}
               value={form.planned_date ?? ''}
               onChange={(e) => set({ planned_date: e.target.value || null })}
+            />
+          </label>
+          <label className="field">
+            <span>{t.tasks.edit.startTime}</span>
+            <input
+              type="time"
+              step={900}
+              disabled={!form.planned_date}
+              value={form.start_time ?? ''}
+              onChange={(e) => set({ start_time: e.target.value || null })}
             />
           </label>
           <label className="field">

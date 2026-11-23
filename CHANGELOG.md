@@ -8,6 +8,11 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Calendar: week view with hours and month view. Add events (classes,
+  exams, meetings), optionally repeating every week; place tasks at a day
+  and time as blocks coloured by goal (overlaps shown side by side); tick or
+  move them from the calendar. Tasks list their time, and the task edit form
+  has a time field.
 - Habits, set up the Atomic Habits way (identity, habit stacking, plan,
   2-minute version, reward) and grouped by the 7 Habits of Highly Effective
   People, with suggestions per category. Tick them per day in Tasks → Habits

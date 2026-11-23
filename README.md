@@ -18,6 +18,7 @@ list your tasks, tick them off, and see your **execution %** (aim for 85%) and
 | **Setup** | Guided wizard for a new cycle: vision, dates, goals, tactics. Reviews the previous cycle first. |
 | **Home** | The daily routine: today's tasks, one-click ✓ / ✗, this week's execution and hours, last backup. |
 | **Tasks** | The weekly list: quick-add, edit; tactic tasks are created automatically every week; copy unfinished tasks to next week. |
+| **Calendar** | Week (hours) and month views: events such as classes or exams, and your tasks placed at a time. |
 | **Goals** | Edit the cycle, goals (hour targets) and tactics (times per week). |
 | **Tracking** | The whole cycle: execution % per week (chart), week-by-week table, hours per goal. |
 | **Data** | Backup / restore, export a week (JSON + Markdown), import from JSON. |

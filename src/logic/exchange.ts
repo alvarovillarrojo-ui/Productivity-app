@@ -28,6 +28,7 @@ import {
   type HoursLevel,
 } from './metrics'
 import { isMonday, isValidDate, weekEnd, weekStart } from './weeks'
+import { isValidTime } from './calendar'
 
 export const SCHEMA_VERSION = '1.0'
 const APP_ID = 'twelve-week-tracker'
@@ -642,7 +643,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -660,7 +661,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   tasks: {
     id: 'id', cycle_id: 'id', week_number: 'int', title: 'text', tactic_id: 'textNull',
     planned_date: 'dateNull', planned_hours: 'numNull', actual_hours: 'numNull', status: 'status',
-    miss_reason: 'textNull', notes: 'text', created_at: 'text', updated_at: 'text',
+    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', created_at: 'text', updated_at: 'text',
   },
   // Added in v0.2. Backups from v0.1 don't have these lists (= no habits).
   habits: {
@@ -669,10 +670,14 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     start_date: 'date', sort_order: 'num', created_at: 'text', updated_at: 'text',
   },
   habit_checks: { id: 'id', habit_id: 'id', date: 'date' },
+  events: {
+    id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',
+    repeat_weekly: 'bool', repeat_until: 'dateNull', notes: 'text', created_at: 'text', updated_at: 'text',
+  },
 }
 
 /** Lists that older backups may not have yet. */
-const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks']
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -690,6 +695,9 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     // Optional (added in v0.2): { "week|tacticId": number }
     case 'countsOptional':
       return v === undefined || (isObj(v) && Object.values(v).every((n) => typeof n === 'number'))
+    case 'time': return typeof v === 'string' && isValidTime(v)
+    case 'timeNull': return v === null || (typeof v === 'string' && isValidTime(v))
+    case 'timeOptional': return v === undefined || v === null || (typeof v === 'string' && isValidTime(v))
     case 'category': return HABIT_CATEGORIES.includes(v as HabitCategory)
     case 'weekdays':
       return Array.isArray(v) && v.length > 0 && v.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)
@@ -763,6 +771,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       tasks: data.tasks.map((x) => pick(x, 'tasks')),
       habits: data.habits.map((x) => pick(x, 'habits')),
       habit_checks: data.habit_checks.map((x) => pick(x, 'habit_checks')),
+      events: data.events.map((x) => pick(x, 'events')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }

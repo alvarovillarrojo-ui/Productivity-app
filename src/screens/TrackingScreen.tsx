@@ -22,6 +22,7 @@ import type { Cycle, Goal, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import NoActiveCycle from '../components/NoActiveCycle'
 import { pctClass } from '../components/pctClass'
+import { goalColor, OVERALL_COLOR } from '../components/colors'
 import {
   bestAndWorstWeeks,
   cycleExecution,
@@ -39,10 +40,6 @@ import {
 } from '../logic/metrics'
 import { cyclePosition, todayISO, weekStart } from '../logic/weeks'
 
-/** Fixed colour per goal (by goal order), so a goal keeps its colour everywhere. */
-const GOAL_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948']
-const OVERALL_COLOR = '#1f2937'
-const goalColor = (i: number) => GOAL_COLORS[i % GOAL_COLORS.length]
 
 export default function TrackingScreen() {
   const cycle = useActiveCycle()
