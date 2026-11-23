@@ -64,9 +64,21 @@ exact address, so a different port would open with empty data.
 
 ## Hosting on GitHub Pages
 
-The workflow in `.github/workflows/deploy.yml` builds the app with
-`BASE_PATH=/<repo>/` and publishes it to GitHub Pages. Each visitor's data
-stays in their own browser; the hosted site has no access to it.
+The workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+runs the tests, builds the app with `BASE_PATH=/<repo>/` and publishes it to
+`https://<user>.github.io/<repo>/`.
+
+First time:
+
+1. On GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. **Actions → Deploy to GitHub Pages → Run workflow**.
+
+It only runs when started by hand. To deploy on every push to `main`,
+uncomment the `push:` lines at the top of the workflow.
+
+The hosted app is just static files. Each visitor's data stays in their own
+browser; the hosted site (and GitHub) has no access to it. Data on the hosted
+site is separate from data on `localhost:5180`: move it with Backup → Restore.
 
 ## Project structure
 

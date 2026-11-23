@@ -1,0 +1,63 @@
+# Builds the app and publishes it to GitHub Pages at
+#   https://<user>.github.io/<repo>/
+#
+# For now it ONLY runs when started by hand:
+#   GitHub → Actions → "Deploy to GitHub Pages" → Run workflow
+# To deploy automatically on every push to main, uncomment the `push` lines.
+#
+# The hosted app is just static files. Each visitor's data stays in their own
+# browser; nothing is sent to GitHub or anywhere else.
+name: Deploy to GitHub Pages
+
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time; don't cancel one that is already running.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # The app lives under /<repo>/ on GitHub Pages.
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4
