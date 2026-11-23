@@ -4,6 +4,7 @@
 //
 // Texts with changing parts are small functions, e.g. weekN(3) → "Week 3".
 import type { DraftIssue } from '../screens/setup/draft'
+import type { DataIssue } from '../logic/exchange'
 
 export const en = {
   appName: '12 Week Tracker',
@@ -231,6 +232,123 @@ export const en = {
     hoursHint: 'Actual hours of target. Green = target reached, orange = only the minimum, red = below the minimum.',
     totalFinished: (n: number) => `Total (${n} finished week${n === 1 ? '' : 's'})`,
     other: 'Other',
+  },
+
+  data: {
+    title: 'Data',
+    intro: 'Everything stays on this device. Back up regularly to keep it safe; export a week to review or share it.',
+    backup: {
+      title: 'Backup',
+      hint: 'One file with all your cycles, goals, tactics and tasks. Keep it somewhere safe, e.g. a folder synced to the cloud.',
+      last: (when: string) => `Last backup: ${when}.`,
+      never: 'No backup yet.',
+      now: 'Back up now',
+      chooseFolder: 'Choose backup folder',
+      changeFolder: 'Change folder',
+      folder: (name: string) => `Folder: ${name}`,
+      download: 'Download backup',
+      downloadInstead: 'Download a copy instead',
+      noFolderSupport: 'This browser can’t save to a chosen folder, so the backup is downloaded (usually to Downloads).',
+      savedFolder: (file: string, folder: string) => `Saved ${file} in “${folder}”.`,
+      downloaded: (file: string) => `Downloaded ${file}.`,
+      failed: (msg: string) => `Backup failed: ${msg}`,
+    },
+    restore: {
+      title: 'Restore from backup',
+      hint: 'Replaces ALL data in the app with the backup. If you might need what is here now, back it up first.',
+      choose: 'Choose backup file',
+      contains: (c: number, g: number, t: number, k: number) =>
+        `This backup has ${c} cycle(s), ${g} goal(s), ${t} tactic(s) and ${k} task(s).`,
+      madeOn: (date: string) => `Made on ${date}.`,
+      button: 'Replace all my data with this backup',
+      confirm: 'This deletes everything currently in the app and replaces it with the backup. Continue?',
+      done: 'Backup restored.',
+      problems: 'This file can’t be restored:',
+    },
+    export: {
+      title: 'Export a week',
+      hint: 'A report of one week: JSON (can be imported again) and Markdown (easy to read or share). Your vision is left out unless you tick the box.',
+      week: 'Week',
+      lastCompleted: ' (last completed)',
+      includeVision: 'Include my vision (private)',
+      json: 'Download JSON',
+      md: 'Download Markdown',
+      downloaded: (file: string) => `Downloaded ${file}.`,
+    },
+    import: {
+      title: 'Import',
+      hint: 'Add goals, tactics and tasks from a JSON file (schema 1.0, see docs/import_schema.md). Existing data is never changed or deleted.',
+      chooseFile: 'Choose JSON file',
+      paste: '…or paste JSON here',
+      check: 'Check',
+      clear: 'Clear',
+      into: (name: string) => `Goes into the active cycle “${name}”.`,
+      newCycle: (name: string, date: string, weeks: number) =>
+        `Creates a new cycle “${name}”: ${weeks} weeks from ${date}.`,
+      cycleIgnored: 'The file also describes a cycle. That part is ignored, because a cycle is already active.',
+      newGoals: (names: string) => `New goals: ${names}`,
+      newTactics: (names: string) => `New tactics: ${names}`,
+      tasks: (n: number) => `${n} task(s) to add.`,
+      duplicates: (n: number) => `${n} task(s) already exist and will be skipped.`,
+      nothingNew: 'Nothing new: everything in this file is already in the app.',
+      button: 'Import',
+      done: 'Imported.',
+      goHome: 'Go to Home →',
+      problems: 'Fix these problems in the file, then check again:',
+    },
+    issue: (i: DataIssue): string => {
+      const at = i.path ? `${i.path}: ` : ''
+      switch (i.code) {
+        case 'invalidJson': return `This is not valid JSON (${i.detail}).`
+        case 'notObject': return `${at || 'The file '}should be an object { … }.`
+        case 'version': return `Unknown schema_version “${i.detail}”. This app reads version “1.0”.`
+        case 'nothing': return 'The file has no cycle, goals or tasks.'
+        case 'missingCycle': return 'There is no active cycle, so the file must include a “cycle” (name, start_date, length_weeks).'
+        case 'list': return `${at}should be a list [ … ].`
+        case 'required': return `${at}is required.`
+        case 'text': return `${at}should be text.`
+        case 'number': return `${at}should be a number of hours (0 or more).`
+        case 'boolean': return `${at}should be true or false.`
+        case 'frequency': return `${at}should be a whole number from 1 to 14.`
+        case 'length': return `${at}should be a whole number of weeks from 1 to 52.`
+        case 'date': return `${at}“${i.detail}” is not a valid date (use YYYY-MM-DD).`
+        case 'monday': return `${at}${i.detail} is not a Monday. Cycles start on a Monday.`
+        case 'week': return `${at}should be a week number inside the cycle.`
+        case 'dateOutsideWeek': return `${at}${i.detail} is not inside that week.`
+        case 'status': return `${at}“${i.detail}” should be todo, done or missed.`
+        case 'minAboveTarget': return `${at}the minimum is higher than the target.`
+        case 'duplicateName': return `${at}“${i.detail}” appears twice.`
+        case 'tacticNeedsGoal': return `${at}names tactic “${i.detail}” but not its goal.`
+        case 'unknownTactic': return `${at}“${i.detail}” doesn’t exist in the file or in the app.`
+        case 'notBackup': return 'This is not a backup file. (To add data from a file, use Import.)'
+        case 'record': return `${at}missing or invalid.`
+        case 'link': return `${at}points to something that isn’t in the backup.`
+        case 'duplicateId': return `${at}uses an id that appears twice.`
+        case 'manyActive': return 'The backup has more than one active cycle.'
+      }
+    },
+  },
+
+  // Texts inside the exported Markdown week report.
+  report: {
+    weekOf: (w: number, n: number) => `Week ${w} of ${n}`,
+    exported: (date: string) => `exported ${date}`,
+    execution: 'Execution',
+    goal: 'Goal',
+    done: 'Done',
+    counted: 'Counted',
+    overall: 'Overall',
+    targetNote: 'Execution = done ÷ (done + missed + overdue). Target: 85%.',
+    hours: 'Hours',
+    actual: 'Actual',
+    target: 'Target',
+    minimum: 'Minimum',
+    level: { target: '✓ target', minimum: '~ minimum only', below: '✗ below' },
+    other: 'Other',
+    tasks: 'Tasks',
+    planned: 'planned',
+    noTasks: 'No tasks this week.',
+    vision: 'Vision',
   },
 
   tasks: {

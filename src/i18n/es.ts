@@ -1,5 +1,6 @@
 // Textos en español. Debe tener exactamente las mismas claves que `en.ts`.
 import type { Dict } from './en'
+import type { DataIssue } from '../logic/exchange'
 
 export const es: Dict = {
   appName: '12 Week Tracker',
@@ -231,6 +232,122 @@ export const es: Dict = {
     hoursHint: 'Horas reales sobre el objetivo. Verde = objetivo cumplido, naranja = solo el mínimo, rojo = por debajo del mínimo.',
     totalFinished: (n: number) => `Total (${n} semana${n === 1 ? '' : 's'} terminada${n === 1 ? '' : 's'})`,
     other: 'Otras',
+  },
+
+  data: {
+    title: 'Datos',
+    intro: 'Todo se queda en este dispositivo. Haz copias de seguridad a menudo; exporta una semana para revisarla o compartirla.',
+    backup: {
+      title: 'Copia de seguridad',
+      hint: 'Un archivo con todos tus ciclos, objetivos, tácticas y tareas. Guárdalo en un sitio seguro, p. ej. una carpeta sincronizada con la nube.',
+      last: (when: string) => `Última copia: ${when}.`,
+      never: 'Aún no hay copia de seguridad.',
+      now: 'Hacer copia ahora',
+      chooseFolder: 'Elegir carpeta de copias',
+      changeFolder: 'Cambiar carpeta',
+      folder: (name: string) => `Carpeta: ${name}`,
+      download: 'Descargar copia',
+      downloadInstead: 'Descargar una copia en su lugar',
+      noFolderSupport: 'Este navegador no puede guardar en una carpeta elegida, así que la copia se descarga (normalmente en Descargas).',
+      savedFolder: (file: string, folder: string) => `${file} guardado en «${folder}».`,
+      downloaded: (file: string) => `${file} descargado.`,
+      failed: (msg: string) => `La copia ha fallado: ${msg}`,
+    },
+    restore: {
+      title: 'Restaurar una copia',
+      hint: 'Sustituye TODOS los datos de la app por los de la copia. Si puedes necesitar lo que hay ahora, haz una copia antes.',
+      choose: 'Elegir archivo de copia',
+      contains: (c: number, g: number, t: number, k: number) =>
+        `Esta copia tiene ${c} ciclo(s), ${g} objetivo(s), ${t} táctica(s) y ${k} tarea(s).`,
+      madeOn: (date: string) => `Hecha el ${date}.`,
+      button: 'Sustituir todos mis datos por esta copia',
+      confirm: 'Esto borra todo lo que hay ahora en la app y lo sustituye por la copia. ¿Continuar?',
+      done: 'Copia restaurada.',
+      problems: 'Este archivo no se puede restaurar:',
+    },
+    export: {
+      title: 'Exportar una semana',
+      hint: 'Un informe de una semana: JSON (se puede volver a importar) y Markdown (fácil de leer o compartir). Tu visión no se incluye salvo que marques la casilla.',
+      week: 'Semana',
+      lastCompleted: ' (última terminada)',
+      includeVision: 'Incluir mi visión (privada)',
+      json: 'Descargar JSON',
+      md: 'Descargar Markdown',
+      downloaded: (file: string) => `${file} descargado.`,
+    },
+    import: {
+      title: 'Importar',
+      hint: 'Añade objetivos, tácticas y tareas desde un archivo JSON (esquema 1.0, ver docs/import_schema.md). Nunca se cambia ni se borra nada de lo que ya hay.',
+      chooseFile: 'Elegir archivo JSON',
+      paste: '…o pega el JSON aquí',
+      check: 'Comprobar',
+      clear: 'Borrar',
+      into: (name: string) => `Se añade al ciclo activo «${name}».`,
+      newCycle: (name: string, date: string, weeks: number) =>
+        `Crea un ciclo nuevo «${name}»: ${weeks} semanas desde el ${date}.`,
+      cycleIgnored: 'El archivo también describe un ciclo. Esa parte se ignora porque ya hay un ciclo activo.',
+      newGoals: (names: string) => `Objetivos nuevos: ${names}`,
+      newTactics: (names: string) => `Tácticas nuevas: ${names}`,
+      tasks: (n: number) => `${n} tarea(s) para añadir.`,
+      duplicates: (n: number) => `${n} tarea(s) ya existen y se saltarán.`,
+      nothingNew: 'Nada nuevo: todo lo de este archivo ya está en la app.',
+      button: 'Importar',
+      done: 'Importado.',
+      goHome: 'Ir a Inicio →',
+      problems: 'Corrige estos problemas en el archivo y vuelve a comprobar:',
+    },
+    issue: (i: DataIssue): string => {
+      const at = i.path ? `${i.path}: ` : ''
+      switch (i.code) {
+        case 'invalidJson': return `Esto no es JSON válido (${i.detail}).`
+        case 'notObject': return `${at || 'El archivo '}debe ser un objeto { … }.`
+        case 'version': return `schema_version «${i.detail}» desconocida. Esta app lee la versión «1.0».`
+        case 'nothing': return 'El archivo no tiene ciclo, objetivos ni tareas.'
+        case 'missingCycle': return 'No hay ningún ciclo activo, así que el archivo debe incluir un «cycle» (name, start_date, length_weeks).'
+        case 'list': return `${at}debe ser una lista [ … ].`
+        case 'required': return `${at}es obligatorio.`
+        case 'text': return `${at}debe ser texto.`
+        case 'number': return `${at}debe ser un número de horas (0 o más).`
+        case 'boolean': return `${at}debe ser true o false.`
+        case 'frequency': return `${at}debe ser un número entero del 1 al 14.`
+        case 'length': return `${at}debe ser un número entero de semanas del 1 al 52.`
+        case 'date': return `${at}«${i.detail}» no es una fecha válida (usa AAAA-MM-DD).`
+        case 'monday': return `${at}${i.detail} no es lunes. Los ciclos empiezan en lunes.`
+        case 'week': return `${at}debe ser un número de semana dentro del ciclo.`
+        case 'dateOutsideWeek': return `${at}${i.detail} no está dentro de esa semana.`
+        case 'status': return `${at}«${i.detail}» debe ser todo, done o missed.`
+        case 'minAboveTarget': return `${at}el mínimo es mayor que el objetivo.`
+        case 'duplicateName': return `${at}«${i.detail}» aparece dos veces.`
+        case 'tacticNeedsGoal': return `${at}indica la táctica «${i.detail}» pero no su objetivo.`
+        case 'unknownTactic': return `${at}«${i.detail}» no existe ni en el archivo ni en la app.`
+        case 'notBackup': return 'Esto no es un archivo de copia. (Para añadir datos desde un archivo, usa Importar.)'
+        case 'record': return `${at}falta o no es válido.`
+        case 'link': return `${at}apunta a algo que no está en la copia.`
+        case 'duplicateId': return `${at}usa un id que aparece dos veces.`
+        case 'manyActive': return 'La copia tiene más de un ciclo activo.'
+      }
+    },
+  },
+
+  report: {
+    weekOf: (w: number, n: number) => `Semana ${w} de ${n}`,
+    exported: (date: string) => `exportado el ${date}`,
+    execution: 'Ejecución',
+    goal: 'Objetivo',
+    done: 'Hechas',
+    counted: 'Contadas',
+    overall: 'Total',
+    targetNote: 'Ejecución = hechas ÷ (hechas + no hechas + vencidas). Objetivo: 85 %.',
+    hours: 'Horas',
+    actual: 'Reales',
+    target: 'Objetivo',
+    minimum: 'Mínimo',
+    level: { target: '✓ objetivo', minimum: '~ solo mínimo', below: '✗ por debajo' },
+    other: 'Otras',
+    tasks: 'Tareas',
+    planned: 'previstas',
+    noTasks: 'No hay tareas esta semana.',
+    vision: 'Visión',
   },
 
   tasks: {

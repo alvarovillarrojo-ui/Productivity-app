@@ -265,3 +265,18 @@ h3 { font-size: 1rem; margin: 0.5rem 0; }
 .data-table tfoot td { font-weight: 600; border-bottom: none; }
 .data-table a { color: var(--text); text-decoration: none; }
 .data-table a:hover { text-decoration: underline; }
+
+/* ---------- data ---------- */
+.data .card { scroll-margin-top: 1rem; }
+.card.stack { gap: 0.6rem; }
+.card.stack h2 { margin-bottom: 0; }
+.card.stack p { margin: 0; }
+.card.highlight { border-color: var(--accent); box-shadow: 0 0 0 3px #dbeafe; }
+.file-btn { position: relative; align-self: flex-start; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.mono { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 0.85rem; }
+.errors-box { color: var(--bad); background: #fee2e2; border-radius: 8px; padding: 0.6rem 0.8rem; }
+.errors-box ul { margin: 0.4rem 0 0; padding-left: 1.2rem; overflow-wrap: anywhere; }
+.preview { background: var(--surface); border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; }
+.preview ul { margin: 0; padding-left: 1.2rem; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }

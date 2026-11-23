@@ -4,6 +4,7 @@
 // to a cloud database later, rewrite this file (and `useLive.ts`) and keep the
 // same function names; the UI does not need to change.
 import { db } from './db'
+import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
 import type {
   AllData,
   Cycle,
@@ -363,6 +364,64 @@ export async function addAll(data: AllData): Promise<void> {
     await db.goals.bulkAdd(data.goals)
     await db.tactics.bulkAdd(data.tactics)
     await db.tasks.bulkAdd(data.tasks)
+  })
+}
+
+/**
+ * IMPORT from a file (see logic/exchange.ts): adds the plan's new cycle (if
+ * any), new goals, new tactics and tasks, resolving goal/tactic NAMES to ids.
+ * Nothing existing is changed. One transaction: all or nothing.
+ * Returns the id of the cycle the data went into.
+ */
+export async function applyImport(plan: ImportPlan): Promise<string> {
+  return db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
+    let cycleId: string
+    if (plan.cycle.kind === 'new') {
+      const active = await getActiveCycle()
+      if (active) throw new Error(`Cycle "${active.name}" is still active.`)
+      const cycle: Cycle = { ...plan.cycle.data, id: newId(), status: 'active', created_at: now(), updated_at: now() }
+      await db.cycles.add(cycle)
+      cycleId = cycle.id
+    } else {
+      cycleId = plan.cycle.id
+    }
+
+    const goals = await listGoals(cycleId)
+    const goalByKey = new Map(goals.map((g) => [nameKey(g.name), g]))
+    let goalOrder = goals.reduce((max, g) => Math.max(max, g.sort_order + 1), 0)
+    const tacticIds = new Map<string, string>() // "goal|tactic" key → id
+    const tacticKeyOf = (goal: string, tactic: string) => `${nameKey(goal)}\u0000${nameKey(tactic)}`
+    for (const t of await listTacticsForCycle(cycleId)) {
+      const g = goals.find((x) => x.id === t.goal_id)
+      if (g) tacticIds.set(tacticKeyOf(g.name, t.name), t.id)
+    }
+    const addTactic = async (goal: Goal, t: PlanTactic) => {
+      const order = await db.tactics.where('goal_id').equals(goal.id).count()
+      const tactic: Tactic = { ...t, id: newId(), goal_id: goal.id, sort_order: order }
+      await db.tactics.add(tactic)
+      tacticIds.set(tacticKeyOf(goal.name, t.name), tactic.id)
+    }
+
+    for (const g of plan.newGoals) {
+      const { tactics, ...fields } = g
+      const goal: Goal = { ...fields, id: newId(), cycle_id: cycleId, sort_order: goalOrder++ }
+      await db.goals.add(goal)
+      goalByKey.set(nameKey(goal.name), goal)
+      for (const t of tactics) await addTactic(goal, t)
+    }
+    for (const { goal, tactic } of plan.newTactics) {
+      const g = goalByKey.get(nameKey(goal))
+      if (g) await addTactic(g, tactic)
+    }
+
+    const start = Date.now()
+    const tasks = plan.tasks.map((x, i) => {
+      const { goal, tactic, ...fields } = x
+      const tacticId = goal && tactic ? (tacticIds.get(tacticKeyOf(goal, tactic)) ?? null) : null
+      return buildTask({ ...fields, cycle_id: cycleId, tactic_id: tacticId }, new Date(start + i).toISOString())
+    })
+    await db.tasks.bulkAdd(tasks)
+    return cycleId
   })
 }
 

@@ -216,7 +216,7 @@ function BackupStatus({ today }: { today: string }) {
 
   if (!last) {
     return (
-      <Link className="backup-badge old" to="/data">
+      <Link className="backup-badge old" to="/data?action=backup">
         {t.home.neverBackedUp} · {t.home.backupNow}
       </Link>
     )
@@ -226,7 +226,7 @@ function BackupStatus({ today }: { today: string }) {
   const old = days > BACKUP_WARNING_DAYS
   const when = new Date(last).toLocaleDateString(locale, { day: 'numeric', month: 'short' })
   return (
-    <Link className={old ? 'backup-badge old' : 'backup-badge'} to="/data">
+    <Link className={old ? 'backup-badge old' : 'backup-badge'} to="/data?action=backup">
       {t.home.lastBackup(`${when} (${t.home.daysAgo(days)})`)}
       {old && ` · ${t.home.backupNow}`}
     </Link>

@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from './db'
 import * as repo from './repo'
+import { parseImport } from '../logic/exchange'
 
 async function seed() {
   const cycle = await repo.createCycle({
@@ -210,5 +211,73 @@ describe('backup data', () => {
     const after = await repo.exportAll()
     expect(after.cycles).toEqual(before.cycles)
     expect(after.tasks).toHaveLength(1)
+  })
+})
+
+describe('applyImport', () => {
+  const file = {
+    schema_version: '1.0',
+    cycle: { name: 'Imported', start_date: '2026-11-09', length_weeks: 12 },
+    goals: [
+      { name: 'Fitness', weekly_hours_target: 5, tactics: [{ name: 'Run' }, { name: 'Swim' }] },
+      { name: 'Learning', weekly_hours_target: 3, tactics: [{ name: 'Read', weekly_frequency: 2 }] },
+    ],
+    tasks: [
+      { week_number: 1, title: 'Swim 1 km', goal: 'Fitness', tactic: 'Swim', status: 'done', actual_hours: 1 },
+      { week_number: 1, title: 'Book ch. 1', goal: 'learning', tactic: 'read' },
+      { week_number: 2, title: 'Groceries' },
+    ],
+  }
+
+  it('creates a new active cycle with goals, tactics and linked tasks', async () => {
+    const { plan } = parseImport(file, null)
+    const cycleId = await repo.applyImport(plan!)
+    expect((await repo.getActiveCycle())?.name).toBe('Imported')
+    const goals = await repo.listGoals(cycleId)
+    expect(goals.map((g) => g.name)).toEqual(['Fitness', 'Learning'])
+    const tactics = await repo.listTacticsForCycle(cycleId)
+    expect(tactics.map((t) => t.name)).toEqual(['Run', 'Swim', 'Read'])
+    const tasks = await repo.listTasksForCycle(cycleId)
+    const byTitle = Object.fromEntries(tasks.map((t) => [t.title, t]))
+    expect(byTitle['Swim 1 km'].tactic_id).toBe(tactics[1].id)
+    expect(byTitle['Book ch. 1'].tactic_id).toBe(tactics[2].id)
+    expect(byTitle['Groceries'].tactic_id).toBeNull()
+    expect(byTitle['Swim 1 km']).toMatchObject({ status: 'done', actual_hours: 1 })
+  })
+
+  it('adds into the active cycle without changing what exists', async () => {
+    const { cycle, goal, tactic } = await seed()
+    const target = {
+      cycle,
+      goals: await repo.listGoals(cycle.id),
+      tactics: await repo.listTacticsForCycle(cycle.id),
+      tasks: [],
+    }
+    const { plan } = parseImport(
+      {
+        schema_version: '1.0',
+        goals: [{ name: 'fitness', weekly_hours_target: 99, tactics: [{ name: 'Run' }, { name: 'Gym' }] }],
+        tasks: [
+          { week_number: 1, title: 'Run', goal: 'Fitness', tactic: 'Run' },
+          { week_number: 1, title: 'Gym', goal: 'Fitness', tactic: 'Gym' },
+        ],
+      },
+      target,
+    )
+    await repo.applyImport(plan!)
+    const goals = await repo.listGoals(cycle.id)
+    expect(goals).toHaveLength(1)
+    expect(goals[0].weekly_hours_target).toBe(goal.weekly_hours_target) // unchanged
+    const tactics = await repo.listTactics(goal.id)
+    expect(tactics.map((t) => [t.name, t.sort_order])).toEqual([['Run', 0], ['Gym', 1]])
+    const tasks = await repo.listTasksForCycle(cycle.id)
+    expect(tasks.map((t) => t.tactic_id)).toEqual([tactic.id, tactics[1].id])
+  })
+
+  it('refuses to create a second active cycle', async () => {
+    await seed()
+    const { plan } = parseImport(file, null) // planned as if nothing were active
+    await expect(repo.applyImport(plan!)).rejects.toThrow()
+    expect(await repo.listCycles()).toHaveLength(1)
   })
 })
