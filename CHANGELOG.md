@@ -8,6 +8,18 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Day screen with the daily Opening and Closing. Opening: week and cycle days
+  left, planned or reactive, today's must-do (also on Home), today's
+  schedule, free time (waking hours minus the calendar, adjustable), a
+  3-week deadlines radar (one-off events), what's lagging (execution below
+  target, hours behind pace, overdue tasks, habits at risk) and today's
+  habits. Closing: today's tasks to mark, day score, a reflection (listed in
+  Tracking) and the open habits. Saved per day and part of backups.
+- Fail causes: marking a task ✗ offers Planning, Unforeseen, Energy or
+  Meaning; Tracking shows the causes per week and the most frequent one.
+
+### Added
+
 - Delete a cycle: Goals → Cycles lists every cycle (active and closed) with
   its goals and tasks, and deletes one after a clear warning. Habits and
   calendar events are kept.

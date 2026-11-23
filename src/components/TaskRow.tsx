@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom'
 import type { Task } from '../data/types'
 import StatusButtons from './StatusButtons'
+import CausePicker from './CausePicker'
 import { useI18n } from '../i18n'
 import { formatHours } from '../logic/metrics'
 
@@ -52,6 +53,7 @@ export default function TaskRow({ task, context, showDate = true, overdue, minim
             <span className="minimum"> · ½ = {minimum}</span>
           )}
         </span>
+        <CausePicker task={task} />
       </div>
       {(onEdit || onDelete) && (
         <div className="task-actions">

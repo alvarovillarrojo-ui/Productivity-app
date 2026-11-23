@@ -17,6 +17,7 @@ import Modal from '../components/Modal'
 import NumberField from '../components/NumberField'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import StatusButtons from '../components/StatusButtons'
+import CausePicker from '../components/CausePicker'
 import { EVENT_COLOR, eventColorOf, goalColorOf } from '../components/colors'
 import ColorPicker from '../components/ColorPicker'
 import {
@@ -588,6 +589,7 @@ function TaskDialog({
       <p className="muted small-text">{tacticLabel(task.tactic_id, goals, tactics, t.common.other)}</p>
       <div className="row">
         <StatusButtons task={task} minimum={minimumOf(task.tactic_id, tactics)} />
+        <CausePicker task={task} />
         {task.status === 'todo' && (
           <Link className="btn" to={`/focus?task=${task.id}`}>
             ▶ {t.nav.focus}

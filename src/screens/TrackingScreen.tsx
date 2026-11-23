@@ -21,7 +21,7 @@ import * as repo from '../data/repo'
 import { useActiveCycle, useCycleTasks, useGoals, useHabitChecks, useHabits, useTactics } from '../data/hooks'
 import { useLive } from '../data/useLive'
 import { checkSet, consistency } from '../logic/habits'
-import type { Cycle, FocusSession, Goal, Tactic, Task } from '../data/types'
+import { MISS_CAUSES, type Cycle, type DayEntry, type FocusSession, type Goal, type Tactic, type Task } from '../data/types'
 import { useI18n } from '../i18n'
 import NoActiveCycle from '../components/NoActiveCycle'
 import { pctClass } from '../components/pctClass'
@@ -37,13 +37,15 @@ import {
   sumActualHours,
   taskCounts,
   executionPoints,
+  missCauses,
+  topCause,
   TARGET_EXECUTION,
   tacticToGoal,
   weekHours,
   type Execution,
   type WeekExecution,
 } from '../logic/metrics'
-import { cyclePosition, todayISO, weekEnd, weekStart } from '../logic/weeks'
+import { cyclePosition, mondayOf, todayISO, weekEnd, weekStart } from '../logic/weeks'
 
 
 export default function TrackingScreen() {
@@ -175,8 +177,92 @@ function TrackingForCycle({ cycle }: { cycle: Cycle }) {
         />
       </div>
 
+      <CausesCard cycle={cycle} tasks={tasks} shownWeeks={shownWeeks} currentWeek={currentWeek} />
+
+      <Reflections today={today} />
+
       <HabitsAndFocus cycle={cycle} shownWeeks={shownWeeks} currentWeek={currentWeek} today={today} />
     </section>
+  )
+}
+
+// ---------- reflections (from the daily closing) ----------
+
+function Reflections({ today }: { today: string }) {
+  const { t, date } = useI18n()
+  const from = mondayOf(today)
+  const days = useLive(() => repo.listDays(from, today), [from, today], [] as DayEntry[]).filter((d) => d.reflection)
+  return (
+    <div className="card">
+      <h2>{t.day.reflectionsTitle}</h2>
+      {days.length === 0 ? (
+        <p className="muted">{t.day.noReflections}</p>
+      ) : (
+        <ul className="reflections">
+          {days.map((d) => (
+            <li key={d.date}>
+              <span className="muted small-text">{date(d.date)}</span> {d.reflection}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ---------- why tasks failed ----------
+
+function CausesCard({ cycle, tasks, shownWeeks, currentWeek }: { cycle: Cycle; tasks: Task[]; shownWeeks: number; currentWeek: number | null }) {
+  const { t } = useI18n()
+  const x = t.causes
+  const weeks = Array.from({ length: shownWeeks }, (_, i) => i + 1)
+  const rows = weeks.map((week) => ({ week, counts: missCauses(tasks.filter((k) => k.week_number === week)) }))
+  const total = missCauses(tasks.filter((k) => k.week_number <= shownWeeks))
+  const top = topCause(total)
+  const cols = [...MISS_CAUSES, 'none'] as const
+  return (
+    <div className="card">
+      <h2>{x.title}</h2>
+      <p className="muted small-text">{top ? x.top(x.names[top]) : x.noneYet}</p>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t.tracking.week}</th>
+              {cols.map((c) => (
+                <th key={c} className="num-col">
+                  {c === 'none' ? x.noCause : x.names[c]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.week}>
+                <td>
+                  <WeekCell cycle={cycle} week={r.week} current={r.week === currentWeek} />
+                </td>
+                {cols.map((c) => (
+                  <td key={c} className={c === 'none' ? 'num-col muted' : 'num-col'}>
+                    {r.counts[c] || ''}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>{t.tracking.total}</td>
+              {cols.map((c) => (
+                <td key={c} className={c === top ? 'num-col bad' : 'num-col'}>
+                  {total[c]}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
   )
 }
 

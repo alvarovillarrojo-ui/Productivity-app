@@ -13,7 +13,7 @@
 // HOURS
 //   Sum of actual_hours per goal per week, compared with the goal's weekly
 //   target and minimum.
-import type { Cycle, Goal, ISODate, Tactic, Task } from '../data/types'
+import { MISS_CAUSES, type Cycle, type Goal, type ISODate, type MissCause, type Tactic, type Task } from '../data/types'
 import { weekEnd } from './weeks'
 
 /** The weekly execution score the method aims for. */
@@ -211,6 +211,24 @@ export function weekHours(
 }
 
 // ---------- counts ----------
+
+/** How many missed tasks had each cause, plus those with no cause given. */
+export function missCauses(tasks: Task[]): Record<MissCause | 'none', number> {
+  const counts: Record<MissCause | 'none', number> = { planning: 0, unforeseen: 0, energy: 0, meaning: 0, none: 0 }
+  for (const t of tasks) {
+    if (t.status !== 'missed') continue
+    const cause = MISS_CAUSES.includes(t.miss_reason as MissCause) ? (t.miss_reason as MissCause) : 'none'
+    counts[cause]++
+  }
+  return counts
+}
+
+/** The most frequent cause, or null when no missed task has a cause. */
+export function topCause(counts: Record<MissCause | 'none', number>): MissCause | null {
+  let best: MissCause | null = null
+  for (const c of MISS_CAUSES) if (counts[c] > 0 && (best === null || counts[c] > counts[best])) best = c
+  return best
+}
 
 /** Plain task counts (ALL tasks, including "Other"). */
 export function taskCounts(tasks: Task[]): { done: number; partial: number; missed: number; open: number } {

@@ -1,6 +1,7 @@
 // App layout: top navigation bar + the current screen.
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import TasksScreen from './screens/TasksScreen'
+import DayScreen from './screens/DayScreen'
 import CalendarScreen from './screens/CalendarScreen'
 import FocusScreen from './screens/FocusScreen'
 import FocusRunner from './components/FocusRunner'
@@ -20,6 +21,7 @@ export default function App() {
   // The pages shown in the navigation bar, in order.
   const navItems = [
     { to: '/', label: t.nav.home },
+    { to: '/day', label: t.nav.day },
     { to: '/tasks', label: t.nav.tasks },
     { to: '/calendar', label: t.nav.calendar },
     { to: '/focus', label: t.nav.focus },
@@ -57,6 +59,7 @@ export default function App() {
       <main className="content">
         <Routes>
           <Route path="/" element={<HomeGate />} />
+          <Route path="/day" element={<DayScreen />} />
           <Route path="/tasks" element={<TasksScreen />} />
           <Route path="/calendar" element={<CalendarScreen />} />
           <Route path="/focus" element={<FocusScreen />} />

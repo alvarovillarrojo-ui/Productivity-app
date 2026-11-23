@@ -6,6 +6,8 @@ import {
   cycleTotals,
   execution,
   executionPoints,
+  missCauses,
+  topCause,
   sumExecution,
   formatHours,
   formatPct,
@@ -190,5 +192,15 @@ describe('minimum version (½)', () => {
     const total = sumExecution([a, execution([task('done')], WEEK1_END, '2026-11-20')])
     expect(total).toMatchObject({ done: 1, partial: 2, counted: 3 })
     expect(total.pct).toBeCloseTo(2 / 3)
+  })
+})
+
+describe('fail causes', () => {
+  it('counts missed tasks by cause and finds the most frequent', () => {
+    const missed = (cause: string | null) => ({ ...task('missed'), miss_reason: cause })
+    const counts = missCauses([missed('energy'), missed('energy'), missed('planning'), missed(null), task('done')])
+    expect(counts).toEqual({ planning: 1, unforeseen: 0, energy: 2, meaning: 0, none: 1 })
+    expect(topCause(counts)).toBe('energy')
+    expect(topCause(missCauses([missed(null)]))).toBeNull()
   })
 })

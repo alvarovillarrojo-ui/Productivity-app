@@ -9,6 +9,7 @@ export const es: Dict = {
   nav: {
     home: 'Inicio',
     tasks: 'Tareas',
+    day: 'Día',
     calendar: 'Calendario',
     focus: 'Enfoque',
     goals: 'Objetivos',
@@ -388,6 +389,7 @@ export const es: Dict = {
         case 'monday': return `${at}${i.detail} no es lunes. Los ciclos empiezan en lunes.`
         case 'week': return `${at}debe ser un número de semana dentro del ciclo.`
         case 'dateOutsideWeek': return `${at}${i.detail} no está dentro de esa semana.`
+        case 'cause': return `${at}«${i.detail}» debe ser planning, unforeseen, energy o meaning.`
         case 'status': return `${at}«${i.detail}» debe ser todo, done, partial o missed.`
         case 'minAboveTarget': return `${at}el mínimo es mayor que el objetivo.`
         case 'duplicateName': return `${at}«${i.detail}» aparece dos veces.`
@@ -419,9 +421,10 @@ export const es: Dict = {
       {
         title: 'Cada día (2 minutos)',
         items: [
-          'Mañana: abre Inicio y mira Hoy y lo que sigue pendiente esta semana. Marca los hábitos de hoy según los hagas.',
+          'Mañana: abre Día → Apertura: entregas, días que quedan, tiempo libre, qué va con retraso y el horario de hoy; elige el imprescindible del día y si el día está planificado o es reactivo.',
           'Durante el día: pulsa ▶ Enfoque en una tarea para trabajarla en pomodoros; cada ronda terminada suma su tiempo a la tarea.',
-          'Noche: marca cada tarea ✓ hecha o ✗ no hecha. Las horas reales se copian de las previstas; cámbialas en Tareas si fueron distintas.',
+          'Noche: Día → Cierre: marca las tareas de hoy ✓ hecha, ½ versión mínima o ✗ no hecha (con el porqué: Planificación, Imprevisto, Energía, Sentido), mira la puntuación del día y escribe una línea de reflexión.',
+          'Además: marca cada tarea ✓ hecha o ✗ no hecha. Las horas reales se copian de las previstas; cámbialas en Tareas si fueron distintas.',
         ],
       },
       {
@@ -576,6 +579,72 @@ export const es: Dict = {
     longEvery: 'Descanso largo cada … rondas',
     open: (title: string) => `Enfocarse en «${title}»`,
     badge: (clock: string, phase: string) => `⏱ ${clock} · ${phase}`,
+  },
+
+  day: {
+    title: 'Apertura y cierre',
+    opening: 'Apertura',
+    closing: 'Cierre',
+    weekLine: (w: number, n: number, d: number) => `Semana ${w} de ${n} · ${d === 1 ? 'último día de la semana' : `quedan ${d} días esta semana`}`,
+    cycleLeft: (d: number) => `${d} días para terminar el ciclo`,
+    noCycle: 'No hay ciclo activo: empieza uno para ver aquí tu semana.',
+    modeTitle: '¿Planificado o reactivo?',
+    modeHint: '¿Hoy está planificado o estás reaccionando a lo que surge?',
+    planned: 'Planificado',
+    reactive: 'Reactivo',
+    reactiveTip: (n: number) => `${n} tarea(s) de esta semana aún no están en el calendario. Colócalas para que hoy tenga un plan:`,
+    placeThem: 'Abrir el calendario →',
+    mustDoTitle: 'El imprescindible de hoy',
+    mustDoHint: 'La tarea que tiene que salir hoy, pase lo que pase.',
+    mustDoNone: '— elige una tarea —',
+    scheduleTitle: 'Hoy',
+    nothingScheduled: 'Nada en el calendario hoy.',
+    now: 'ahora',
+    freeTitle: 'Tiempo libre',
+    freeToday: (time: string) => `${time} libres`,
+    freeLeftToday: (time: string) => `${time} libres el resto del día`,
+    noFree: 'Hoy ya no queda tiempo libre.',
+    windowLabel: 'Despierto de … a',
+    deadlinesTitle: 'Entregas y fechas (próximas 3 semanas)',
+    noDeadlines: 'No hay eventos puntuales en las próximas 3 semanas.',
+    today: 'hoy',
+    tomorrow: 'mañana',
+    inDays: (d: number) => `en ${d} días`,
+    laggingTitle: 'Qué va con retraso',
+    nothingLagging: 'Nada va con retraso. ¡Sigue así!',
+    lagExecution: (goal: string, pct: string) => `${goal}: ejecución ${pct}, por debajo del 85 %`,
+    lagHours: (goal: string, actual: string, expected: string, target: string) =>
+      `${goal}: ${actual} hasta ahora, ${expected} esperadas a estas alturas (${target}/semana)`,
+    overdue: (n: number) => `${n} tarea(s) vencidas esta semana`,
+    habitsAtRisk: (names: string) => `Hábitos que no puedes fallar dos veces: ${names}`,
+    startDay: 'Empezar el día',
+    opened: (time: string) => `Día abierto a las ${time}.`,
+    todayTasks: 'Tareas de hoy',
+    noTodayTasks: 'No hay tareas con fecha de hoy.',
+    otherOpen: (n: number) => `Otras pendientes esta semana (${n})`,
+    scoreTitle: 'Puntuación del día',
+    scoreDay: (pct: string, points: string, n: number) => `Hoy: ${pct} (${points} de ${n} tarea(s))`,
+    scoreHours: (actual: string, planned: string) => `Horas hoy: ${actual} de ${planned} previstas`,
+    scoreFocus: (time: string) => `Enfoque hoy: ${time}`,
+    scoreWeek: (pct: string) => `Esta semana hasta ahora: ${pct} (objetivo 85 %)`,
+    reflectionTitle: 'Reflexión',
+    reflectionPlaceholder: '¿Qué salió bien? ¿Qué se interpuso?',
+    closeDay: 'Cerrar el día',
+    closed: (time: string) => `Día cerrado a las ${time}. ¡A descansar!`,
+    mustDoBanner: 'Imprescindible de hoy',
+    openingLink: 'Apertura →',
+    closingLink: 'Cierre →',
+    reflectionsTitle: 'Reflexiones de esta semana',
+    noReflections: 'Aún no hay reflexiones. Escribe una en el cierre cada noche.',
+  },
+
+  causes: {
+    why: '¿Por qué?',
+    names: { planning: 'Planificación', unforeseen: 'Imprevisto', energy: 'Energía', meaning: 'Sentido' },
+    title: 'Por qué fallaron las tareas',
+    top: (cause: string) => `Causa más frecuente hasta ahora: ${cause}.`,
+    noneYet: 'Cuando marques una tarea ✗, elige por qué: Planificación, Imprevisto, Energía o Sentido.',
+    noCause: 'Sin causa',
   },
 
   habits: {

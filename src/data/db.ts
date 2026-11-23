@@ -4,7 +4,7 @@
 // `repo.ts`, so storage can later be swapped (e.g. for a cloud database)
 // without touching the screens.
 import Dexie, { type EntityTable } from 'dexie'
-import type { CalendarEvent, Cycle, FocusSession, Goal, Habit, HabitCheck, Tactic, Task } from './types'
+import type { CalendarEvent, Cycle, DayEntry, FocusSession, Goal, Habit, HabitCheck, Tactic, Task } from './types'
 
 /** One row of the settings table: a key and its value. */
 export interface SettingRow {
@@ -24,6 +24,7 @@ export class TrackerDB extends Dexie {
   habit_checks!: EntityTable<HabitCheck, 'id'>
   events!: EntityTable<CalendarEvent, 'id'>
   focus_sessions!: EntityTable<FocusSession, 'id'>
+  days!: EntityTable<DayEntry, 'date'>
 
   constructor(name = DB_NAME) {
     super(name)
@@ -49,6 +50,10 @@ export class TrackerDB extends Dexie {
     // v0.2: pomodoro / focus sessions.
     this.version(4).stores({
       focus_sessions: 'id, date, task_id',
+    })
+    // v0.4: day journal (opening / closing).
+    this.version(5).stores({
+      days: 'date',
     })
   }
 }

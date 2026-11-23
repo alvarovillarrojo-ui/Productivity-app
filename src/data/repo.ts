@@ -13,12 +13,14 @@ import type {
   AllData,
   CalendarEvent,
   Cycle,
+  DayEntry,
   FocusSession,
   CycleStatus,
   Goal,
   Habit,
   HabitCheck,
   ISODate,
+  MissCause,
   PersistStatus,
   SettingKey,
   SettingValues,
@@ -320,7 +322,13 @@ export async function setTaskStatus(id: string, status: TaskStatus): Promise<voi
   } else if (status !== 'done' && task.status === 'done' && actual === task.planned_hours) {
     actual = null
   }
-  await updateTask(id, { status, actual_hours: actual })
+  // The cause only makes sense for a missed task.
+  await updateTask(id, { status, actual_hours: actual, ...(status !== 'missed' ? { miss_reason: null } : {}) })
+}
+
+/** Why a missed task failed (or null to clear it). */
+export async function setMissReason(id: string, cause: MissCause | null): Promise<void> {
+  await updateTask(id, { miss_reason: cause })
 }
 
 export async function deleteTask(id: string): Promise<void> {
@@ -519,10 +527,35 @@ export async function stopFocus(nowMs: number, save: boolean): Promise<number> {
   })
 }
 
+// ---------- day journal (opening / closing) ----------
+
+export const DEFAULT_DAY_WINDOW = { start: '08:30', end: '22:30' }
+
+export async function getDay(date: ISODate): Promise<DayEntry | null> {
+  return (await db.days.get(date)) ?? null
+}
+
+/** Changes one day's entry (creating it if needed). */
+export async function updateDay(date: ISODate, changes: Partial<Omit<DayEntry, 'date'>>): Promise<void> {
+  await db.transaction('rw', db.days, async () => {
+    const current = (await db.days.get(date)) ?? { date, must_do: null, mode: null, reflection: '', opened_at: null, closed_at: null }
+    await db.days.put({ ...current, ...changes, date })
+  })
+}
+
+/** Day entries between two dates (both included), oldest first. */
+export async function listDays(from: ISODate, to: ISODate): Promise<DayEntry[]> {
+  return db.days.where('date').between(from, to, true, true).toArray()
+}
+
+export async function getDayWindow(): Promise<{ start: string; end: string }> {
+  return (await getSetting('dayWindow')) ?? DEFAULT_DAY_WINDOW
+}
+
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */

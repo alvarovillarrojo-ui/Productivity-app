@@ -87,7 +87,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [] })
   })
 })
 
@@ -180,7 +180,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -195,6 +195,7 @@ describe('backup data', () => {
       habit_checks: [],
       events: [],
       focus_sessions: [],
+      days: [],
       tasks: [
         {
           id: repo.newId(),
@@ -492,5 +493,29 @@ describe('cycles list and delete', () => {
     expect(await db.goals.count()).toBe(0)
     expect(await repo.listHabits()).toHaveLength(1)
     expect((await repo.listEvents())[0].color).toBe('#0891b2')
+  })
+})
+
+describe('fail causes on tasks', () => {
+  it('saves the cause of a missed task and clears it when the status changes', async () => {
+    const { cycle } = await seed()
+    const task = await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'Run' })
+    await repo.setTaskStatus(task.id, 'missed')
+    await repo.setMissReason(task.id, 'energy')
+    expect((await db.tasks.get(task.id))?.miss_reason).toBe('energy')
+    await repo.setTaskStatus(task.id, 'done')
+    expect((await db.tasks.get(task.id))?.miss_reason).toBeNull()
+  })
+})
+
+describe('day journal', () => {
+  it('creates and updates one entry per day, and keeps it in backups', async () => {
+    await repo.updateDay('2026-11-23', { must_do: 'task1', mode: 'planned' })
+    await repo.updateDay('2026-11-23', { reflection: 'Good focus' })
+    expect(await repo.getDay('2026-11-23')).toMatchObject({ must_do: 'task1', mode: 'planned', reflection: 'Good focus' })
+    const all = await repo.exportAll()
+    expect(all.days).toHaveLength(1)
+    await repo.replaceAll({ ...all, days: [] })
+    expect(await repo.getDay('2026-11-23')).toBeNull()
   })
 })

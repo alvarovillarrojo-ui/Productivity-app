@@ -16,7 +16,7 @@
 //
 // 3. Backup — every record with its id, restored as-is (replaces everything).
 import type { Dict } from '../i18n/en'
-import { HABIT_CATEGORIES, type AllData, type Cycle, type Goal, type HabitCategory, type ISODate, type Tactic, type Task, type TaskStatus } from '../data/types'
+import { HABIT_CATEGORIES, MISS_CAUSES, type MissCause, type AllData, type Cycle, type Goal, type HabitCategory, type ISODate, type Tactic, type Task, type TaskStatus } from '../data/types'
 import {
   formatHours,
   formatPct,
@@ -58,6 +58,7 @@ export type DataIssueCode =
   | 'week' // week_number outside the cycle
   | 'dateOutsideWeek' // planned_date not inside its week
   | 'status' // not todo / done / missed
+  | 'cause' // not planning / unforeseen / energy / meaning
   | 'minAboveTarget'
   | 'duplicateName' // two goals (or tactics in one goal) with the same name
   | 'tacticNeedsGoal' // a task names a tactic but not its goal
@@ -120,6 +121,8 @@ export interface PlanTask {
   planned_hours: number | null
   actual_hours: number | null
   status: TaskStatus
+  /** For missed tasks: planning / unforeseen / energy / meaning; in files: "cause". */
+  miss_reason?: string | null
   notes: string
 }
 
@@ -373,7 +376,17 @@ function readTask(r: Reader, o: unknown, path: string, weeks: number): PlanTask 
     actual_hours: r.hours(o, 'actual_hours', path),
     status: STATUSES.includes(status as TaskStatus) ? (status as TaskStatus) : 'todo',
     notes: r.text(o, 'notes', path),
+    miss_reason: readCause(r, o, path),
   }
+}
+
+function readCause(r: Reader, o: Obj, path: string): string | null {
+  if (o.cause === undefined || o.cause === null || o.cause === '') return null
+  if (!MISS_CAUSES.includes(o.cause as MissCause)) {
+    r.add('cause', `${path}.cause`, String(o.cause))
+    return null
+  }
+  return o.cause as string
 }
 
 /**
@@ -527,7 +540,7 @@ export interface WeekReport {
   week_end: ISODate
   cycle: { name: string; start_date: ISODate; length_weeks: number; vision?: string | null }
   goals: (Omit<PlanGoal, 'tactics'> & { tactics: (PlanTactic | (Omit<PlanTactic, 'schedule_days' | 'schedule_time' | 'schedule_hours'> & { days: number[]; time: string | null; hours: number | null }))[] })[]
-  tasks: (Omit<PlanTask, 'start_time'> & { time?: string })[]
+  tasks: (Omit<PlanTask, 'start_time' | 'miss_reason'> & { time?: string; cause?: string })[]
   summary: {
     execution: { overall: ExecutionSummary; by_goal: (ExecutionSummary & { goal: string })[] }
     hours: { goal: string; actual: number; target: number; minimum: number | null; level: HoursLevel }[]
@@ -601,6 +614,7 @@ export function buildWeekReport(input: {
         planned_hours: t.planned_hours,
         actual_hours: t.actual_hours,
         status: t.status,
+        ...(t.status === 'missed' && t.miss_reason ? { cause: t.miss_reason } : {}),
         notes: t.notes,
       }
     }),
@@ -709,7 +723,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'colorOptional'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'colorOptional' | 'modeNull'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -738,6 +752,9 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     start_date: 'date', sort_order: 'num', created_at: 'text', updated_at: 'text',
   },
   habit_checks: { id: 'id', habit_id: 'id', date: 'date' },
+  days: {
+    date: 'date', must_do: 'textNull', mode: 'modeNull', reflection: 'text', opened_at: 'textNull', closed_at: 'textNull',
+  },
   focus_sessions: {
     id: 'id', task_id: 'textNull', task_title: 'text', date: 'date', started_at: 'text', minutes: 'num', completed: 'bool',
   },
@@ -748,7 +765,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
 }
 
 /** Lists that older backups may not have yet. */
-const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions']
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -771,6 +788,7 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'timeOptional': return v === undefined || v === null || (typeof v === 'string' && isValidTime(v))
     case 'weekdaysOptional':
       return v === undefined || v === null || (Array.isArray(v) && v.every((d) => Number.isInteger(d) && d >= 1 && d <= 7))
+    case 'modeNull': return v === null || v === 'planned' || v === 'reactive'
     case 'colorOptional': return v === undefined || v === null || (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v))
     case 'textOptional': return v === undefined || v === null || typeof v === 'string'
     case 'numOptional': return v === undefined || v === null || (typeof v === 'number' && Number.isFinite(v))
@@ -849,6 +867,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       habit_checks: data.habit_checks.map((x) => pick(x, 'habit_checks')),
       events: data.events.map((x) => pick(x, 'events')),
       focus_sessions: data.focus_sessions.map((x) => pick(x, 'focus_sessions')),
+      days: data.days.map((x) => pick(x, 'days')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }

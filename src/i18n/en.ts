@@ -13,6 +13,7 @@ export const en = {
   nav: {
     home: 'Home',
     tasks: 'Tasks',
+    day: 'Day',
     calendar: 'Calendar',
     focus: 'Focus',
     goals: 'Goals',
@@ -389,6 +390,7 @@ export const en = {
         case 'monday': return `${at}${i.detail} is not a Monday. Cycles start on a Monday.`
         case 'week': return `${at}should be a week number inside the cycle.`
         case 'dateOutsideWeek': return `${at}${i.detail} is not inside that week.`
+        case 'cause': return `${at}“${i.detail}” should be planning, unforeseen, energy or meaning.`
         case 'status': return `${at}“${i.detail}” should be todo, done, partial or missed.`
         case 'minAboveTarget': return `${at}the minimum is higher than the target.`
         case 'duplicateName': return `${at}“${i.detail}” appears twice.`
@@ -420,9 +422,10 @@ export const en = {
       {
         title: 'Every day (2 minutes)',
         items: [
-          'Morning: open Home and look at Today and what is still open this week. Tick today’s habits as you do them.',
+          'Morning: open Day → Opening: deadlines, days left, free time, what’s lagging, today’s schedule; choose today’s must-do and whether the day is planned or reactive.',
           'During the day: press ▶ Focus on a task to work on it in pomodoros; finished rounds add their time to the task.',
-          'Evening: tick each task ✓ done or ✗ missed. Actual hours are copied from the planned hours; change them in Tasks if they were different.',
+          'Evening: Day → Closing: mark today’s tasks ✓ done, ½ minimum version or ✗ missed (with why: Planning, Unforeseen, Energy, Meaning), see the day score and write one line of reflection.',
+          'Also: tick each task ✓ done or ✗ missed. Actual hours are copied from the planned hours; change them in Tasks if they were different.',
         ],
       },
       {
@@ -579,6 +582,75 @@ export const en = {
     longEvery: 'Long break every … rounds',
     open: (title: string) => `Focus on “${title}”`,
     badge: (clock: string, phase: string) => `⏱ ${clock} · ${phase}`,
+  },
+
+  day: {
+    title: 'Opening & closing',
+    opening: 'Opening',
+    closing: 'Closing',
+    weekLine: (w: number, n: number, d: number) => `Week ${w} of ${n} · ${d === 1 ? 'last day of the week' : `${d} days left this week`}`,
+    cycleLeft: (d: number) => `${d} days until the end of the cycle`,
+    noCycle: 'No active cycle: start one to see your week here.',
+    // opening
+    modeTitle: 'Planned or reactive?',
+    modeHint: 'Is today planned, or are you reacting to what comes up?',
+    planned: 'Planned',
+    reactive: 'Reactive',
+    reactiveTip: (n: number) => `${n} task(s) of this week aren’t in the calendar yet. Place them so today has a plan:`,
+    placeThem: 'Open the calendar →',
+    mustDoTitle: 'Today’s must-do',
+    mustDoHint: 'The one task that must happen today, whatever else happens.',
+    mustDoNone: '— choose a task —',
+    scheduleTitle: 'Today',
+    nothingScheduled: 'Nothing in the calendar today.',
+    now: 'now',
+    freeTitle: 'Free time',
+    freeToday: (time: string) => `${time} free`,
+    freeLeftToday: (time: string) => `${time} free for the rest of today`,
+    noFree: 'No free time left today.',
+    windowLabel: 'Awake from … to',
+    deadlinesTitle: 'Deadlines (next 3 weeks)',
+    noDeadlines: 'No one-off events in the next 3 weeks.',
+    today: 'today',
+    tomorrow: 'tomorrow',
+    inDays: (d: number) => `in ${d} days`,
+    laggingTitle: 'What’s lagging',
+    nothingLagging: 'Nothing is behind. Keep going!',
+    lagExecution: (goal: string, pct: string) => `${goal}: execution ${pct}, below the 85% target`,
+    lagHours: (goal: string, actual: string, expected: string, target: string) =>
+      `${goal}: ${actual} so far, ${expected} expected by today (${target}/week)`,
+    overdue: (n: number) => `${n} overdue task(s) this week`,
+    habitsAtRisk: (names: string) => `Habits to not miss twice: ${names}`,
+    startDay: 'Start the day',
+    opened: (time: string) => `Day opened at ${time}.`,
+    // closing
+    todayTasks: 'Today’s tasks',
+    noTodayTasks: 'No tasks dated today.',
+    otherOpen: (n: number) => `Other open tasks this week (${n})`,
+    scoreTitle: 'Day score',
+    scoreDay: (pct: string, points: string, n: number) => `Today: ${pct} (${points} of ${n} task(s))`,
+    scoreHours: (actual: string, planned: string) => `Hours today: ${actual} of ${planned} planned`,
+    scoreFocus: (time: string) => `Focus today: ${time}`,
+    scoreWeek: (pct: string) => `This week so far: ${pct} (target 85%)`,
+    reflectionTitle: 'Reflection',
+    reflectionPlaceholder: 'What went well? What got in the way?',
+    closeDay: 'Close the day',
+    closed: (time: string) => `Day closed at ${time}. Rest well!`,
+    // Home + Tracking
+    mustDoBanner: 'Must-do today',
+    openingLink: 'Opening →',
+    closingLink: 'Closing →',
+    reflectionsTitle: 'Reflections this week',
+    noReflections: 'No reflections yet. Write one in the closing each night.',
+  },
+
+  causes: {
+    why: 'Why?',
+    names: { planning: 'Planning', unforeseen: 'Unforeseen', energy: 'Energy', meaning: 'Meaning' },
+    title: 'Why tasks failed',
+    top: (cause: string) => `Most frequent cause so far: ${cause}.`,
+    noneYet: 'When you mark a task ✗, choose why: Planning, Unforeseen, Energy or Meaning.',
+    noCause: 'No cause',
   },
 
   habits: {

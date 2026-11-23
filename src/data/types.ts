@@ -18,6 +18,10 @@ export type CycleStatus = 'planning' | 'active' | 'closed'
  */
 export type TaskStatus = 'todo' | 'done' | 'partial' | 'missed'
 
+/** Why a task failed (✗): Planning · Unforeseen · Energy · Meaning (P/I/E/S). */
+export const MISS_CAUSES = ['planning', 'unforeseen', 'energy', 'meaning'] as const
+export type MissCause = (typeof MISS_CAUSES)[number]
+
 /** A 12-week period (or another length) with its own goals. */
 export interface Cycle {
   id: string
@@ -95,7 +99,7 @@ export interface Task {
   planned_hours: number | null
   actual_hours: number | null
   status: TaskStatus
-  /** Kept for a future version; not used in the UI yet. */
+  /** For a missed task: why (a MissCause), or null if not given. */
   miss_reason: string | null
   notes: string
   created_at: string
@@ -193,6 +197,20 @@ export interface FocusSession {
   completed: boolean
 }
 
+/** The opening/closing record of one day. */
+export interface DayEntry {
+  /** The day itself is the key: one entry per date. */
+  date: ISODate
+  /** Today's must-do task (id), chosen in the opening. */
+  must_do: string | null
+  /** "Planned or reactive?" answer of the opening. */
+  mode: 'planned' | 'reactive' | null
+  /** One line from the closing: what went well / what got in the way. */
+  reflection: string
+  opened_at: string | null
+  closed_at: string | null
+}
+
 /** All user data in one object: what a backup contains. */
 export interface AllData {
   cycles: Cycle[]
@@ -203,6 +221,7 @@ export interface AllData {
   habit_checks: HabitCheck[]
   events: CalendarEvent[]
   focus_sessions: FocusSession[]
+  days: DayEntry[]
 }
 
 /**
@@ -222,6 +241,8 @@ export interface SettingValues {
   focusTimer: FocusState | null
   /** Pomodoro lengths chosen on this device. */
   focusSettings: FocusSettings
+  /** Waking hours used to calculate free time ("HH:MM"). */
+  dayWindow: { start: string; end: string }
 }
 export type SettingKey = keyof SettingValues
 

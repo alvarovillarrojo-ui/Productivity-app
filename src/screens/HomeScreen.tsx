@@ -15,6 +15,7 @@ import NoActiveCycle from '../components/NoActiveCycle'
 import QuickAdd from '../components/QuickAdd'
 import TaskRow from '../components/TaskRow'
 import { TodayHabits } from './HabitsPanel'
+import { MustDoBanner } from './DayScreen'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import { pctClass } from '../components/pctClass'
 import {
@@ -77,6 +78,8 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
         </div>
         <BackupStatus today={today} />
       </div>
+
+      <MustDoBanner tasks={tasks} tactics={tactics} goals={goals} />
 
       {position.phase === 'after' && (
         <div className="warn-box row spread">
