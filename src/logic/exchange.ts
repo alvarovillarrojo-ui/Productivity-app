@@ -50,6 +50,8 @@ export type DataIssueCode =
   | 'number' // should be a number ≥ 0
   | 'boolean' // should be true / false
   | 'frequency' // whole number 1–14
+  | 'days' // list of weekdays 1–7
+  | 'time' // "HH:MM"
   | 'length' // whole number 1–52
   | 'date' // not a valid YYYY-MM-DD date
   | 'monday' // must be a Monday
@@ -91,6 +93,10 @@ export interface PlanTactic {
   description: string
   active: boolean
   weekly_frequency: number | null
+  /** Optional schedule; in files: "days", "time", "hours". */
+  schedule_days?: number[] | null
+  schedule_time?: string | null
+  schedule_hours?: number | null
 }
 export interface PlanGoal {
   name: string
@@ -267,6 +273,23 @@ function readCycle(r: Reader, o: unknown): PlanCycle | null {
   }
 }
 
+/** Optional tactic schedule in a file: "days" [1–7], "time" "HH:MM", "hours". */
+function readSchedule(r: Reader, o: Obj, path: string) {
+  if (o.days === undefined || o.days === null) return null
+  const days = o.days
+  if (!Array.isArray(days) || days.length === 0 || !days.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)) {
+    r.add('days', `${path}.days`)
+    return null
+  }
+  let time: string | null = null
+  if (o.time !== undefined && o.time !== null) {
+    if (typeof o.time !== 'string' || !isValidTime(o.time)) r.add('time', `${path}.time`, String(o.time))
+    else time = o.time
+  }
+  const hours = r.hours(o, 'hours', path)
+  return { schedule_days: [...new Set(days as number[])].sort((a, b) => a - b), schedule_time: time, schedule_hours: hours }
+}
+
 function readGoal(r: Reader, o: unknown, path: string): PlanGoal | null {
   if (!isObj(o)) {
     r.add('notObject', path)
@@ -283,12 +306,15 @@ function readGoal(r: Reader, o: unknown, path: string): PlanGoal | null {
     const name = r.name(t, 'name', tp)
     if (name && seen.has(nameKey(name))) r.add('duplicateName', `${tp}.name`, name)
     seen.add(nameKey(name))
-    tactics.push({
+    const tactic: PlanTactic = {
       name,
       description: r.text(t, 'description', tp),
       active: r.bool(t, 'active', tp, true),
       weekly_frequency: r.whole(t, 'weekly_frequency', tp, 1, MAX_FREQUENCY, 'frequency', false),
-    })
+    }
+    const sched = readSchedule(r, t, tp)
+    if (sched) Object.assign(tactic, sched, { weekly_frequency: sched.schedule_days.length })
+    tactics.push(tactic)
   })
   return {
     name: r.name(o, 'name', path),
@@ -467,7 +493,7 @@ export interface WeekReport {
   week_start: ISODate
   week_end: ISODate
   cycle: { name: string; start_date: ISODate; length_weeks: number; vision?: string | null }
-  goals: PlanGoal[]
+  goals: (Omit<PlanGoal, 'tactics'> & { tactics: (PlanTactic | (Omit<PlanTactic, 'schedule_days' | 'schedule_time' | 'schedule_hours'> & { days: number[]; time: string | null; hours: number | null }))[] })[]
   tasks: PlanTask[]
   summary: {
     execution: { overall: ExecutionSummary; by_goal: (ExecutionSummary & { goal: string })[] }
@@ -522,6 +548,9 @@ export function buildWeekReport(input: {
           description: t.description,
           active: t.active,
           weekly_frequency: t.weekly_frequency,
+          ...(t.schedule_days?.length
+            ? { days: t.schedule_days, time: t.schedule_time ?? null, hours: t.schedule_hours ?? null }
+            : {}),
         })),
     })),
     tasks: weekTasks.map((t) => {
@@ -643,7 +672,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -657,6 +686,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   tactics: {
     id: 'id', goal_id: 'id', name: 'text', description: 'text', active: 'bool',
     weekly_frequency: 'numNull', sort_order: 'num',
+    schedule_days: 'weekdaysOptional', schedule_time: 'timeOptional', schedule_hours: 'numOptional',
   },
   tasks: {
     id: 'id', cycle_id: 'id', week_number: 'int', title: 'text', tactic_id: 'textNull',
@@ -701,6 +731,9 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'time': return typeof v === 'string' && isValidTime(v)
     case 'timeNull': return v === null || (typeof v === 'string' && isValidTime(v))
     case 'timeOptional': return v === undefined || v === null || (typeof v === 'string' && isValidTime(v))
+    case 'weekdaysOptional':
+      return v === undefined || v === null || (Array.isArray(v) && v.every((d) => Number.isInteger(d) && d >= 1 && d <= 7))
+    case 'numOptional': return v === undefined || v === null || (typeof v === 'number' && Number.isFinite(v))
     case 'category': return HABIT_CATEGORIES.includes(v as HabitCategory)
     case 'weekdays':
       return Array.isArray(v) && v.length > 0 && v.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)

@@ -5,9 +5,9 @@
 // same function names; the UI does not need to change.
 import { db } from './db'
 import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
-import { planRecurring, weeksToPrepare } from '../logic/taskActions'
+import { planRecurring, scheduleOf, weeksToPrepare } from '../logic/taskActions'
 import { DEFAULT_FOCUS_SETTINGS, finishPhase, focusMinutesDone, type FocusSettings, type FocusState } from '../logic/focus'
-import { todayISO } from '../logic/weeks'
+import { addDays, todayISO, weekStart } from '../logic/weeks'
 import type {
   AllData,
   CalendarEvent,
@@ -535,7 +535,7 @@ export async function ensureRecurringTasks(today: ISODate): Promise<number> {
     const toCreate: NewTask[] = []
     for (const week of weeks) {
       const weekTasks = await db.tasks.where('[cycle_id+week_number]').equals([cycle.id, week]).toArray()
-      const plan = planRecurring(cycle.id, week, tactics, weekTasks, generated)
+      const plan = planRecurring(cycle.id, week, tactics, weekTasks, generated, { weekStart: weekStart(cycle, week), today })
       toCreate.push(...plan.tasks)
       generated = plan.generated
     }
@@ -544,6 +544,53 @@ export async function ensureRecurringTasks(today: ISODate): Promise<number> {
     const start = Date.now()
     await db.tasks.bulkAdd(toCreate.map((t, i) => buildTask(t, new Date(start + i).toISOString())))
     return toCreate.length
+  })
+}
+
+/**
+ * Saves a tactic's schedule and places the tactic's tasks of this week (and
+ * next week, if already prepared) that have no date yet: each goes on a free
+ * scheduled day that hasn't passed, at the scheduled time. Tasks already
+ * placed or ticked are never moved. With a schedule, times per week = days.
+ */
+export async function setTacticSchedule(
+  tacticId: string,
+  schedule: { days: number[]; time: string | null; hours: number | null },
+  today: ISODate,
+): Promise<void> {
+  await db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
+    const days = [...new Set(schedule.days)].sort((a, b) => a - b)
+    await db.tactics.update(tacticId, {
+      schedule_days: days.length ? days : null,
+      schedule_time: days.length ? schedule.time : null,
+      schedule_hours: days.length ? schedule.hours : null,
+      ...(days.length ? { weekly_frequency: days.length } : {}),
+    })
+    const tactic = await db.tactics.get(tacticId)
+    const sched = tactic && scheduleOf(tactic)
+    const cycle = await getActiveCycle()
+    if (!tactic || !sched || !cycle) return
+    for (const week of weeksToPrepare(cycle, today)) {
+      const monday = weekStart(cycle, week)
+      const own = (await db.tasks.where('[cycle_id+week_number]').equals([cycle.id, week]).toArray()).filter(
+        (t) => t.tactic_id === tacticId,
+      )
+      const taken = new Set(own.map((t) => t.planned_date).filter(Boolean))
+      const free = sched.days.map((d) => addDays(monday, d - 1)).filter((d) => d >= today && !taken.has(d))
+      const undated = own
+        .filter((t) => t.status === 'todo' && !t.planned_date)
+        .sort((a, b) => a.created_at.localeCompare(b.created_at)) // (1/3) gets the first free day
+      for (const task of undated) {
+        const date = free.shift()
+        if (!date) break
+        await db.tasks.update(task.id, {
+          planned_date: date,
+          start_time: sched.time,
+          planned_hours: task.planned_hours ?? sched.hours,
+          updated_at: now(),
+        })
+      }
+    }
   })
 }
 

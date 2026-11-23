@@ -75,6 +75,9 @@ matched ignoring upper/lower case and surrounding spaces.
 | `description` | text | no | |
 | `weekly_frequency` | whole number 1–14 or `null` | no | Times per week. Used by “Generate recurring tasks”. |
 | `active` | `true` / `false` | no | Default `true`. Inactive tactics are hidden when adding tasks. |
+| `days` | list of weekdays `1`–`7` | no | Schedule: 1 = Monday … 7 = Sunday, e.g. `[1, 3, 5]`. The weekly tasks go on these days and appear in the calendar. Sets the times per week to the number of days. |
+| `time` | `"HH:MM"` | no | Start time for the scheduled tasks, e.g. `"16:00"`. |
+| `hours` | number ≥ 0 | no | Duration of each scheduled task, e.g. `2`. |
 
 ### `tasks[]`
 

@@ -180,6 +180,16 @@ export const en = {
     noTactics: 'No tactics yet.',
     newTactic: 'New tactic',
     deleteTactic: (name: string) => `Delete tactic ${name}`,
+    schedule: {
+      add: '🗓 Add a schedule (days and time)',
+      summary: (days: string, time: string, hours: number | null) =>
+        `🗓 ${days}${time ? ` · ${time}` : ''}${hours ? ` · ${hours} h` : ''} (edit)`,
+      hint: 'Its weekly tasks go on these days, at this time, and appear in the calendar by themselves. Times per week = number of days. This week’s unplaced tasks are placed now; tasks already placed are not moved.',
+      time: 'Time',
+      hours: 'Hours',
+      remove: 'Remove schedule',
+      needDay: 'Pick at least one day.',
+    },
     confirmDeleteTactic: (name: string) =>
       `Delete tactic "${name}"? Its tasks are kept as "Other". (Tip: untick "Active" to just hide it.)`,
   },
@@ -317,8 +327,10 @@ export const en = {
         case 'number': return `${at}should be a number of hours (0 or more).`
         case 'boolean': return `${at}should be true or false.`
         case 'frequency': return `${at}should be a whole number from 1 to 14.`
+        case 'days': return `${at}should be a list of weekdays, 1 = Monday … 7 = Sunday (e.g. [1, 3, 5]).`
         case 'length': return `${at}should be a whole number of weeks from 1 to 52.`
         case 'date': return `${at}“${i.detail}” is not a valid date (use YYYY-MM-DD).`
+        case 'time': return `${at}“${i.detail}” is not a valid time (use HH:MM, e.g. 16:00).`
         case 'monday': return `${at}${i.detail} is not a Monday. Cycles start on a Monday.`
         case 'week': return `${at}should be a week number inside the cycle.`
         case 'dateOutsideWeek': return `${at}${i.detail} is not inside that week.`

@@ -286,3 +286,36 @@ describe('repeated tasks', () => {
     expect([both.tasks.length, both.duplicates]).toEqual([0, 2])
   })
 })
+
+describe('tactic schedules in files', () => {
+  it('reads days, time and hours; days set the frequency', () => {
+    const file = {
+      schema_version: '1.0',
+      cycle: { name: 'C', start_date: '2026-11-09' },
+      goals: [{ name: 'Grades', weekly_hours_target: 20, tactics: [{ name: 'Study', weekly_frequency: 2, days: [5, 1, 3], time: '16:00', hours: 2 }] }],
+    }
+    const r = parseImport(file, null)
+    expect(r.issues).toEqual([])
+    expect(r.plan!.newGoals[0].tactics[0]).toMatchObject({ weekly_frequency: 3, schedule_days: [1, 3, 5], schedule_time: '16:00', schedule_hours: 2 })
+  })
+
+  it('reports bad days and times', () => {
+    const file = {
+      schema_version: '1.0',
+      cycle: { name: 'C', start_date: '2026-11-09' },
+      goals: [{ name: 'G', weekly_hours_target: 1, tactics: [{ name: 'A', days: [0, 8] }, { name: 'B', days: [1], time: '25:00' }] }],
+    }
+    expect(parseImport(file, null).issues.map((i) => `${i.code}@${i.path}`)).toEqual([
+      'days@goals[0].tactics[0].days',
+      'time@goals[0].tactics[1].time',
+    ])
+  })
+
+  it('backups keep the schedule', () => {
+    const scheduled = { ...tactics[0], schedule_days: [1, 3], schedule_time: '09:00', schedule_hours: 1.5 }
+    const data = { cycles: [cycle], goals, tactics: [scheduled], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [] }
+    const r = parseBackup(JSON.parse(JSON.stringify(buildBackup(data, 'x'))))
+    expect(r.issues).toEqual([])
+    expect(r.data!.tactics[0]).toEqual(scheduled)
+  })
+})

@@ -10,9 +10,10 @@ interface Props {
   placeholder?: string
   ariaLabel?: string
   className?: string
+  disabled?: boolean
 }
 
-export default function NumberField({ value, onChange, min = 0, max, step = 0.5, placeholder, ariaLabel, className }: Props) {
+export default function NumberField({ value, onChange, min = 0, max, step = 0.5, placeholder, ariaLabel, className, disabled }: Props) {
   // Keep the typed text locally so "1." or "" can be typed without jumping.
   const [text, setText] = useState(value === null ? '' : String(value))
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function NumberField({ value, onChange, min = 0, max, step = 0.5,
       step={step}
       placeholder={placeholder}
       aria-label={ariaLabel}
+      disabled={disabled}
       onChange={(e) => {
         setText(e.target.value)
         const n = e.target.value === '' ? null : Number(e.target.value)

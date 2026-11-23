@@ -59,6 +59,15 @@ export interface Tactic {
   active: boolean
   /** How many times per week, e.g. 3. Null = no fixed frequency. */
   weekly_frequency: number | null
+  /**
+   * Optional schedule (v0.2): the weekdays (1 = Mon … 7 = Sun) its tasks go
+   * on, at `schedule_time` ("HH:MM") for `schedule_hours` hours. With a
+   * schedule, times per week = number of days, and the weekly tasks appear
+   * in the calendar on their own.
+   */
+  schedule_days?: number[] | null
+  schedule_time?: string | null
+  schedule_hours?: number | null
   /** Display order (0, 1, 2…). */
   sort_order: number
 }

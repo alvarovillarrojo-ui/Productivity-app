@@ -405,3 +405,44 @@ describe('focus (pomodoro)', () => {
     expect(await repo.listFocusSessions('2026-01-01')).toHaveLength(1)
   })
 })
+
+describe('tactic schedule', () => {
+  // seed(): cycle from Mon 5 Jan 2026, tactic "Run" 3× per week. Wednesday of week 1:
+  const WED = '2026-01-07'
+
+  it('new weeks get their tasks on the scheduled days and time', async () => {
+    const { cycle, tactic } = await seed()
+    await repo.setTacticSchedule(tactic.id, { days: [3, 5, 6], time: '07:30', hours: 0.5 }, WED)
+    expect((await db.tactics.get(tactic.id))?.weekly_frequency).toBe(3)
+    await repo.ensureRecurringTasks(WED)
+    const tasks = await repo.listTasksForWeek(cycle.id, 1)
+    expect(tasks.map((t) => [t.planned_date, t.start_time, t.planned_hours])).toEqual([
+      ['2026-01-07', '07:30', 0.5],
+      ['2026-01-09', '07:30', 0.5],
+      ['2026-01-10', '07:30', 0.5],
+    ])
+  })
+
+  it('saving a schedule places this week’s undated tasks on free days, never moving placed ones', async () => {
+    const { cycle, tactic } = await seed()
+    await repo.ensureRecurringTasks(WED) // 3 undated tasks
+    const [first] = await repo.listTasksForWeek(cycle.id, 1)
+    await repo.updateTask(first.id, { planned_date: '2026-01-09', start_time: '18:00' }) // placed by hand on Friday
+    await repo.setTacticSchedule(tactic.id, { days: [1, 3, 5, 7], time: '07:00', hours: 1 }, WED)
+    const tasks = await repo.listTasksForWeek(cycle.id, 1)
+    const byId = new Map(tasks.map((t) => [t.id, t]))
+    expect(byId.get(first.id)).toMatchObject({ planned_date: '2026-01-09', start_time: '18:00' }) // untouched
+    // Monday has passed; Friday is taken → Wednesday and Sunday.
+    expect(tasks.filter((t) => t.id !== first.id).map((t) => t.planned_date).sort()).toEqual(['2026-01-07', '2026-01-11'])
+    // The 4th day raised the frequency: one more task, created for the free day left.
+    expect(await repo.ensureRecurringTasks(WED)).toBe(1)
+  })
+
+  it('clearing the days removes the schedule but keeps the tasks', async () => {
+    const { cycle, tactic } = await seed()
+    await repo.setTacticSchedule(tactic.id, { days: [3], time: '07:00', hours: 1 }, WED)
+    await repo.setTacticSchedule(tactic.id, { days: [], time: null, hours: null }, WED)
+    expect(await db.tactics.get(tactic.id)).toMatchObject({ schedule_days: null, weekly_frequency: 1 })
+    expect(await repo.listTasksForWeek(cycle.id, 1)).toHaveLength(0)
+  })
+})

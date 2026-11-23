@@ -179,6 +179,16 @@ export const es: Dict = {
     noTactics: 'Aún no hay tácticas.',
     newTactic: 'Nueva táctica',
     deleteTactic: (name: string) => `Borrar táctica ${name}`,
+    schedule: {
+      add: '🗓 Añadir horario (días y hora)',
+      summary: (days: string, time: string, hours: number | null) =>
+        `🗓 ${days}${time ? ` · ${time}` : ''}${hours ? ` · ${hours} h` : ''} (editar)`,
+      hint: 'Sus tareas semanales van en estos días, a esta hora, y aparecen solas en el calendario. Veces por semana = número de días. Las tareas de esta semana sin colocar se colocan ahora; las ya colocadas no se mueven.',
+      time: 'Hora',
+      hours: 'Horas',
+      remove: 'Quitar horario',
+      needDay: 'Elige al menos un día.',
+    },
     confirmDeleteTactic: (name: string) =>
       `¿Borrar la táctica «${name}»? Sus tareas se conservan como «Otras». (Consejo: desmarca «Activa» para solo ocultarla.)`,
   },
@@ -317,8 +327,10 @@ export const es: Dict = {
         case 'number': return `${at}debe ser un número de horas (0 o más).`
         case 'boolean': return `${at}debe ser true o false.`
         case 'frequency': return `${at}debe ser un número entero del 1 al 14.`
+        case 'days': return `${at}debe ser una lista de días, 1 = lunes … 7 = domingo (p. ej. [1, 3, 5]).`
         case 'length': return `${at}debe ser un número entero de semanas del 1 al 52.`
         case 'date': return `${at}«${i.detail}» no es una fecha válida (usa AAAA-MM-DD).`
+        case 'time': return `${at}«${i.detail}» no es una hora válida (usa HH:MM, p. ej. 16:00).`
         case 'monday': return `${at}${i.detail} no es lunes. Los ciclos empiezan en lunes.`
         case 'week': return `${at}debe ser un número de semana dentro del ciclo.`
         case 'dateOutsideWeek': return `${at}${i.detail} no está dentro de esa semana.`

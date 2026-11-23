@@ -9,8 +9,9 @@ import { useI18n } from '../i18n'
 import NumberField from '../components/NumberField'
 import TextField from '../components/TextField'
 import NoActiveCycle from '../components/NoActiveCycle'
-import { cycleEnd, isMonday, isValidDate } from '../logic/weeks'
+import { cycleEnd, formatWeekday, isMonday, isValidDate, todayISO, weekDates } from '../logic/weeks'
 import { MAX_RECOMMENDED_GOALS } from './setup/draft'
+import { isValidTime } from '../logic/calendar'
 
 export default function GoalsScreen() {
   const { t } = useI18n()
@@ -208,13 +209,17 @@ function TacticRow({ tactic }: { tactic: Tactic }) {
   const remove = () => {
     if (confirm(t.goalsScreen.confirmDeleteTactic(tactic.name))) repo.deleteTactic(tactic.id)
   }
+  const scheduled = (tactic.schedule_days?.length ?? 0) > 0
   return (
+    <>
     <div className={tactic.active ? 'tactic-row' : 'tactic-row inactive'}>
       <TextField ariaLabel={t.setup.tactics.name} value={tactic.name} required onSave={(name) => save({ name })} />
       <NumberField
         className="num small"
         ariaLabel={t.common.timesPerWeek}
         value={tactic.weekly_frequency}
+        // With a schedule, times per week = number of days.
+        disabled={scheduled}
         step={1}
         min={1}
         max={14}
@@ -232,6 +237,89 @@ function TacticRow({ tactic }: { tactic: Tactic }) {
       <button className="link danger" aria-label={t.goalsScreen.deleteTactic(tactic.name)} onClick={remove}>
         ✕
       </button>
+    </div>
+    <TacticSchedule tactic={tactic} />
+    </>
+  )
+}
+
+// ---------- tactic schedule (days, time, duration) ----------
+
+function TacticSchedule({ tactic }: { tactic: Tactic }) {
+  const { t, locale } = useI18n()
+  const s = t.goalsScreen.schedule
+  const [open, setOpen] = useState(false)
+  const [days, setDays] = useState<number[]>(tactic.schedule_days ?? [])
+  const [time, setTime] = useState(tactic.schedule_time ?? '09:00')
+  const [hours, setHours] = useState<number | null>(tactic.schedule_hours ?? 1)
+  const [error, setError] = useState(false)
+  // Any Monday–Sunday, to name the weekdays in the current language.
+  const names = weekDates('2026-11-16').map((d) => formatWeekday(d, locale, 'short'))
+  const current = tactic.schedule_days ?? []
+
+  const save = async (clear = false) => {
+    if (!clear && days.length === 0) return setError(true)
+    await repo.setTacticSchedule(
+      tactic.id,
+      clear ? { days: [], time: null, hours: null } : { days, time: isValidTime(time) ? time : null, hours },
+      todayISO(),
+    )
+    if (clear) setDays([])
+    setOpen(false)
+    setError(false)
+  }
+
+  if (!open) {
+    return (
+      <div className="tactic-sched">
+        <button className="link small-text" onClick={() => setOpen(true)}>
+          {current.length > 0
+            ? s.summary(current.map((d) => names[d - 1]).join(' · '), tactic.schedule_time ?? '', tactic.schedule_hours ?? null)
+            : s.add}
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div className="tactic-sched open stack">
+      <p className="muted small-text">{s.hint}</p>
+      <div className="row">
+        {names.map((name, i) => (
+          <button
+            key={name}
+            type="button"
+            className={days.includes(i + 1) ? 'chip on' : 'chip'}
+            aria-pressed={days.includes(i + 1)}
+            onClick={() => setDays((prev) => (prev.includes(i + 1) ? prev.filter((d) => d !== i + 1) : [...prev, i + 1].sort()))}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      <div className="row">
+        <label className="field">
+          <span>{s.time}</span>
+          <input type="time" step={900} value={time} onChange={(e) => setTime(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>{s.hours}</span>
+          <NumberField className="num small" value={hours} placeholder="1" onChange={setHours} />
+        </label>
+      </div>
+      {error && <p className="bad small-text">{s.needDay}</p>}
+      <div className="row">
+        <button className="btn primary" onClick={() => save()}>
+          {t.common.save}
+        </button>
+        <button className="btn" onClick={() => setOpen(false)}>
+          {t.common.cancel}
+        </button>
+        {current.length > 0 && (
+          <button className="link danger" onClick={() => save(true)}>
+            {s.remove}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

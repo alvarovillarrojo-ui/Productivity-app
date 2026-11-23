@@ -122,3 +122,29 @@ describe('copy unfinished tasks', () => {
     expect(unfinishedCopies(week, next).map((t) => t.title)).toEqual(['B'])
   })
 })
+
+describe('scheduled tactics', () => {
+  // Week 2 of a cycle starting Mon 9 Nov 2026 → Mon 16 … Sun 22 Nov.
+  const study: Tactic = { ...tactic('study', 'Study', 3), schedule_days: [5, 1, 3], schedule_time: '16:00', schedule_hours: 2 }
+  const dates = (today: string) => ({ weekStart: '2026-11-16', today })
+
+  it('puts task i on the i-th day (sorted), at the time and duration', () => {
+    const { tasks } = planRecurring('c', 2, [study], [], {}, dates('2026-11-15'))
+    expect(tasks.map((t) => [t.title, t.planned_date, t.start_time, t.planned_hours])).toEqual([
+      ['Study (1/3)', '2026-11-16', '16:00', 2],
+      ['Study (2/3)', '2026-11-18', '16:00', 2],
+      ['Study (3/3)', '2026-11-20', '16:00', 2],
+    ])
+  })
+
+  it('skips days that have already passed (tactic added mid-week)', () => {
+    const { tasks, generated } = planRecurring('c', 2, [study], [], {}, dates('2026-11-18'))
+    expect(tasks.map((t) => t.planned_date)).toEqual(['2026-11-18', '2026-11-20'])
+    expect(generated['2|study']).toBe(3) // the Monday one is not created later
+  })
+
+  it('a tactic without days keeps undated tasks', () => {
+    const { tasks } = planRecurring('c', 2, [tactic('run', 'Run', 2)], [], {}, dates('2026-11-15'))
+    expect(tasks.every((t) => t.planned_date === undefined)).toBe(true)
+  })
+})

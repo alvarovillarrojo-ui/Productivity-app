@@ -6,6 +6,13 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Tactic schedules: choose the days, time and duration of a tactic in Goals
+  (or with `days`, `time`, `hours` in an import file). Its weekly tasks are
+  then created on those days and appear in the calendar by themselves; this
+  week's unplaced tasks are placed when the schedule is saved.
+
 ## [0.2.0] - 2026-11-23
 
 ### Added

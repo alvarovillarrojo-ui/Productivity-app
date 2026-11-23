@@ -414,3 +414,8 @@ h3 { font-size: 1rem; margin: 0.5rem 0; }
 .focus-buttons { justify-content: center; }
 .session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 details.card summary { cursor: pointer; font-weight: 600; }
+
+/* ---------- tactic schedule ---------- */
+.tactic-sched { margin: -0.2rem 0 0.6rem; }
+.tactic-sched.open { background: var(--surface); border-radius: 8px; padding: 0.6rem; }
+.tactic-sched .chip { padding: 0.2rem 0.55rem; text-transform: capitalize; }

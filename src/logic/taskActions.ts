@@ -4,6 +4,13 @@ import type { NewTask } from '../data/repo'
 import type { Cycle, ISODate, Tactic, Task } from '../data/types'
 import { addDays, cyclePosition } from './weeks'
 
+/** A tactic's schedule, or null when it has none (no days chosen). */
+export function scheduleOf(tactic: Tactic): { days: number[]; time: string | null; hours: number | null } | null {
+  const days = [...new Set(tactic.schedule_days ?? [])].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b)
+  if (days.length === 0) return null
+  return { days, time: tactic.schedule_time ?? null, hours: tactic.schedule_hours ?? null }
+}
+
 /** "Next week" is prepared this many days before it starts (Sat + Sun). */
 export const PREPARE_NEXT_WEEK_DAYS = 2
 
@@ -38,6 +45,11 @@ export const recurringKey = (week: number, tacticId: string) => `${week}|${tacti
  * The first time a week + tactic is seen, tasks that already exist for the
  * tactic (e.g. added by hand) are counted, so nothing is duplicated.
  *
+ * SCHEDULED tactics (with days): task i goes on the i-th chosen day, at the
+ * chosen time and duration, so it appears in the calendar by itself. Days
+ * that have already passed (`today`) are skipped, so a tactic added
+ * mid-week doesn't start with overdue tasks.
+ *
  * Returns the tasks to create and the updated `generated` record.
  */
 export function planRecurring(
@@ -46,6 +58,8 @@ export function planRecurring(
   tactics: Tactic[],
   weekTasks: Task[],
   generated: Record<string, number>,
+  /** Monday of that week and today; needed to place scheduled tasks. */
+  dates?: { weekStart: ISODate; today: ISODate },
 ): { tasks: NewTask[]; generated: Record<string, number> } {
   const next = { ...generated }
   const tasks: NewTask[] = []
@@ -54,13 +68,21 @@ export function planRecurring(
     if (!tactic.active || freq === null || freq < 1) continue
     const key = recurringKey(week, tactic.id)
     const already = next[key] ?? weekTasks.filter((t) => t.tactic_id === tactic.id).length
+    const schedule = scheduleOf(tactic)
     for (let i = already + 1; i <= freq; i++) {
-      tasks.push({
+      const task: NewTask = {
         cycle_id: cycleId,
         week_number: week,
         title: freq === 1 ? tactic.name : `${tactic.name} (${i}/${freq})`,
         tactic_id: tactic.id,
-      })
+      }
+      const day = schedule?.days[i - 1]
+      if (schedule && day && dates) {
+        const date = addDays(dates.weekStart, day - 1)
+        if (date < dates.today) continue // that day has passed
+        Object.assign(task, { planned_date: date, start_time: schedule.time, planned_hours: schedule.hours })
+      }
+      tasks.push(task)
     }
     next[key] = Math.max(already, freq)
   }
