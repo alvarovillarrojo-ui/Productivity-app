@@ -231,6 +231,12 @@ export const en = {
     inProgress: 'in progress',
     hoursTitle: 'Hours per week',
     hoursHint: 'Actual hours of target. Green = target reached, orange = only the minimum, red = below the minimum.',
+    habitsFocusTitle: 'Habits and focus per week',
+    habitsFocusHint: 'Habits: ticked days ÷ planned days (separate from execution %). Focus: time from the Focus timer; pomodoros = full rounds.',
+    habitsCol: 'Habits',
+    focusCol: 'Focus',
+    pomodorosCol: 'Pomodoros',
+    total: 'Total',
     totalFinished: (n: number) => `Total (${n} finished week${n === 1 ? '' : 's'})`,
     other: 'Other',
   },
@@ -347,7 +353,8 @@ export const en = {
       {
         title: 'Every day (2 minutes)',
         items: [
-          'Morning: open Home and look at Today and what is still open this week.',
+          'Morning: open Home and look at Today and what is still open this week. Tick today’s habits as you do them.',
+          'During the day: press ▶ Focus on a task to work on it in pomodoros; finished rounds add their time to the task.',
           'Evening: tick each task ✓ done or ✗ missed. Actual hours are copied from the planned hours; change them in Tasks if they were different.',
         ],
       },
@@ -356,8 +363,18 @@ export const en = {
         items: [
           'Tracking: look at the week’s execution % and hours. What got in the way?',
           'Tasks → next week: your tactics’ tasks are already there (they are created automatically from each tactic’s “times per week”, from Saturday on). Add any one-off tasks.',
+          'Calendar: add your classes and exams, then place your tasks at a day and time so each one has its block.',
           '“Copy unfinished” takes the tasks you still want to do into the next week.',
           'Data: make a backup. If you like, export the week as a report.',
+        ],
+      },
+      {
+        title: 'Calendar, focus and habits',
+        items: [
+          'Calendar: week view with hours and a month view. Click an empty slot to add an event (it can repeat every week) or place a task; click a block to move it or tick it.',
+          'Focus: 25 minutes of focus, then a 5-minute break (15 after every 4th). The timer keeps running on other screens. Stopping early saves the minutes done.',
+          'Habits (Tasks → Habits): small daily actions set up the Atomic Habits way (identity, a clear plan, a 2-minute version, a reward) and grouped by the 7 Habits of Highly Effective People. Never miss twice.',
+          'Habits and focus have their own numbers in Tracking; they don’t change your 12-week execution %.',
         ],
       },
       {

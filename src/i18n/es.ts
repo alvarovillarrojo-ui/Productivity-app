@@ -231,6 +231,12 @@ export const es: Dict = {
     inProgress: 'en curso',
     hoursTitle: 'Horas por semana',
     hoursHint: 'Horas reales sobre el objetivo. Verde = objetivo cumplido, naranja = solo el mínimo, rojo = por debajo del mínimo.',
+    habitsFocusTitle: 'Hábitos y enfoque por semana',
+    habitsFocusHint: 'Hábitos: días marcados ÷ días que tocaba (aparte del % de ejecución). Enfoque: tiempo del temporizador de Enfoque; pomodoros = rondas completas.',
+    habitsCol: 'Hábitos',
+    focusCol: 'Enfoque',
+    pomodorosCol: 'Pomodoros',
+    total: 'Total',
     totalFinished: (n: number) => `Total (${n} semana${n === 1 ? '' : 's'} terminada${n === 1 ? '' : 's'})`,
     other: 'Otras',
   },
@@ -347,7 +353,8 @@ export const es: Dict = {
       {
         title: 'Cada día (2 minutos)',
         items: [
-          'Mañana: abre Inicio y mira Hoy y lo que sigue pendiente esta semana.',
+          'Mañana: abre Inicio y mira Hoy y lo que sigue pendiente esta semana. Marca los hábitos de hoy según los hagas.',
+          'Durante el día: pulsa ▶ Enfoque en una tarea para trabajarla en pomodoros; cada ronda terminada suma su tiempo a la tarea.',
           'Noche: marca cada tarea ✓ hecha o ✗ no hecha. Las horas reales se copian de las previstas; cámbialas en Tareas si fueron distintas.',
         ],
       },
@@ -356,8 +363,18 @@ export const es: Dict = {
         items: [
           'Seguimiento: mira el % de ejecución y las horas de la semana. ¿Qué se interpuso?',
           'Tareas → semana siguiente: las tareas de tus tácticas ya están ahí (se crean solas según las “veces por semana” de cada táctica, desde el sábado). Añade las tareas puntuales.',
+          'Calendario: añade tus clases y exámenes y coloca tus tareas en un día y una hora, para que cada una tenga su bloque.',
           '“Copiar pendientes” lleva a la semana siguiente las tareas que aún quieras hacer.',
           'Datos: haz una copia de seguridad. Si quieres, exporta la semana como informe.',
+        ],
+      },
+      {
+        title: 'Calendario, enfoque y hábitos',
+        items: [
+          'Calendario: vista semanal con horas y vista mensual. Pulsa un hueco libre para añadir un evento (puede repetirse cada semana) o colocar una tarea; pulsa un bloque para moverlo o marcarlo.',
+          'Enfoque: 25 minutos de concentración y 5 de descanso (15 cada 4 rondas). El temporizador sigue en otras pantallas. Si paras antes, se guardan los minutos hechos.',
+          'Hábitos (Tareas → Hábitos): pequeñas acciones diarias al estilo de Hábitos Atómicos (identidad, un plan claro, una versión de 2 minutos, una recompensa) agrupadas según los 7 hábitos de la gente altamente efectiva. Nunca falles dos veces.',
+          'Los hábitos y el enfoque tienen sus propios números en Seguimiento; no cambian tu % de ejecución de las 12 semanas.',
         ],
       },
       {

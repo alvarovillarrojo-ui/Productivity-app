@@ -6,8 +6,12 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 ### Added
 
+- Tracking: habit consistency, focus time and pomodoros per week.
+- About page: the calendar, focus timer and habits.
 - Focus (pomodoro) screen: 25 min focus / 5 min break (15 every 4th), with
   pause, stop-and-save and adjustable lengths. A finished round adds its
   minutes to the task’s actual hours and asks whether the task is done.
@@ -65,5 +69,6 @@ First version.
 - Docs: import/export format (`docs/import_schema.md`) and a sample import
   file (`examples/sample_import.json`).
 
-[Unreleased]: https://github.com/alvarovillarrojo-ui/Productivity-app/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/alvarovillarrojo-ui/Productivity-app/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/alvarovillarrojo-ui/Productivity-app/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alvarovillarrojo-ui/Productivity-app/releases/tag/v0.1.0

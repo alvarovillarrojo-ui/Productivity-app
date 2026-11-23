@@ -17,8 +17,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useActiveCycle, useCycleTasks, useGoals, useTactics } from '../data/hooks'
-import type { Cycle, Goal, Tactic, Task } from '../data/types'
+import * as repo from '../data/repo'
+import { useActiveCycle, useCycleTasks, useGoals, useHabitChecks, useHabits, useTactics } from '../data/hooks'
+import { useLive } from '../data/useLive'
+import { checkSet, consistency } from '../logic/habits'
+import type { Cycle, FocusSession, Goal, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import NoActiveCycle from '../components/NoActiveCycle'
 import { pctClass } from '../components/pctClass'
@@ -27,6 +30,7 @@ import {
   bestAndWorstWeeks,
   cycleExecution,
   cycleTotals,
+  formatHours,
   formatPct,
   goalOfTask,
   hoursLevel,
@@ -38,7 +42,7 @@ import {
   type Execution,
   type WeekExecution,
 } from '../logic/metrics'
-import { cyclePosition, todayISO, weekStart } from '../logic/weeks'
+import { cyclePosition, todayISO, weekEnd, weekStart } from '../logic/weeks'
 
 
 export default function TrackingScreen() {
@@ -167,7 +171,91 @@ function TrackingForCycle({ cycle }: { cycle: Cycle }) {
           currentWeek={currentWeek}
         />
       </div>
+
+      <HabitsAndFocus cycle={cycle} shownWeeks={shownWeeks} currentWeek={currentWeek} today={today} />
     </section>
+  )
+}
+
+// ---------- habits and focus per week ----------
+
+/**
+ * Habit consistency (separate from execution %) and focus time per cycle
+ * week. Paused habits are left out.
+ */
+function HabitsAndFocus({
+  cycle,
+  shownWeeks,
+  currentWeek,
+  today,
+}: {
+  cycle: Cycle
+  shownWeeks: number
+  currentWeek: number | null
+  today: string
+}) {
+  const { t } = useI18n()
+  const x = t.tracking
+  const habits = useHabits().filter((h) => h.active)
+  const done = checkSet(useHabitChecks(cycle.start_date))
+  const sessions = useLive(() => repo.listFocusSessions(cycle.start_date), [cycle.start_date], [] as FocusSession[])
+  const weeks = Array.from({ length: shownWeeks }, (_, i) => i + 1)
+  const last = weekEnd(cycle, shownWeeks)
+
+  const rows = weeks.map((week) => {
+    const from = weekStart(cycle, week)
+    const to = weekEnd(cycle, week)
+    const inWeek = sessions.filter((s) => s.date >= from && s.date <= to)
+    return {
+      week,
+      habits: consistency(habits, done, from, to, today),
+      minutes: inWeek.reduce((sum, s) => sum + s.minutes, 0),
+      pomodoros: inWeek.filter((s) => s.completed).length,
+    }
+  })
+  const totalHabits = consistency(habits, done, cycle.start_date, last, today)
+  const totalMinutes = rows.reduce((sum, r) => sum + r.minutes, 0)
+  const totalPomodoros = rows.reduce((sum, r) => sum + r.pomodoros, 0)
+
+  return (
+    <div className="card">
+      <h2>{x.habitsFocusTitle}</h2>
+      <p className="muted small-text">{x.habitsFocusHint}</p>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{x.week}</th>
+              <th className="num-col">{x.habitsCol}</th>
+              <th className="num-col">{x.focusCol}</th>
+              <th className="num-col">{x.pomodorosCol}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.week}>
+                <td>
+                  <WeekCell cycle={cycle} week={r.week} current={r.week === currentWeek} />
+                </td>
+                <td className={`num-col ${pctClass(r.habits.pct)}`} title={`${r.habits.done} / ${r.habits.planned}`}>
+                  {formatPct(r.habits.pct)}
+                </td>
+                <td className="num-col">{formatHours(r.minutes / 60)}</td>
+                <td className="num-col">{r.pomodoros}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>{x.total}</td>
+              <td className={`num-col ${pctClass(totalHabits.pct)}`}>{formatPct(totalHabits.pct)}</td>
+              <td className="num-col">{formatHours(totalMinutes / 60)}</td>
+              <td className="num-col">{totalPomodoros}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
   )
 }
 

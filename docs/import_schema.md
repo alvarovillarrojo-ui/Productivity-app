@@ -151,9 +151,16 @@ A complete copy of the app’s data, **with ids**, used only by Restore:
   "kind": "backup",
   "app": "twelve-week-tracker",
   "exported_at": "2026-11-23T18:05:00.000Z",
-  "data": { "cycles": [ … ], "goals": [ … ], "tactics": [ … ], "tasks": [ … ] }
+  "data": {
+    "cycles": [ … ], "goals": [ … ], "tactics": [ … ], "tasks": [ … ],
+    "habits": [ … ], "habit_checks": [ … ], "events": [ … ], "focus_sessions": [ … ]
+  }
 }
 ```
+
+`habits`, `habit_checks`, `events` and `focus_sessions` were added in v0.2;
+backups made with v0.1 don’t have them and still restore (as empty lists).
+Tasks may also have a `start_time` (`"HH:MM"` or `null`) since v0.2.
 
 Each record has exactly the fields described in
 [`src/data/types.ts`](../src/data/types.ts). Before restoring, the app checks
