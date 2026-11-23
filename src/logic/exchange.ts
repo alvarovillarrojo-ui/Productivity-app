@@ -249,6 +249,20 @@ export function parseJson(text: string): { value: unknown; issues: DataIssue[] }
   try {
     return { value: JSON.parse(text), issues: [] }
   } catch (e) {
+    // Pasted from a chat (e.g. Claude): the JSON may sit inside a ```json
+    // block or have some text around it. Try the block, then { … }.
+    const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text)?.[1]
+    const first = text.indexOf('{')
+    const last = text.lastIndexOf('}')
+    const braces = first >= 0 && last > first ? text.slice(first, last + 1) : undefined
+    for (const candidate of [fenced, braces]) {
+      if (!candidate) continue
+      try {
+        return { value: JSON.parse(candidate), issues: [] }
+      } catch {
+        // try the next one
+      }
+    }
     return { value: null, issues: [{ code: 'invalidJson', detail: (e as Error).message }] }
   }
 }

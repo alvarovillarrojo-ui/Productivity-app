@@ -624,10 +624,14 @@ export async function setTacticSchedule(
  * Nothing existing is changed. One transaction: all or nothing.
  * Returns the id of the cycle the data went into.
  */
-export async function applyImport(plan: ImportPlan): Promise<string> {
+export async function applyImport(plan: ImportPlan, options: { closeActive?: boolean } = {}): Promise<string> {
   return db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
     let cycleId: string
     if (plan.cycle.kind === 'new') {
+      // "Start as a new cycle": the current cycle is closed (kept in history).
+      if (options.closeActive) {
+        await db.cycles.where('status').equals('active').modify({ status: 'closed', updated_at: now() })
+      }
       const active = await getActiveCycle()
       if (active) throw new Error(`Cycle "${active.name}" is still active.`)
       const cycle: Cycle = { ...plan.cycle.data, id: newId(), status: 'active', created_at: now(), updated_at: now() }

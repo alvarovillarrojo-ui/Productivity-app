@@ -319,3 +319,26 @@ describe('tactic schedules in files', () => {
     expect(r.data!.tactics[0]).toEqual(scheduled)
   })
 })
+
+describe('pasting an answer from a chat', () => {
+  it('finds the JSON inside a ```json block or between text', () => {
+    const json = '{"schema_version": "1.0", "cycle": {"name": "C", "start_date": "2026-11-30"}}'
+    expect(parseJson('Here is your plan:\n```json\n' + json + '\n```\nGood luck!').issues).toEqual([])
+    expect(parseJson('Plan: ' + json + ' — enjoy').value).toMatchObject({ cycle: { name: 'C' } })
+    expect(parseJson('no json at all').issues[0].code).toBe('invalidJson')
+  })
+})
+
+describe('Plan with Claude prompt', () => {
+  it('its example plan is a valid import file, and the prompt includes the answers', async () => {
+    const { PROMPT_EXAMPLE, buildClaudePrompt } = await import('./claudePrompt')
+    const r = parseImport(PROMPT_EXAMPLE, null)
+    expect(r.issues).toEqual([])
+    expect(r.plan!.newGoals[0].tactics[0]).toMatchObject({ schedule_days: [1, 3, 5], schedule_time: '16:00', weekly_frequency: 3 })
+    const p = buildClaudePrompt({ start: '2027-01-11', goals: 'Pass CFA level 1', hours: 18, commitments: 'Classes Mon–Thu 9–14' }, 'es')
+    expect(p).toContain('El ciclo empieza el 2027-01-11')
+    expect(p).toContain('Pass CFA level 1')
+    expect(p).toContain('"start_date": "2027-01-11"')
+    expect(p).toContain('```json')
+  })
+})

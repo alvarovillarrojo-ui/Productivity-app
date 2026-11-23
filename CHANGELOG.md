@@ -8,6 +8,12 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Plan your 12 weeks with Claude (Data, and a link on the welcome screen):
+  answer a few questions, copy the generated prompt into Claude, and paste
+  Claude’s whole reply into Import. The import box now finds the JSON in a
+  pasted chat answer, and a plan can be started as a new cycle (the current
+  one is closed and kept in history).
+
 - Import a calendar file (.ics) from Google Calendar, Outlook or a
   university timetable (Data → Import a calendar, or from the Calendar).
   Preview first; weekly repeats kept (several weekdays → several weekly

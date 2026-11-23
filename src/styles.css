@@ -419,3 +419,6 @@ details.card summary { cursor: pointer; font-weight: 600; }
 .tactic-sched { margin: -0.2rem 0 0.6rem; }
 .tactic-sched.open { background: var(--surface); border-radius: 8px; padding: 0.6rem; }
 .tactic-sched .chip { padding: 0.2rem 0.55rem; text-transform: capitalize; }
+
+.preview .list-plain { list-style: none; margin-left: -1.2rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.steps { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.2rem; }

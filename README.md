@@ -22,7 +22,7 @@ list your tasks, tick them off, and see your **execution %** (aim for 85%) and
 | **Focus** | Pomodoro timer for a task; finished rounds add their minutes to the task’s hours. |
 | **Goals** | Edit the cycle, goals (hour targets) and tactics (times per week). |
 | **Tracking** | The whole cycle: execution % per week (chart), week-by-week table, hours per goal. |
-| **Data** | Backup / restore, export a week (JSON + Markdown), import from JSON, import a calendar (.ics). |
+| **Data** | Backup / restore, export a week (JSON + Markdown), plan your 12 weeks with Claude, import from JSON, import a calendar (.ics). |
 | **About** | How to use the method and the app; how the numbers are calculated. |
 
 ## How execution % is calculated
@@ -61,6 +61,10 @@ exact address, so a different port would open with empty data.
 - To start from a file, import [`examples/sample_import.json`](examples/sample_import.json)
   or your own file. The format is described in
   [`docs/import_schema.md`](docs/import_schema.md).
+- **Plan with Claude:** Data → “Plan your 12 weeks with Claude” builds a
+  prompt from a few answers. Paste it in Claude (claude.ai); Claude replies
+  with a plan in the import format; paste the whole reply in Data → Import
+  (you can start it as a new cycle). The app never contacts Claude itself.
 - Personal files (`private/`, exports, backups) are listed in `.gitignore`
   and are never committed.
 

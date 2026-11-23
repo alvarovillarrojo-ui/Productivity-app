@@ -460,3 +460,16 @@ describe('importIcsEvents', () => {
     expect(events.find((e) => e.ics_uid === 'u1')).toMatchObject({ start_time: '10:00', end_time: '11:30' })
   })
 })
+
+describe('import as a new cycle', () => {
+  it('closes the active cycle and makes the imported one active', async () => {
+    const { cycle } = await seed()
+    const { plan } = parseImport(
+      { schema_version: '1.0', cycle: { name: 'Plan from Claude', start_date: '2026-11-30' }, goals: [{ name: 'G', weekly_hours_target: 3 }] },
+      null,
+    )
+    await repo.applyImport(plan!, { closeActive: true })
+    expect((await repo.getActiveCycle())?.name).toBe('Plan from Claude')
+    expect((await repo.getCycle(cycle.id))?.status).toBe('closed')
+  })
+})

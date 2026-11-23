@@ -25,10 +25,12 @@ import {
   type ImportPlan,
   type ImportTarget,
 } from '../logic/exchange'
-import { addDays, defaultWeek, lastCompletedWeek, todayISO, weekStart } from '../logic/weeks'
+import { addDays, defaultWeek, isMonday, lastCompletedWeek, nextMonday, todayISO, weekStart } from '../logic/weeks'
 import { parseIcs } from '../logic/ics'
+import { buildClaudePrompt } from '../logic/claudePrompt'
+import NumberField from '../components/NumberField'
 
-const SECTIONS = ['backup', 'restore', 'export', 'import', 'ics'] as const
+const SECTIONS = ['backup', 'restore', 'export', 'claude', 'import', 'ics'] as const
 
 export default function DataScreen() {
   const { t } = useI18n()
@@ -61,6 +63,9 @@ export default function DataScreen() {
           <ExportSection cycle={cycle} />
         </div>
       )}
+      <div id="claude" className={highlight('claude')}>
+        <PlanWithClaude />
+      </div>
       <div id="import" className={highlight('import')}>
         <ImportSection />
       </div>
@@ -254,10 +259,11 @@ async function loadImportTarget(): Promise<ImportTarget | null> {
   return { cycle, goals, tactics, tasks }
 }
 
-async function checkImport(text: string): Promise<{ issues: DataIssue[]; plan: ImportPlan | null }> {
+/** `asNewCycle`: ignore the active cycle and create the file's cycle instead. */
+async function checkImport(text: string, asNewCycle = false): Promise<{ issues: DataIssue[]; plan: ImportPlan | null }> {
   const json = parseJson(text)
   if (json.issues.length > 0) return { issues: json.issues, plan: null }
-  return parseImport(json.value, await loadImportTarget())
+  return parseImport(json.value, asNewCycle ? null : await loadImportTarget())
 }
 
 function ImportSection() {
@@ -267,11 +273,12 @@ function ImportSection() {
   const [result, setResult] = useState<{ issues: DataIssue[]; plan: ImportPlan | null } | null>(null)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+  const [asNew, setAsNew] = useState(false)
 
-  const check = async (value: string) => {
+  const check = async (value: string, newCycle = asNew) => {
     setDone(false)
     setError('')
-    setResult(await checkImport(value))
+    setResult(await checkImport(value, newCycle))
   }
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -283,11 +290,12 @@ function ImportSection() {
 
   const apply = async () => {
     // Check again right before importing, in case the data changed meanwhile.
-    const fresh = await checkImport(text)
+    const fresh = await checkImport(text, asNew)
     setResult(fresh)
     if (!fresh.plan) return
     try {
-      await repo.applyImport(fresh.plan)
+      await repo.applyImport(fresh.plan, { closeActive: asNew })
+      setAsNew(false)
       setDone(true)
       setResult(null)
       setText('')
@@ -328,6 +336,7 @@ function ImportSection() {
             onClick={() => {
               setText('')
               setResult(null)
+              setAsNew(false)
             }}
           >
             {m.clear}
@@ -346,6 +355,22 @@ function ImportSection() {
                 : m.newCycle(plan.cycle.data.name, date(plan.cycle.data.start_date), plan.cycle.data.length_weeks)}
             </li>
             {plan.cycleIgnored && <li className="muted">{m.cycleIgnored}</li>}
+            {(plan.cycleIgnored || asNew) && (
+              <li className="list-plain">
+                <label className="row">
+                  <input
+                    type="checkbox"
+                    checked={asNew}
+                    onChange={(e) => {
+                      setAsNew(e.target.checked)
+                      void check(text, e.target.checked)
+                    }}
+                  />
+                  <strong>{m.startAsNew}</strong>
+                </label>
+                {asNew && <span className="warn small-text">{m.startAsNewHint}</span>}
+              </li>
+            )}
             {plan.newGoals.length > 0 && <li>{m.newGoals(plan.newGoals.map((g) => g.name).join(', '))}</li>}
             {(plan.newTactics.length > 0 || plan.newGoals.some((g) => g.tactics.length > 0)) && (
               <li>
@@ -375,6 +400,74 @@ function ImportSection() {
           {m.done} <Link to="/">{m.goHome}</Link>
         </p>
       )}
+    </>
+  )
+}
+
+// ---------- 3a. plan with Claude ----------
+
+const CLAUDE_URL = 'https://claude.ai/new'
+
+function PlanWithClaude() {
+  const { t, lang } = useI18n()
+  const m = t.data.claude
+  const [start, setStart] = useState(nextMonday(todayISO()))
+  const [goals, setGoals] = useState('')
+  const [hours, setHours] = useState<number | null>(null)
+  const [commitments, setCommitments] = useState('')
+  const [copied, setCopied] = useState<'yes' | 'no' | null>(null)
+  const prompt = buildClaudePrompt({ start, goals, hours, commitments }, lang)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt)
+      setCopied('yes')
+    } catch {
+      setCopied('no') // clipboard blocked: the text is shown below to copy by hand
+    }
+  }
+
+  return (
+    <>
+      <h2>{m.title}</h2>
+      <ol className="small-text steps">
+        <li>{m.step1}</li>
+        <li>{m.step2}</li>
+        <li>{m.step3}</li>
+      </ol>
+      <div className="row">
+        <label className="field">
+          <span>{m.start}</span>
+          <input type="date" value={start} onChange={(e) => e.target.value && setStart(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>{m.hours}</span>
+          <NumberField className="num small" value={hours} placeholder="–" onChange={setHours} />
+        </label>
+      </div>
+      {!isMonday(start) && <p className="warn small-text">{t.setup.cycle.mustBeMonday}</p>}
+      <label className="field">
+        <span>{m.goals}</span>
+        <textarea className="textarea" rows={3} placeholder={m.goalsPlaceholder} value={goals} onChange={(e) => setGoals(e.target.value)} />
+      </label>
+      <label className="field">
+        <span>{m.commitments}</span>
+        <textarea className="textarea" rows={2} placeholder={m.commitmentsPlaceholder} value={commitments} onChange={(e) => setCommitments(e.target.value)} />
+      </label>
+      <div className="row">
+        <button className="btn primary" onClick={copy}>
+          📋 {m.copy}
+        </button>
+        <a className="btn" href={CLAUDE_URL} target="_blank" rel="noopener noreferrer">
+          {m.open} ↗
+        </a>
+        {copied === 'yes' && <span className="flash">{m.copied}</span>}
+      </div>
+      <details open={copied === 'no'}>
+        <summary className="small-text">{copied === 'no' ? m.copyByHand : m.show}</summary>
+        <textarea className="textarea mono" rows={10} readOnly value={prompt} onFocus={(e) => e.target.select()} />
+      </details>
+      <p className="muted small-text">🔒 {m.privacy}</p>
     </>
   )
 }

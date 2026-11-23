@@ -19,6 +19,8 @@ export default function WelcomeStep({ onStart }: { onStart: () => void }) {
         {w.start}
       </button>
       <p className="muted">
+        {w.withClaude} <Link to="/data?action=claude">{w.withClaudeLink}</Link>
+        <br />
         {w.alreadyHaveData} <Link to="/data?action=import">{w.importFile}</Link> {w.or}{' '}
         <Link to="/data?action=restore">{w.restoreBackup}</Link>.
       </p>
