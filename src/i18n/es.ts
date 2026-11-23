@@ -205,6 +205,34 @@ export const es: Dict = {
     backupNow: 'Hacer copia',
   },
 
+  tracking: {
+    title: 'Seguimiento',
+    notStarted: (date: string) => `El ciclo empieza el ${date}. Tus números aparecerán aquí cuando empiece la semana 1.`,
+    cycleSoFar: 'El ciclo hasta ahora',
+    weeksSoFar: (n: number, total: number) => `semana ${n} de ${total}`,
+    counts: (done: number, missed: number, open: number) =>
+      `${done} hechas · ${missed} no hechas · ${open} pendientes`,
+    countsHint: 'Los recuentos incluyen las tareas "Otras"; el % de ejecución no.',
+    bestWorst: (best: number, bestPct: string, worst: number, worstPct: string) =>
+      `Mejor semana: ${best} (${bestPct}) · Peor semana: ${worst} (${worstPct})`,
+    chartTitle: '% de ejecución por semana',
+    chartHint: 'Línea discontinua = objetivo del 85 %. Las semanas sin nada que contar aún no tienen punto.',
+    overall: 'Total',
+    target: 'Objetivo',
+    weekShort: (n: number) => `S${n}`,
+    weekLong: (n: number) => `Semana ${n}`,
+    tableTitle: 'Semana a semana',
+    week: 'Semana',
+    done: 'Hechas',
+    missed: 'No hechas',
+    open: 'Pendientes',
+    inProgress: 'en curso',
+    hoursTitle: 'Horas por semana',
+    hoursHint: 'Horas reales sobre el objetivo. Verde = objetivo cumplido, naranja = solo el mínimo, rojo = por debajo del mínimo.',
+    totalFinished: (n: number) => `Total (${n} semana${n === 1 ? '' : 's'} terminada${n === 1 ? '' : 's'})`,
+    other: 'Otras',
+  },
+
   tasks: {
     title: 'Tareas',
     prevWeek: 'Semana anterior',

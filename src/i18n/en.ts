@@ -206,6 +206,33 @@ export const en = {
     backupNow: 'Back up now',
   },
 
+  tracking: {
+    title: 'Tracking',
+    notStarted: (date: string) => `The cycle starts on ${date}. Your numbers will appear here once week 1 begins.`,
+    cycleSoFar: 'Cycle so far',
+    weeksSoFar: (n: number, total: number) => `week ${n} of ${total}`,
+    counts: (done: number, missed: number, open: number) => `${done} done · ${missed} missed · ${open} open`,
+    countsHint: 'Counts include "Other" tasks; execution % does not.',
+    bestWorst: (best: number, bestPct: string, worst: number, worstPct: string) =>
+      `Best week: ${best} (${bestPct}) · Worst week: ${worst} (${worstPct})`,
+    chartTitle: 'Execution % per week',
+    chartHint: 'Dashed line = 85% target. Weeks with nothing to count yet show no point.',
+    overall: 'Overall',
+    target: 'Target',
+    weekShort: (n: number) => `W${n}`,
+    weekLong: (n: number) => `Week ${n}`,
+    tableTitle: 'Week by week',
+    week: 'Week',
+    done: 'Done',
+    missed: 'Missed',
+    open: 'Open',
+    inProgress: 'in progress',
+    hoursTitle: 'Hours per week',
+    hoursHint: 'Actual hours of target. Green = target reached, orange = only the minimum, red = below the minimum.',
+    totalFinished: (n: number) => `Total (${n} finished week${n === 1 ? '' : 's'})`,
+    other: 'Other',
+  },
+
   tasks: {
     title: 'Tasks',
     prevWeek: 'Previous week',
