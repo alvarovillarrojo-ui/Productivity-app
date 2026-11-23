@@ -30,9 +30,9 @@
     }
   ],
   "tasks": [
-    { "week_number": 1, "title": "Run 5 km", "goal": "Fitness", "tactic": "Run 5 km", "planned_date": "2026-11-09", "planned_hours": 0.5, "actual_hours": 0.5, "status": "done" },
-    { "week_number": 1, "title": "Run 5 km", "goal": "Fitness", "tactic": "Run 5 km", "planned_date": "2026-11-11", "planned_hours": 0.5, "status": "missed" },
-    { "week_number": 1, "title": "Gym: legs", "goal": "Fitness", "tactic": "Strength session", "planned_date": "2026-11-13", "planned_hours": 1, "actual_hours": 1, "status": "done" },
+    { "week_number": 1, "title": "Run 5 km", "goal": "Fitness", "tactic": "Run 5 km", "planned_hours": 0.5, "actual_hours": 0.5, "status": "done" },
+    { "week_number": 1, "title": "Run 5 km", "goal": "Fitness", "tactic": "Run 5 km", "planned_hours": 0.5, "status": "missed" },
+    { "week_number": 1, "title": "Gym: legs", "goal": "Fitness", "tactic": "Strength session", "planned_hours": 1, "actual_hours": 1, "status": "done" },
     { "week_number": 1, "title": "Lesson 1: spreadsheets", "goal": "Learning", "tactic": "Course lesson", "planned_hours": 1.5, "actual_hours": 2, "status": "done" },
     { "week_number": 1, "title": "Lesson 2: pivot tables", "goal": "Learning", "tactic": "Course lesson", "planned_hours": 1.5, "actual_hours": 1.5, "status": "done" },
     { "week_number": 1, "title": "Buy running shoes", "status": "done", "notes": "No goal or tactic: shown as Other, not counted in execution %." },

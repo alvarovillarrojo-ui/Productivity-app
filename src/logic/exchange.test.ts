@@ -224,6 +224,15 @@ describe('examples/sample_import.json', () => {
     expect(r.plan!.newGoals.map((g) => g.name)).toEqual(['Fitness', 'Learning'])
     expect(r.plan!.tasks).toHaveLength(8)
   })
+
+  it('imports into an active cycle that starts on any Monday', async () => {
+    const { readFileSync } = await import('node:fs')
+    const json = JSON.parse(readFileSync(new URL('../../examples/sample_import.json', import.meta.url), 'utf8'))
+    const otherCycle = { ...cycle, start_date: '2027-03-01', length_weeks: 6 }
+    const r = parseImport(json, { cycle: otherCycle, goals: [], tactics: [], tasks: [] })
+    expect(r.issues).toEqual([])
+    expect(r.plan!.cycleIgnored).toBe(true)
+  })
 })
 
 describe('repeated tasks', () => {
