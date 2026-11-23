@@ -17,7 +17,8 @@ import Modal from '../components/Modal'
 import NumberField from '../components/NumberField'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import StatusButtons from '../components/StatusButtons'
-import { EVENT_COLOR, goalColor } from '../components/colors'
+import { EVENT_COLOR, eventColorOf, goalColorOf } from '../components/colors'
+import ColorPicker from '../components/ColorPicker'
 import {
   addMonths,
   calendarItems,
@@ -60,12 +61,12 @@ export default function CalendarScreen() {
   const events = useLive(repo.listEvents, [], [] as CalendarEvent[])
   const [dialog, setDialog] = useState<Dialog | null>(null)
 
-  const goalIndex = new Map(goals.map((g, i) => [g.id, i]))
+  const goalColorById = new Map(goals.map((g, i) => [g.id, goalColorOf(g, i)]))
   const tacticGoal = new Map(tactics.map((x) => [x.id, x.goal_id]))
   const colorOf = (item: CalendarItem): string => {
-    if (item.kind === 'event') return EVENT_COLOR
+    if (item.kind === 'event') return eventColorOf(item.event!)
     const goalId = item.task?.tactic_id ? tacticGoal.get(item.task.tactic_id) : undefined
-    return goalId !== undefined ? goalColor(goalIndex.get(goalId) ?? 0) : OTHER_COLOR
+    return (goalId !== undefined && goalColorById.get(goalId)) || OTHER_COLOR
   }
   const openItem = (item: CalendarItem) =>
     item.kind === 'event'
@@ -129,6 +130,7 @@ export default function CalendarScreen() {
           <p className="muted small-text">
             {c.clickSlot} <Link to="/data?action=ics">{c.importIcs}</Link>
           </p>
+          <Legend goals={goals} hasEvents={events.length > 0} />
           {inCycle && (
             <div className="card">
               <h2>{c.unscheduled(unplaced.length)}</h2>
@@ -167,6 +169,7 @@ export default function CalendarScreen() {
           onDay={(d) => go('week', d)}
         />
       )}
+      {view === 'month' && <Legend goals={goals} hasEvents={events.length > 0} />}
 
       {dialog?.kind === 'new' && (
         <Modal title={c.newAt(`${fmtDate(dialog.date)} · ${dialog.time}`)} onClose={() => setDialog(null)}>
@@ -207,6 +210,33 @@ export default function CalendarScreen() {
         />
       )}
     </section>
+  )
+}
+
+// ---------- legend ----------
+
+/** What each colour means. Goal colours can be changed in Goals. */
+function Legend({ goals, hasEvents }: { goals: Goal[]; hasEvents: boolean }) {
+  const { t } = useI18n()
+  return (
+    <div className="legend small-text">
+      {goals.map((g, i) => (
+        <span key={g.id} className="legend-item">
+          <span className="swatch" style={{ background: goalColorOf(g, i) }} /> {g.name}
+        </span>
+      ))}
+      <span className="legend-item">
+        <span className="swatch" style={{ background: OTHER_COLOR }} /> {t.common.other}
+      </span>
+      {hasEvents && (
+        <span className="legend-item">
+          <span className="swatch striped" style={{ background: EVENT_COLOR }} /> {t.calendar.eventsLegend}
+        </span>
+      )}
+      <Link to="/goals" className="muted">
+        {t.calendar.changeColors}
+      </Link>
+    </div>
   )
 }
 
@@ -485,6 +515,16 @@ function EventDialog({ event, date, time, onClose }: { event: CalendarEvent | nu
         <span>{c.notes}</span>
         <input value={f.notes} onChange={(e) => set({ notes: e.target.value })} />
       </label>
+      <div className="field">
+        <span>{c.color}</span>
+        <ColorPicker
+          value={f.color ?? null}
+          auto={EVENT_COLOR}
+          label={c.color}
+          autoLabel={c.autoColor}
+          onChange={(color) => set({ color })}
+        />
+      </div>
       {error && <p className="bad">{error}</p>}
       <div className="row spread">
         <div className="row">

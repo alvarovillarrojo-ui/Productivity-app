@@ -8,6 +8,12 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Delete a cycle: Goals → Cycles lists every cycle (active and closed) with
+  its goals and tasks, and deletes one after a clear warning. Habits and
+  calendar events are kept.
+- Colours: choose each goal's colour (Goals) and each event's colour (event
+  window); the calendar shows a legend. Colours are part of backups.
+
 - ½ for a task’s minimum version: a third button (✓ · ½ · ✗) on Home,
   Tasks and the calendar. A ½ counts half in execution %
   ((done + ½ partial) ÷ counted); Tracking, week reports and the Markdown

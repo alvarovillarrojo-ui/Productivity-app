@@ -25,7 +25,7 @@ import type { Cycle, FocusSession, Goal, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import NoActiveCycle from '../components/NoActiveCycle'
 import { pctClass } from '../components/pctClass'
-import { goalColor, OVERALL_COLOR } from '../components/colors'
+import { goalColorOf, OVERALL_COLOR } from '../components/colors'
 import {
   bestAndWorstWeeks,
   cycleExecution,
@@ -94,7 +94,7 @@ function TrackingForCycle({ cycle }: { cycle: Cycle }) {
         <div className="totals">
           <TotalTile name={t.tracking.overall} exec={totals.overall} big />
           {goals.map((g, i) => (
-            <TotalTile key={g.id} name={g.name} exec={totals.byGoal.get(g.id)!} color={goalColor(i)} />
+            <TotalTile key={g.id} name={g.name} exec={totals.byGoal.get(g.id)!} color={goalColorOf(g, i)} />
           ))}
         </div>
         <p className="muted small-text">
@@ -341,7 +341,7 @@ function ExecutionChart({ weeks, shownWeeks, goals }: { weeks: WeekExecution[]; 
               key={g.id}
               dataKey={g.id}
               name={g.name}
-              stroke={goalColor(i)}
+              stroke={goalColorOf(g, i)}
               strokeWidth={2}
               dot={{ r: 3 }}
               activeDot={{ r: 5 }}

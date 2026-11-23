@@ -193,6 +193,18 @@ export const en = {
       needDay: 'Pick at least one day.',
     },
     minimum: 'Minimum version',
+    color: 'Colour',
+    autoColor: 'Automatic colour',
+    cycles: {
+      title: 'Cycles',
+      hint: 'All your cycles: the active one and older, closed ones. Deleting a cycle removes its goals, tactics and tasks for good. Habits and calendar events are kept.',
+      status: { active: 'active', closed: 'closed', planning: 'planning' },
+      counts: (goals: number, tasks: number) => `${goals} goal(s) · ${tasks} task(s)`,
+      delete: 'Delete',
+      confirmDelete: (name: string, goals: number, tasks: number, active: boolean) =>
+        `Delete the cycle “${name}” with its ${goals} goal(s) and ${tasks} task(s)?${active ? ' It is your ACTIVE cycle.' : ''}\n\nThis can’t be undone (only by restoring a backup).`,
+      backupFirst: 'Make a backup first →',
+    },
     minimumPlaceholder: '½ Minimum version (optional), e.g. 20 min easy',
     confirmDeleteTactic: (name: string) =>
       `Delete tactic "${name}"? Its tasks are kept as "Other". (Tip: untick "Active" to just hide it.)`,
@@ -500,6 +512,10 @@ export const en = {
     allPlaced: 'All of this week’s tasks are in the calendar.',
     outsideCycle: 'This week is outside your current cycle: only events are shown.',
     clickSlot: 'Click an empty slot to add an event or place a task.',
+    eventsLegend: 'Events (colour of your choice)',
+    changeColors: 'Change goal colours →',
+    color: 'Colour',
+    autoColor: 'Automatic (grey)',
     importIcs: 'Import a calendar (.ics) →',
     more: (n: number) => `+${n} more`,
     // dialogs

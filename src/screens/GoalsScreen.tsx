@@ -12,6 +12,9 @@ import NoActiveCycle from '../components/NoActiveCycle'
 import { cycleEnd, formatWeekday, isMonday, isValidDate, todayISO, weekDates } from '../logic/weeks'
 import { MAX_RECOMMENDED_GOALS } from './setup/draft'
 import { isValidTime } from '../logic/calendar'
+import ColorPicker from '../components/ColorPicker'
+import { goalColor } from '../components/colors'
+import { useLive } from '../data/useLive'
 
 export default function GoalsScreen() {
   const { t } = useI18n()
@@ -20,7 +23,13 @@ export default function GoalsScreen() {
   const tactics = useTactics(cycle?.id)
 
   if (cycle === undefined) return null
-  if (cycle === null) return <NoActiveCycle />
+  if (cycle === null)
+    return (
+      <section className="stack">
+        <NoActiveCycle />
+        <CyclesCard />
+      </section>
+    )
 
   const addGoal = () =>
     repo.createGoal({
@@ -46,14 +55,58 @@ export default function GoalsScreen() {
         <p className="warn-box">{t.setup.issue({ code: 'tooManyGoals', count: goals.length })}</p>
       )}
 
-      {goals.map((g) => (
-        <GoalCard key={g.id} goal={g} tactics={tactics.filter((x) => x.goal_id === g.id)} />
+      {goals.map((g, i) => (
+        <GoalCard key={g.id} goal={g} index={i} tactics={tactics.filter((x) => x.goal_id === g.id)} />
       ))}
 
       <button className="btn" style={{ alignSelf: 'flex-start' }} onClick={addGoal}>
         {t.setup.goals.addGoal}
       </button>
+
+      <CyclesCard />
     </section>
+  )
+}
+
+// ---------- all cycles (with delete) ----------
+
+function CyclesCard() {
+  const { t, date } = useI18n()
+  const c = t.goalsScreen.cycles
+  const cycles = useLive(repo.listCyclesWithCounts, [], [] as Awaited<ReturnType<typeof repo.listCyclesWithCounts>>)
+  if (cycles.length === 0) return null
+
+  const remove = async (x: (typeof cycles)[number]) => {
+    const message = c.confirmDelete(x.cycle.name, x.goals, x.tasks, x.cycle.status === 'active')
+    if (!confirm(message)) return
+    await repo.deleteCycle(x.cycle.id)
+  }
+
+  return (
+    <div className="card stack">
+      <h2>{c.title}</h2>
+      <p className="muted small-text">{c.hint}</p>
+      <ul className="cycle-list">
+        {cycles.map((x) => (
+          <li key={x.cycle.id} className="row spread">
+            <span>
+              <strong>{x.cycle.name}</strong>{' '}
+              <span className={x.cycle.status === 'active' ? 'badge active' : 'badge'}>{c.status[x.cycle.status]}</span>
+              <br />
+              <span className="muted small-text">
+                {date(x.cycle.start_date)} → {date(cycleEnd(x.cycle))} · {c.counts(x.goals, x.tasks)}
+              </span>
+            </span>
+            <button className="btn danger-outline" onClick={() => remove(x)}>
+              {c.delete}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <Link to="/data?action=backup" className="small-text">
+        {c.backupFirst}
+      </Link>
+    </div>
   )
 }
 
@@ -126,7 +179,7 @@ function CycleCard({ cycle }: { cycle: Cycle }) {
 
 // ---------- goal ----------
 
-function GoalCard({ goal, tactics }: { goal: Goal; tactics: Tactic[] }) {
+function GoalCard({ goal, index, tactics }: { goal: Goal; index: number; tactics: Tactic[] }) {
   const { t } = useI18n()
   const save = (changes: Partial<Goal>) => repo.updateGoal(goal.id, changes)
   const minTooHigh =
@@ -152,6 +205,16 @@ function GoalCard({ goal, tactics }: { goal: Goal; tactics: Tactic[] }) {
         <button className="link danger" onClick={remove}>
           {t.goalsScreen.deleteGoal}
         </button>
+      </div>
+      <div className="row small-text">
+        <span className="muted">{t.goalsScreen.color}</span>
+        <ColorPicker
+          value={goal.color ?? null}
+          auto={goalColor(index)}
+          label={t.goalsScreen.color}
+          autoLabel={t.goalsScreen.autoColor}
+          onChange={(color) => save({ color })}
+        />
       </div>
       <TextField
         multiline

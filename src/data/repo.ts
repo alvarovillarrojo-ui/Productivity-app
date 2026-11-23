@@ -126,6 +126,18 @@ export async function startNewCycle(plan: NewCyclePlan): Promise<Cycle> {
   })
 }
 
+/** All cycles (newest first) with how many goals and tasks each has. */
+export async function listCyclesWithCounts(): Promise<{ cycle: Cycle; goals: number; tasks: number }[]> {
+  const cycles = await listCycles()
+  return Promise.all(
+    cycles.map(async (cycle) => ({
+      cycle,
+      goals: await db.goals.where('cycle_id').equals(cycle.id).count(),
+      tasks: await db.tasks.where('cycle_id').equals(cycle.id).count(),
+    })),
+  )
+}
+
 /** Deletes a cycle and everything inside it (goals, tactics, tasks). */
 export async function deleteCycle(id: string): Promise<void> {
   await db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {

@@ -383,3 +383,17 @@ describe('½, minimum versions and task times in files', () => {
     expect(parseImport(JSON.parse(JSON.stringify(report)), null).plan!.tasks[1].start_time).toBe('09:00')
   })
 })
+
+describe('colours in backups', () => {
+  it('keeps goal and event colours; rejects a bad colour', () => {
+    const coloured = { ...goals[0], color: '#e34948' }
+    const ev = { id: 'e1', title: 'Class', date: '2026-11-10', start_time: '09:00', end_time: '10:00', repeat_weekly: false, repeat_until: null, notes: '', color: '#0891b2', created_at: 'x', updated_at: 'x' }
+    const data = { cycles: [cycle], goals: [coloured], tactics, tasks: [], habits: [], habit_checks: [], events: [ev], focus_sessions: [] }
+    const ok = parseBackup(JSON.parse(JSON.stringify(buildBackup(data, 'x'))))
+    expect(ok.issues).toEqual([])
+    expect(ok.data!.goals[0].color).toBe('#e34948')
+    expect(ok.data!.events[0].color).toBe('#0891b2')
+    const bad = buildBackup({ ...data, goals: [{ ...coloured, color: 'red' }] }, 'x')
+    expect(parseBackup(bad).issues).toEqual([{ code: 'record', path: 'data.goals[0].color' }])
+  })
+})

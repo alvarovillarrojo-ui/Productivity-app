@@ -473,3 +473,24 @@ describe('import as a new cycle', () => {
     expect((await repo.getCycle(cycle.id))?.status).toBe('closed')
   })
 })
+
+describe('cycles list and delete', () => {
+  it('counts goals and tasks per cycle', async () => {
+    const { cycle } = await seed()
+    await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'A' })
+    expect(await repo.listCyclesWithCounts()).toEqual([{ cycle: expect.objectContaining({ id: cycle.id }), goals: 1, tasks: 1 }])
+  })
+
+  it('deleting a cycle keeps habits and calendar events', async () => {
+    const { cycle } = await seed()
+    await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'A' })
+    await repo.createHabit({ name: 'Read', category: 'saw', identity: '', intention: '', stack: '', attractive: '', two_minute: '', reward: '', days: [1] }, '2026-01-05')
+    await repo.createEvent({ title: 'Class', date: '2026-01-06', start_time: '09:00', end_time: '10:00', repeat_weekly: true, repeat_until: null, notes: '', color: '#0891b2' })
+    await repo.deleteCycle(cycle.id)
+    expect(await repo.listCyclesWithCounts()).toEqual([])
+    expect(await db.tasks.count()).toBe(0)
+    expect(await db.goals.count()).toBe(0)
+    expect(await repo.listHabits()).toHaveLength(1)
+    expect((await repo.listEvents())[0].color).toBe('#0891b2')
+  })
+})

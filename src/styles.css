@@ -430,3 +430,16 @@ details.card summary { cursor: pointer; font-weight: 600; }
 .task-meta .minimum { color: var(--warn); }
 .cal-item.status-partial { opacity: 0.75; }
 .minimum-field { width: 100%; max-width: 26rem; font-size: 0.85rem; padding: 0.3rem 0.5rem; }
+
+/* ---------- colours, legend, cycles ---------- */
+.color-picker { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.swatch-btn { width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--border); cursor: pointer; padding: 0; font-size: 0.7rem; font-weight: 700; color: #fff; }
+.swatch-btn.on { box-shadow: 0 0 0 2px var(--text); }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; }
+.legend-item { display: inline-flex; align-items: center; gap: 0.3rem; }
+.swatch.striped { background-image: repeating-linear-gradient(135deg, transparent 0 3px, rgba(255, 255, 255, 0.35) 3px 6px) !important; }
+.cycle-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.cycle-list li { border-bottom: 1px solid var(--border); padding-bottom: 0.6rem; flex-wrap: nowrap; }
+.badge.active { background: #dcfce7; color: #166534; border-color: #86efac; }
+.btn.danger-outline { color: var(--bad); border-color: #fca5a5; background: var(--bg); flex: none; }
+.btn.danger-outline:hover { background: #fee2e2; }

@@ -51,6 +51,8 @@ export interface Goal {
   weekly_hours_minimum: number | null
   /** Display order (0, 1, 2…). */
   sort_order: number
+  /** Colour in the calendar and charts ("#2a78d6"); missing = automatic by order. */
+  color?: string | null
 }
 
 /** A repeatable action that moves a goal forward, e.g. "Run 3x per week". */
@@ -171,6 +173,8 @@ export interface CalendarEvent {
   notes: string
   /** Id from an imported .ics file, so importing it again updates instead of duplicating. */
   ics_uid?: string | null
+  /** Colour in the calendar ("#0891b2"); missing = grey. */
+  color?: string | null
   created_at: string
   updated_at: string
 }
