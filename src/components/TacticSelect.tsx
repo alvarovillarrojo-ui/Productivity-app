@@ -35,6 +35,11 @@ export default function TacticSelect({ goals, tactics, value, onChange, id }: Pr
 }
 
 /** "Fitness › Run" label for a task's tactic, or `otherLabel` ("Other"). */
+/** The minimum version of a task's tactic, or null. */
+export function minimumOf(tacticId: string | null, tactics: Tactic[]): string | null {
+  return (tacticId && tactics.find((t) => t.id === tacticId)?.minimum_version) || null
+}
+
 export function tacticLabel(
   tacticId: string | null,
   goals: Goal[],

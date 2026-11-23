@@ -32,7 +32,7 @@ import { isValidTime } from './calendar'
 
 export const SCHEMA_VERSION = '1.0'
 const APP_ID = 'twelve-week-tracker'
-const STATUSES: TaskStatus[] = ['todo', 'done', 'missed']
+const STATUSES: TaskStatus[] = ['todo', 'done', 'partial', 'missed']
 export const MAX_FREQUENCY = 14
 export const MAX_WEEKS = 52
 
@@ -93,6 +93,8 @@ export interface PlanTactic {
   description: string
   active: boolean
   weekly_frequency: number | null
+  /** Minimum version (counts ½); in files: "minimum". */
+  minimum_version?: string | null
   /** Optional schedule; in files: "days", "time", "hours". */
   schedule_days?: number[] | null
   schedule_time?: string | null
@@ -113,6 +115,8 @@ export interface PlanTask {
   /** Tactic name, or null for "Other". */
   tactic: string | null
   planned_date: ISODate | null
+  /** "HH:MM"; in files: "time". */
+  start_time?: string | null
   planned_hours: number | null
   actual_hours: number | null
   status: TaskStatus
@@ -287,6 +291,16 @@ function readCycle(r: Reader, o: unknown): PlanCycle | null {
   }
 }
 
+/** Optional "time" ("HH:MM") of a task. */
+function readTime(r: Reader, o: Obj, path: string): string | null {
+  if (o.time === undefined || o.time === null || o.time === '') return null
+  if (typeof o.time !== 'string' || !isValidTime(o.time)) {
+    r.add('time', `${path}.time`, String(o.time))
+    return null
+  }
+  return o.time
+}
+
 /** Optional tactic schedule in a file: "days" [1–7], "time" "HH:MM", "hours". */
 function readSchedule(r: Reader, o: Obj, path: string) {
   if (o.days === undefined || o.days === null) return null
@@ -326,6 +340,8 @@ function readGoal(r: Reader, o: unknown, path: string): PlanGoal | null {
       active: r.bool(t, 'active', tp, true),
       weekly_frequency: r.whole(t, 'weekly_frequency', tp, 1, MAX_FREQUENCY, 'frequency', false),
     }
+    const minimum = r.textOrNull(t, 'minimum', tp)
+    if (minimum) tactic.minimum_version = minimum.trim()
     const sched = readSchedule(r, t, tp)
     if (sched) Object.assign(tactic, sched, { weekly_frequency: sched.schedule_days.length })
     tactics.push(tactic)
@@ -352,6 +368,7 @@ function readTask(r: Reader, o: unknown, path: string, weeks: number): PlanTask 
     goal: r.textOrNull(o, 'goal', path),
     tactic: r.textOrNull(o, 'tactic', path),
     planned_date: r.date(o, 'planned_date', path, false),
+    start_time: readTime(r, o, path),
     planned_hours: r.hours(o, 'planned_hours', path),
     actual_hours: r.hours(o, 'actual_hours', path),
     status: STATUSES.includes(status as TaskStatus) ? (status as TaskStatus) : 'todo',
@@ -494,6 +511,8 @@ export interface ExecutionSummary {
   /** 0–100, or null when nothing counts yet. */
   pct: number | null
   done: number
+  /** Minimum version only (counts ½). */
+  partial: number
   missed: number
   overdue: number
   upcoming: number
@@ -508,7 +527,7 @@ export interface WeekReport {
   week_end: ISODate
   cycle: { name: string; start_date: ISODate; length_weeks: number; vision?: string | null }
   goals: (Omit<PlanGoal, 'tactics'> & { tactics: (PlanTactic | (Omit<PlanTactic, 'schedule_days' | 'schedule_time' | 'schedule_hours'> & { days: number[]; time: string | null; hours: number | null }))[] })[]
-  tasks: PlanTask[]
+  tasks: (Omit<PlanTask, 'start_time'> & { time?: string })[]
   summary: {
     execution: { overall: ExecutionSummary; by_goal: (ExecutionSummary & { goal: string })[] }
     hours: { goal: string; actual: number; target: number; minimum: number | null; level: HoursLevel }[]
@@ -519,6 +538,7 @@ export interface WeekReport {
 const summarise = (e: Execution): ExecutionSummary => ({
   pct: e.pct === null ? null : Math.round(e.pct * 1000) / 10,
   done: e.done,
+  partial: e.partial,
   missed: e.missed,
   overdue: e.overdue,
   upcoming: e.upcoming,
@@ -562,6 +582,7 @@ export function buildWeekReport(input: {
           description: t.description,
           active: t.active,
           weekly_frequency: t.weekly_frequency,
+          ...(t.minimum_version ? { minimum: t.minimum_version } : {}),
           ...(t.schedule_days?.length
             ? { days: t.schedule_days, time: t.schedule_time ?? null, hours: t.schedule_hours ?? null }
             : {}),
@@ -576,6 +597,7 @@ export function buildWeekReport(input: {
         goal: goal && tactic ? goal.name : null,
         tactic: goal && tactic ? tactic.name : null,
         planned_date: t.planned_date,
+        ...(t.start_time ? { time: t.start_time } : {}),
         planned_hours: t.planned_hours,
         actual_hours: t.actual_hours,
         status: t.status,
@@ -606,7 +628,8 @@ export function buildWeekReport(input: {
 export function weekReportMarkdown(report: WeekReport, t: Dict, formatDate: (d: ISODate) => string): string {
   const m = t.report
   const pct = (e: ExecutionSummary) => formatPct(e.pct === null ? null : e.pct / 100)
-  const counted = (e: ExecutionSummary) => e.done + e.missed + e.overdue
+  const counted = (e: ExecutionSummary) => e.done + e.partial + e.missed + e.overdue
+  const points = (e: ExecutionSummary) => e.done + e.partial / 2
   const lines: string[] = []
   lines.push(`# ${report.cycle.name} — ${m.weekOf(report.week, report.cycle.length_weeks)}`)
   lines.push('')
@@ -618,8 +641,8 @@ export function weekReportMarkdown(report: WeekReport, t: Dict, formatDate: (d: 
   lines.push(`| ${m.goal} | ${m.done} | ${m.counted} | ${m.execution} |`)
   lines.push('| --- | ---: | ---: | ---: |')
   const ex = report.summary.execution
-  lines.push(`| **${m.overall}** | ${ex.overall.done} | ${counted(ex.overall)} | **${pct(ex.overall)}** |`)
-  for (const g of ex.by_goal) lines.push(`| ${g.goal} | ${g.done} | ${counted(g)} | ${pct(g)} |`)
+  lines.push(`| **${m.overall}** | ${points(ex.overall)} | ${counted(ex.overall)} | **${pct(ex.overall)}** |`)
+  for (const g of ex.by_goal) lines.push(`| ${g.goal} | ${points(g)} | ${counted(g)} | ${pct(g)} |`)
   lines.push('')
   lines.push(m.targetNote)
   lines.push('')
@@ -636,8 +659,8 @@ export function weekReportMarkdown(report: WeekReport, t: Dict, formatDate: (d: 
   lines.push('')
 
   lines.push(`## ${m.tasks}`)
-  const mark = { done: '[x]', missed: '[✗]', todo: '[ ]' } as const
-  const groups: { title: string; tasks: PlanTask[] }[] = report.goals.map((g) => ({
+  const mark = { done: '[x]', partial: '[½]', missed: '[✗]', todo: '[ ]' } as const
+  const groups: { title: string; tasks: WeekReport['tasks'] }[] = report.goals.map((g) => ({
     title: g.name,
     tasks: report.tasks.filter((x) => x.goal !== null && nameKey(x.goal) === nameKey(g.name)),
   }))
@@ -650,7 +673,7 @@ export function weekReportMarkdown(report: WeekReport, t: Dict, formatDate: (d: 
     for (const x of g.tasks) {
       const meta = [
         x.tactic,
-        x.planned_date ? formatDate(x.planned_date) : null,
+        x.planned_date ? `${formatDate(x.planned_date)}${x.time ? ` ${x.time}` : ''}` : null,
         x.actual_hours !== null ? formatHours(x.actual_hours) : x.planned_hours !== null ? `${formatHours(x.planned_hours)} ${m.planned}` : null,
       ].filter(Boolean)
       lines.push(`- ${mark[x.status]} ${x.title}${meta.length ? ` _(${meta.join(' · ')})_` : ''}`)
@@ -701,6 +724,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     id: 'id', goal_id: 'id', name: 'text', description: 'text', active: 'bool',
     weekly_frequency: 'numNull', sort_order: 'num',
     schedule_days: 'weekdaysOptional', schedule_time: 'timeOptional', schedule_hours: 'numOptional',
+    minimum_version: 'textOptional',
   },
   tasks: {
     id: 'id', cycle_id: 'id', week_number: 'int', title: 'text', tactic_id: 'textNull',

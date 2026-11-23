@@ -422,3 +422,11 @@ details.card summary { cursor: pointer; font-weight: 600; }
 
 .preview .list-plain { list-style: none; margin-left: -1.2rem; display: flex; flex-direction: column; gap: 0.2rem; }
 .steps { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.2rem; }
+
+/* ---------- ½ minimum version ---------- */
+.sb.partial:hover, .sb.partial.on { border-color: var(--warn); color: var(--warn); }
+.sb.partial.on { background: var(--warn); color: #fff; }
+.task-row.status-partial .task-title { color: var(--muted); }
+.task-meta .minimum { color: var(--warn); }
+.cal-item.status-partial { opacity: 0.75; }
+.minimum-field { width: 100%; max-width: 26rem; font-size: 0.85rem; padding: 0.3rem 0.5rem; }

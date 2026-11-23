@@ -192,6 +192,8 @@ export const en = {
       remove: 'Remove schedule',
       needDay: 'Pick at least one day.',
     },
+    minimum: 'Minimum version',
+    minimumPlaceholder: '½ Minimum version (optional), e.g. 20 min easy',
     confirmDeleteTactic: (name: string) =>
       `Delete tactic "${name}"? Its tasks are kept as "Other". (Tip: untick "Active" to just hide it.)`,
   },
@@ -225,7 +227,8 @@ export const en = {
     notStarted: (date: string) => `The cycle starts on ${date}. Your numbers will appear here once week 1 begins.`,
     cycleSoFar: 'Cycle so far',
     weeksSoFar: (n: number, total: number) => `week ${n} of ${total}`,
-    counts: (done: number, missed: number, open: number) => `${done} done · ${missed} missed · ${open} open`,
+    counts: (done: number, partial: number, missed: number, open: number) =>
+      `${done} done · ${partial} minimum only · ${missed} missed · ${open} open`,
     countsHint: 'Counts include "Other" tasks; execution % does not.',
     bestWorst: (best: number, bestPct: string, worst: number, worstPct: string) =>
       `Best week: ${best} (${bestPct}) · Worst week: ${worst} (${worstPct})`,
@@ -238,6 +241,7 @@ export const en = {
     tableTitle: 'Week by week',
     week: 'Week',
     done: 'Done',
+    partial: '½',
     missed: 'Missed',
     open: 'Open',
     inProgress: 'in progress',
@@ -373,7 +377,7 @@ export const en = {
         case 'monday': return `${at}${i.detail} is not a Monday. Cycles start on a Monday.`
         case 'week': return `${at}should be a week number inside the cycle.`
         case 'dateOutsideWeek': return `${at}${i.detail} is not inside that week.`
-        case 'status': return `${at}“${i.detail}” should be todo, done or missed.`
+        case 'status': return `${at}“${i.detail}” should be todo, done, partial or missed.`
         case 'minAboveTarget': return `${at}the minimum is higher than the target.`
         case 'duplicateName': return `${at}“${i.detail}” appears twice.`
         case 'tacticNeedsGoal': return `${at}names tactic “${i.detail}” but not its goal.`
@@ -440,7 +444,7 @@ export const en = {
       {
         title: 'How the numbers work',
         items: [
-          'Execution % = done ÷ (done + missed + open tasks whose date has passed). Tasks for today or later don’t count against you yet. When the week ends, every open task counts as not done.',
+          'Execution % = (done + ½ × minimum version) ÷ (done + minimum version + missed + open tasks whose date has passed). Use ½ when you only did a tactic’s minimum version (set it in Goals). Tasks for today or later don’t count against you yet. When the week ends, every open task counts as not done.',
           'Tasks without a tactic (“Other”) are shown but don’t count.',
           'The cycle % adds up all counted tasks; it isn’t an average of the weekly percentages.',
           'Hours: actual hours per goal per week against its target. Green = target reached, orange = only the minimum, red = below.',
@@ -470,7 +474,7 @@ export const en = {
     done: 'Done',
     counted: 'Counted',
     overall: 'Overall',
-    targetNote: 'Execution = done ÷ (done + missed + overdue). Target: 85%.',
+    targetNote: 'Execution = (done + ½ × minimum only) ÷ (done + minimum only + missed + overdue). Target: 85%. Done column: points (a ½ counts half).',
     hours: 'Hours',
     actual: 'Actual',
     target: 'Target',
@@ -660,8 +664,8 @@ export const en = {
     week: 'Week',
     weekOption: (n: number, date: string) => `Week ${n} · ${date}`,
     current: ' (current)',
-    summary: (done: number, missed: number, open: number) =>
-      `${done} done · ${missed} missed · ${open} open · execution`,
+    summary: (done: number, partial: number, missed: number, open: number) =>
+      `${done} done · ${partial} ½ · ${missed} missed · ${open} open · execution`,
     empty: 'No tasks this week yet. Add one above. Tasks from your tactics appear automatically when the week starts.',
     autoRecurring:
       'Your tactics’ tasks are created automatically every week (from Saturday for the next week). Deleted ones don’t come back; raising a tactic’s “times per week” adds the extra tasks.',
@@ -682,6 +686,9 @@ export const en = {
     markMissed: (title: string) => `Mark "${title}" missed`,
     doneUndo: 'Done (click to undo)',
     missedUndo: 'Missed (click to undo)',
+    markPartial: (title: string, minimum: string | null) =>
+      `Only the minimum version of "${title}"${minimum ? ` (${minimum})` : ''}: counts ½`,
+    partialUndo: 'Minimum version: counts ½ (click to undo)',
     deleteTask: (title: string) => `Delete "${title}"`,
     edit: {
       title: 'Title',

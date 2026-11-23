@@ -1,8 +1,7 @@
-// One task in a list, with one-click Done / Missed buttons.
-// Clicking the button that is already on puts the task back to "to do".
+// One task in a list, with one-click ✓ / ½ / ✗ buttons (see StatusButtons).
 import { Link } from 'react-router-dom'
-import { setTaskStatus } from '../data/repo'
-import type { Task, TaskStatus } from '../data/types'
+import type { Task } from '../data/types'
+import StatusButtons from './StatusButtons'
 import { useI18n } from '../i18n'
 import { formatHours } from '../logic/metrics'
 
@@ -14,14 +13,14 @@ interface Props {
   showDate?: boolean
   /** Highlight as overdue (planned date passed, still open). */
   overdue?: boolean
+  /** The tactic's minimum version (what a ½ means), if any. */
+  minimum?: string | null
   onEdit?: () => void
   onDelete?: () => void
 }
 
-export default function TaskRow({ task, context, showDate = true, overdue, onEdit, onDelete }: Props) {
+export default function TaskRow({ task, context, showDate = true, overdue, minimum, onEdit, onDelete }: Props) {
   const { t, date } = useI18n()
-  const toggle = (status: TaskStatus) => setTaskStatus(task.id, task.status === status ? 'todo' : status)
-
   const hours =
     task.actual_hours !== null
       ? formatHours(task.actual_hours)
@@ -31,26 +30,7 @@ export default function TaskRow({ task, context, showDate = true, overdue, onEdi
 
   return (
     <li className={`task-row status-${task.status}`}>
-      <div className="status-buttons">
-        <button
-          className={task.status === 'done' ? 'sb done on' : 'sb done'}
-          title={task.status === 'done' ? t.tasks.doneUndo : t.tasks.markDone(task.title)}
-          aria-label={t.tasks.markDone(task.title)}
-          aria-pressed={task.status === 'done'}
-          onClick={() => toggle('done')}
-        >
-          ✓
-        </button>
-        <button
-          className={task.status === 'missed' ? 'sb missed on' : 'sb missed'}
-          title={task.status === 'missed' ? t.tasks.missedUndo : t.tasks.markMissed(task.title)}
-          aria-label={t.tasks.markMissed(task.title)}
-          aria-pressed={task.status === 'missed'}
-          onClick={() => toggle('missed')}
-        >
-          ✗
-        </button>
-      </div>
+      <StatusButtons task={task} minimum={minimum} />
       <div className="task-main">
         <span className="task-title">{task.title}</span>
         <span className="task-meta">
@@ -68,6 +48,9 @@ export default function TaskRow({ task, context, showDate = true, overdue, onEdi
             </>
           )}
           {hours && ` · ${hours}`}
+          {minimum && (task.status === 'todo' || task.status === 'partial') && (
+            <span className="minimum"> · ½ = {minimum}</span>
+          )}
         </span>
       </div>
       {(onEdit || onDelete) && (

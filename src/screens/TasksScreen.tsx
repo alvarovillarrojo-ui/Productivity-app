@@ -13,7 +13,7 @@ import type { Cycle } from '../data/types'
 import { useI18n } from '../i18n'
 import NoActiveCycle from '../components/NoActiveCycle'
 import QuickAdd from '../components/QuickAdd'
-import { tacticLabel } from '../components/TacticSelect'
+import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import TaskEditForm from '../components/TaskEditForm'
 import TaskRow from '../components/TaskRow'
 import HabitsPanel from './HabitsPanel'
@@ -118,7 +118,7 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
         </div>
       </div>
       <p className="muted">
-        {date(first)} – {date(last)} · {t.tasks.summary(counts.done, counts.missed, counts.open)}{' '}
+        {date(first)} – {date(last)} · {t.tasks.summary(counts.done, counts.partial, counts.missed, counts.open)}{' '}
         <span className={pctClass(exec.pct)}>{formatPct(exec.pct)}</span>
       </p>
 
@@ -145,6 +145,7 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
                 key={task.id}
                 task={task}
                 context={tacticLabel(task.tactic_id, goals, tactics, t.common.other)}
+                minimum={minimumOf(task.tactic_id, tactics)}
                 overdue={task.status === 'todo' && isDue(task, last, today)}
                 onEdit={() => setEditing(task.id)}
                 onDelete={() => remove(task.id, task.title)}

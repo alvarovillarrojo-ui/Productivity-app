@@ -6,6 +6,16 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- ½ for a task’s minimum version: a third button (✓ · ½ · ✗) on Home,
+  Tasks and the calendar. A ½ counts half in execution %
+  ((done + ½ partial) ÷ counted); Tracking, week reports and the Markdown
+  report show it.
+- Minimum version per tactic (Goals, import files `"minimum"`, and in the
+  Plan-with-Claude prompt), shown next to the tactic’s open tasks.
+- Import files: tasks can have a `"time"`; the status `"partial"`.
+
 ## [0.3.0] - 2026-11-23
 
 ### Added

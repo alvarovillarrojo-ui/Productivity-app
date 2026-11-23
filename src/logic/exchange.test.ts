@@ -152,7 +152,7 @@ describe('week report', () => {
     const r = build(false)
     expect(r.week_start).toBe('2026-11-16')
     expect(r.week_end).toBe('2026-11-22')
-    expect(r.summary.execution.overall).toEqual({ pct: 50, done: 1, missed: 1, overdue: 0, upcoming: 0 })
+    expect(r.summary.execution.overall).toEqual({ pct: 50, done: 1, partial: 0, missed: 1, overdue: 0, upcoming: 0 })
     expect(r.summary.hours[0]).toMatchObject({ goal: 'Grades', actual: 2, level: 'below' })
     expect(r.summary.other_hours).toBe(1)
     expect('vision' in r.cycle).toBe(false)
@@ -340,5 +340,46 @@ describe('Plan with Claude prompt', () => {
     expect(p).toContain('Pass CFA level 1')
     expect(p).toContain('"start_date": "2027-01-11"')
     expect(p).toContain('```json')
+  })
+})
+
+describe('½, minimum versions and task times in files', () => {
+  it('reads status "partial", a tactic "minimum" and a task "time"', () => {
+    const file = {
+      schema_version: '1.0',
+      cycle: { name: 'C', start_date: '2026-11-09' },
+      goals: [{ name: 'Fit', weekly_hours_target: 3, tactics: [{ name: 'Run', weekly_frequency: 3, minimum: '20 min easy' }] }],
+      tasks: [
+        { week_number: 2, title: 'Quiz', planned_date: '2026-11-16', time: '17:30' },
+        { week_number: 1, title: 'Run', goal: 'Fit', tactic: 'Run', status: 'partial' },
+        { week_number: 1, title: 'Bad', time: '5pm' },
+      ],
+    }
+    const r = parseImport(file, null)
+    expect(r.issues).toEqual([{ code: 'time', path: 'tasks[2].time', detail: '5pm' }])
+    file.tasks.pop()
+    const ok = parseImport(file, null).plan!
+    expect(ok.newGoals[0].tactics[0].minimum_version).toBe('20 min easy')
+    expect(ok.tasks.map((t) => [t.title, t.start_time, t.status])).toEqual([
+      ['Quiz', '17:30', 'todo'],
+      ['Run', null, 'partial'],
+    ])
+  })
+
+  it('week reports export them and count ½ in the summary and Markdown', () => {
+    const tacticWithMin = { ...tactics[0], minimum_version: '1 page' }
+    const report = buildWeekReport({
+      cycle, week: 2, goals, tactics: [tacticWithMin],
+      weekTasks: [task({ title: 'A', status: 'done' }), task({ title: 'B', status: 'partial', start_time: '09:00', planned_date: '2026-11-17' })],
+      today: '2026-11-25', includeVision: false, exportedAt: 'x',
+    })
+    expect(report.summary.execution.overall).toMatchObject({ done: 1, partial: 1, pct: 75 })
+    expect(report.goals[0].tactics[0]).toMatchObject({ minimum: '1 page' })
+    expect(report.tasks[1]).toMatchObject({ time: '09:00' })
+    const md = weekReportMarkdown(report, en, (d) => d)
+    expect(md).toContain('| **Overall** | 1.5 | 2 | **75%** |')
+    expect(md).toContain('- [½] B _(Study block · 2026-11-17 09:00)_')
+    // and the report can be imported again with its times
+    expect(parseImport(JSON.parse(JSON.stringify(report)), null).plan!.tasks[1].start_time).toBe('09:00')
   })
 })

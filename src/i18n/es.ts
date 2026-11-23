@@ -191,6 +191,8 @@ export const es: Dict = {
       remove: 'Quitar horario',
       needDay: 'Elige al menos un día.',
     },
+    minimum: 'Versión mínima',
+    minimumPlaceholder: '½ Versión mínima (opcional), p. ej. 20 min suave',
     confirmDeleteTactic: (name: string) =>
       `¿Borrar la táctica «${name}»? Sus tareas se conservan como «Otras». (Consejo: desmarca «Activa» para solo ocultarla.)`,
   },
@@ -224,8 +226,8 @@ export const es: Dict = {
     notStarted: (date: string) => `El ciclo empieza el ${date}. Tus números aparecerán aquí cuando empiece la semana 1.`,
     cycleSoFar: 'El ciclo hasta ahora',
     weeksSoFar: (n: number, total: number) => `semana ${n} de ${total}`,
-    counts: (done: number, missed: number, open: number) =>
-      `${done} hechas · ${missed} no hechas · ${open} pendientes`,
+    counts: (done: number, partial: number, missed: number, open: number) =>
+      `${done} hechas · ${partial} solo mínimo · ${missed} no hechas · ${open} pendientes`,
     countsHint: 'Los recuentos incluyen las tareas "Otras"; el % de ejecución no.',
     bestWorst: (best: number, bestPct: string, worst: number, worstPct: string) =>
       `Mejor semana: ${best} (${bestPct}) · Peor semana: ${worst} (${worstPct})`,
@@ -238,6 +240,7 @@ export const es: Dict = {
     tableTitle: 'Semana a semana',
     week: 'Semana',
     done: 'Hechas',
+    partial: '½',
     missed: 'No hechas',
     open: 'Pendientes',
     inProgress: 'en curso',
@@ -373,7 +376,7 @@ export const es: Dict = {
         case 'monday': return `${at}${i.detail} no es lunes. Los ciclos empiezan en lunes.`
         case 'week': return `${at}debe ser un número de semana dentro del ciclo.`
         case 'dateOutsideWeek': return `${at}${i.detail} no está dentro de esa semana.`
-        case 'status': return `${at}«${i.detail}» debe ser todo, done o missed.`
+        case 'status': return `${at}«${i.detail}» debe ser todo, done, partial o missed.`
         case 'minAboveTarget': return `${at}el mínimo es mayor que el objetivo.`
         case 'duplicateName': return `${at}«${i.detail}» aparece dos veces.`
         case 'tacticNeedsGoal': return `${at}indica la táctica «${i.detail}» pero no su objetivo.`
@@ -440,7 +443,7 @@ export const es: Dict = {
       {
         title: 'Cómo se calculan los números',
         items: [
-          '% de ejecución = hechas ÷ (hechas + no hechas + pendientes cuya fecha ya pasó). Las tareas de hoy o posteriores aún no cuentan en tu contra. Al acabar la semana, toda tarea pendiente cuenta como no hecha.',
+          '% de ejecución = (hechas + ½ × versión mínima) ÷ (hechas + versión mínima + no hechas + pendientes cuya fecha ya pasó). Usa ½ cuando solo hiciste la versión mínima de una táctica (se define en Objetivos). Las tareas de hoy o posteriores aún no cuentan en tu contra. Al acabar la semana, toda tarea pendiente cuenta como no hecha.',
           'Las tareas sin táctica (“Otras”) se muestran pero no cuentan.',
           'El % del ciclo suma todas las tareas contadas; no es una media de los porcentajes semanales.',
           'Horas: horas reales por objetivo y semana frente a su objetivo. Verde = objetivo cumplido, naranja = solo el mínimo, rojo = por debajo.',
@@ -469,7 +472,7 @@ export const es: Dict = {
     done: 'Hechas',
     counted: 'Contadas',
     overall: 'Total',
-    targetNote: 'Ejecución = hechas ÷ (hechas + no hechas + vencidas). Objetivo: 85 %.',
+    targetNote: 'Ejecución = (hechas + ½ × solo mínimo) ÷ (hechas + solo mínimo + no hechas + vencidas). Objetivo: 85 %. Columna Hechas: puntos (un ½ cuenta la mitad).',
     hours: 'Horas',
     actual: 'Reales',
     target: 'Objetivo',
@@ -656,8 +659,8 @@ export const es: Dict = {
     week: 'Semana',
     weekOption: (n: number, date: string) => `Semana ${n} · ${date}`,
     current: ' (actual)',
-    summary: (done: number, missed: number, open: number) =>
-      `${done} hechas · ${missed} no hechas · ${open} pendientes · ejecución`,
+    summary: (done: number, partial: number, missed: number, open: number) =>
+      `${done} hechas · ${partial} ½ · ${missed} no hechas · ${open} pendientes · ejecución`,
     empty: 'Aún no hay tareas esta semana. Añade una arriba. Las tareas de tus tácticas aparecen solas cuando empieza la semana.',
     autoRecurring:
       'Las tareas de tus tácticas se crean solas cada semana (desde el sábado para la semana siguiente). Las que borres no vuelven; subir las “veces por semana” de una táctica añade las tareas que faltan.',
@@ -678,6 +681,9 @@ export const es: Dict = {
     markMissed: (title: string) => `Marcar «${title}» como no hecha`,
     doneUndo: 'Hecha (clic para deshacer)',
     missedUndo: 'No hecha (clic para deshacer)',
+    markPartial: (title: string, minimum: string | null) =>
+      `Solo la versión mínima de «${title}»${minimum ? ` (${minimum})` : ''}: cuenta ½`,
+    partialUndo: 'Versión mínima: cuenta ½ (pulsa para deshacer)',
     deleteTask: (title: string) => `Borrar «${title}»`,
     edit: {
       title: 'Título',

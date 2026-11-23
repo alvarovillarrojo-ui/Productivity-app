@@ -238,6 +238,15 @@ function TacticRow({ tactic }: { tactic: Tactic }) {
         ✕
       </button>
     </div>
+    <div className="tactic-sched">
+      <TextField
+        ariaLabel={t.goalsScreen.minimum}
+        className="minimum-field"
+        placeholder={t.goalsScreen.minimumPlaceholder}
+        value={tactic.minimum_version ?? ''}
+        onSave={(v) => save({ minimum_version: v.trim() || null })}
+      />
+    </div>
     <TacticSchedule tactic={tactic} />
     </>
   )

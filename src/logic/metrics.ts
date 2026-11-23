@@ -2,7 +2,8 @@
 // definitions are consistent everywhere and covered by tests.
 //
 // EXECUTION %
-//   done / (done + missed + "due" open tasks)
+//   (done + ½ × partial) / (done + partial + missed + "due" open tasks)
+//   "partial" = only the minimum version was done: it counts half.
 //   An open (todo) task is "due" when its planned date is before today, or
 //   when its whole week has ended. Open tasks that are still in the future
 //   (or due today) don't count yet — you still have time to do them.
@@ -21,14 +22,16 @@ export const TARGET_EXECUTION = 0.85
 /** Result of an execution calculation. */
 export interface Execution {
   done: number
+  /** Only the minimum version done: counts ½. */
+  partial: number
   missed: number
   /** Open tasks whose date has passed or whose week has ended. */
   overdue: number
   /** Open tasks that are not due yet (not counted). */
   upcoming: number
-  /** done + missed + overdue. */
+  /** done + partial + missed + overdue. */
   counted: number
-  /** done / counted, between 0 and 1, or null when counted = 0. */
+  /** (done + ½ partial) / counted, between 0 and 1, or null when counted = 0. */
   pct: number | null
 }
 
@@ -44,31 +47,34 @@ export function isDue(task: Task, weekLastDay: ISODate, today: ISODate): boolean
  */
 export function execution(tasks: Task[], weekLastDay: ISODate, today: ISODate): Execution {
   let done = 0
+  let partial = 0
   let missed = 0
   let overdue = 0
   let upcoming = 0
   for (const t of tasks) {
     if (t.tactic_id === null) continue
     if (t.status === 'done') done++
+    else if (t.status === 'partial') partial++
     else if (t.status === 'missed') missed++
     else if (isDue(t, weekLastDay, today)) overdue++
     else upcoming++
   }
-  const counted = done + missed + overdue
-  return { done, missed, overdue, upcoming, counted, pct: counted === 0 ? null : done / counted }
+  const counted = done + partial + missed + overdue
+  return { done, partial, missed, overdue, upcoming, counted, pct: counted === 0 ? null : (done + partial / 2) / counted }
 }
 
 /** Adds several Execution results together (e.g. many weeks → whole cycle). */
 export function sumExecution(list: Execution[]): Execution {
-  const total = { done: 0, missed: 0, overdue: 0, upcoming: 0, counted: 0 }
+  const total = { done: 0, partial: 0, missed: 0, overdue: 0, upcoming: 0, counted: 0 }
   for (const e of list) {
     total.done += e.done
+    total.partial += e.partial
     total.missed += e.missed
     total.overdue += e.overdue
     total.upcoming += e.upcoming
     total.counted += e.counted
   }
-  return { ...total, pct: total.counted === 0 ? null : total.done / total.counted }
+  return { ...total, pct: total.counted === 0 ? null : (total.done + total.partial / 2) / total.counted }
 }
 
 /** Map tactic id → goal id, to find which goal a task belongs to. */
@@ -207,15 +213,19 @@ export function weekHours(
 // ---------- counts ----------
 
 /** Plain task counts (ALL tasks, including "Other"). */
-export function taskCounts(tasks: Task[]): { done: number; missed: number; open: number } {
+export function taskCounts(tasks: Task[]): { done: number; partial: number; missed: number; open: number } {
   return {
     done: tasks.filter((t) => t.status === 'done').length,
+    partial: tasks.filter((t) => t.status === 'partial').length,
     missed: tasks.filter((t) => t.status === 'missed').length,
     open: tasks.filter((t) => t.status === 'todo').length,
   }
 }
 
 // ---------- display ----------
+
+/** Points scored: done + ½ partial, e.g. 4.5 (for "4.5 / 6"). */
+export const executionPoints = (e: Pick<Execution, 'done' | 'partial'>): number => e.done + e.partial / 2
 
 /** 0.857 → "86%", null → "–". */
 export function formatPct(pct: number | null): string {

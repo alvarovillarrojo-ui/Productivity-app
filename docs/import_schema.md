@@ -78,6 +78,7 @@ matched ignoring upper/lower case and surrounding spaces.
 | `days` | list of weekdays `1`–`7` | no | Schedule: 1 = Monday … 7 = Sunday, e.g. `[1, 3, 5]`. The weekly tasks go on these days and appear in the calendar. Sets the times per week to the number of days. |
 | `time` | `"HH:MM"` | no | Start time for the scheduled tasks, e.g. `"16:00"`. |
 | `hours` | number ≥ 0 | no | Duration of each scheduled task, e.g. `2`. |
+| `minimum` | text | no | Minimum version, e.g. `"20 min easy"`. Doing only this is marked ½ and counts half in execution %. |
 
 ### `tasks[]`
 
@@ -88,9 +89,10 @@ matched ignoring upper/lower case and surrounding spaces.
 | `goal` | text or `null` | with `tactic` | Name of the goal the tactic belongs to. |
 | `tactic` | text or `null` | no | Must exist in the file’s goals or in the active cycle. Without a tactic the task is **Other**: shown, but not counted in execution %. |
 | `planned_date` | `"YYYY-MM-DD"` or `null` | no | Must fall inside that week (Monday–Sunday). |
+| `time` | `"HH:MM"` or `null` | no | Start time; with a date, the task appears in the calendar at that time. |
 | `planned_hours` | number ≥ 0 or `null` | no | |
 | `actual_hours` | number ≥ 0 or `null` | no | |
-| `status` | `"todo"`, `"done"` or `"missed"` | no | Default `"todo"`. |
+| `status` | `"todo"`, `"done"`, `"partial"` or `"missed"` | no | Default `"todo"`. `"partial"` = only the minimum version (counts ½). |
 | `notes` | text | no | |
 
 Unknown fields are ignored.
@@ -138,7 +140,7 @@ Data → Export a week downloads two files for the chosen week:
 
 `summary` is ignored when the file is imported.
 
-**Execution %** = done ÷ (done + missed + overdue), where *overdue* means open
+**Execution %** = (done + ½ × partial) ÷ (done + partial + missed + overdue), where *overdue* means open
 tasks whose date has passed, or any open task once the week has ended. Tasks
 without a tactic are not counted.
 

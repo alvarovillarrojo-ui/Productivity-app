@@ -15,13 +15,14 @@ import NoActiveCycle from '../components/NoActiveCycle'
 import QuickAdd from '../components/QuickAdd'
 import TaskRow from '../components/TaskRow'
 import { TodayHabits } from './HabitsPanel'
-import { tacticLabel } from '../components/TacticSelect'
+import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import { pctClass } from '../components/pctClass'
 import {
   formatHours,
   formatPct,
   isDue,
   TARGET_EXECUTION,
+  executionPoints,
   weekExecution,
   weekHours,
   type Execution,
@@ -97,7 +98,7 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
             ) : (
               <ul className="task-list">
                 {todayTasks.map((x) => (
-                  <TaskRow key={x.id} task={x} context={label(x.tactic_id)} showDate={false} />
+                  <TaskRow key={x.id} task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} showDate={false} />
                 ))}
               </ul>
             )}
@@ -115,7 +116,7 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
             ) : (
               <ul className="task-list">
                 {openTasks.map((x) => (
-                  <TaskRow key={x.id} task={x} context={label(x.tactic_id)} overdue={isDue(x, last, today)} />
+                  <TaskRow key={x.id} task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} overdue={isDue(x, last, today)} />
                 ))}
               </ul>
             )}
@@ -160,7 +161,7 @@ function ExecutionBars({
           <span className="bar-label" title={r.name}>
             {r.name}
           </span>
-          <div className="bar-track" title={`${r.exec.done} / ${r.exec.counted}`}>
+          <div className="bar-track" title={`${executionPoints(r.exec)} / ${r.exec.counted}`}>
             <div
               className={`bar-fill ${pctClass(r.exec.pct)}-bg`}
               style={{ width: `${Math.round((r.exec.pct ?? 0) * 100)}%` }}

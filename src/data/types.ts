@@ -12,7 +12,11 @@ import type { FocusSettings, FocusState } from '../logic/focus'
 export type ISODate = string
 
 export type CycleStatus = 'planning' | 'active' | 'closed'
-export type TaskStatus = 'todo' | 'done' | 'missed'
+/**
+ * todo = not done yet · done = done (counts 1) · partial = only the minimum
+ * version was done (counts ½) · missed = not done (counts 0).
+ */
+export type TaskStatus = 'todo' | 'done' | 'partial' | 'missed'
 
 /** A 12-week period (or another length) with its own goals. */
 export interface Cycle {
@@ -68,6 +72,8 @@ export interface Tactic {
   schedule_days?: number[] | null
   schedule_time?: string | null
   schedule_hours?: number | null
+  /** The minimum version, e.g. "20 min easy". Doing only this counts ½. */
+  minimum_version?: string | null
   /** Display order (0, 1, 2…). */
   sort_order: number
 }

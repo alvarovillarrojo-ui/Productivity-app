@@ -11,11 +11,12 @@ import { Link, useSearchParams } from 'react-router-dom'
 import * as repo from '../data/repo'
 import { useActiveCycle, useCycleTasks, useGoals, useTactics } from '../data/hooks'
 import { useLive } from '../data/useLive'
-import type { CalendarEvent, Cycle, Goal, ISODate, Tactic, Task, TaskStatus } from '../data/types'
+import type { CalendarEvent, Cycle, Goal, ISODate, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import Modal from '../components/Modal'
 import NumberField from '../components/NumberField'
-import { tacticLabel } from '../components/TacticSelect'
+import { minimumOf, tacticLabel } from '../components/TacticSelect'
+import StatusButtons from '../components/StatusButtons'
 import { EVENT_COLOR, goalColor } from '../components/colors'
 import {
   addMonths,
@@ -336,7 +337,7 @@ function ItemButton({
       }}
     >
       <span className="cal-item-title">
-        {status === 'done' ? '✓ ' : status === 'missed' ? '✗ ' : ''}
+        {status === 'done' ? '✓ ' : status === 'partial' ? '½ ' : status === 'missed' ? '✗ ' : ''}
         {item.event?.repeat_weekly ? '↻ ' : ''}
         {title}
       </span>
@@ -541,30 +542,12 @@ function TaskDialog({
     await repo.updateTask(task.id, { planned_date: null, start_time: null })
     onClose()
   }
-  const setStatus = (s: TaskStatus) => repo.setTaskStatus(task.id, task.status === s ? 'todo' : s)
 
   return (
     <Modal title={task.title} onClose={onClose}>
       <p className="muted small-text">{tacticLabel(task.tactic_id, goals, tactics, t.common.other)}</p>
       <div className="row">
-        <div className="status-buttons">
-          <button
-            className={task.status === 'done' ? 'sb done on' : 'sb done'}
-            aria-pressed={task.status === 'done'}
-            aria-label={t.tasks.markDone(task.title)}
-            onClick={() => setStatus('done')}
-          >
-            ✓
-          </button>
-          <button
-            className={task.status === 'missed' ? 'sb missed on' : 'sb missed'}
-            aria-pressed={task.status === 'missed'}
-            aria-label={t.tasks.markMissed(task.title)}
-            onClick={() => setStatus('missed')}
-          >
-            ✗
-          </button>
-        </div>
+        <StatusButtons task={task} minimum={minimumOf(task.tactic_id, tactics)} />
         {task.status === 'todo' && (
           <Link className="btn" to={`/focus?task=${task.id}`}>
             ▶ {t.nav.focus}

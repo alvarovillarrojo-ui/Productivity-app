@@ -296,7 +296,8 @@ export async function updateTask(
  *
  * To save typing at night: when a task is marked DONE and no actual hours are
  * filled in, the planned hours are copied over. If it is later moved away
- * from done, that automatic value is removed again.
+ * from done, that automatic value is removed again. A ½ (minimum version)
+ * copies nothing: fill in its real hours if you want them counted.
  */
 export async function setTaskStatus(id: string, status: TaskStatus): Promise<void> {
   const task = await db.tasks.get(id)

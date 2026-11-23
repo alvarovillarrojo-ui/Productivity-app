@@ -36,6 +36,7 @@ import {
   hoursLevel,
   sumActualHours,
   taskCounts,
+  executionPoints,
   TARGET_EXECUTION,
   tacticToGoal,
   weekHours,
@@ -97,7 +98,7 @@ function TrackingForCycle({ cycle }: { cycle: Cycle }) {
           ))}
         </div>
         <p className="muted small-text">
-          {t.tracking.counts(counts.done, counts.missed, counts.open)} — {t.tracking.countsHint}
+          {t.tracking.counts(counts.done, counts.partial, counts.missed, counts.open)} — {t.tracking.countsHint}
           {bw && (
             <>
               <br />
@@ -126,6 +127,7 @@ function TrackingForCycle({ cycle }: { cycle: Cycle }) {
               <tr>
                 <th>{t.tracking.week}</th>
                 <th className="num-col">{t.tracking.done}</th>
+                <th className="num-col">{t.tracking.partial}</th>
                 <th className="num-col">{t.tracking.missed}</th>
                 <th className="num-col">{t.tracking.open}</th>
                 <th className="num-col">{t.tracking.overall}</th>
@@ -145,6 +147,7 @@ function TrackingForCycle({ cycle }: { cycle: Cycle }) {
                       <WeekCell cycle={cycle} week={w.week} current={w.week === currentWeek} />
                     </td>
                     <td className="num-col">{c.done}</td>
+                    <td className="num-col">{c.partial}</td>
                     <td className="num-col">{c.missed}</td>
                     <td className="num-col">{c.open}</td>
                     <PctCell exec={w.overall} strong />
@@ -270,7 +273,7 @@ function TotalTile({ name, exec, color, big }: { name: string; exec: Execution; 
       </span>
       <span className={`total-pct ${pctClass(exec.pct)}`}>{formatPct(exec.pct)}</span>
       <span className="muted small-text">
-        {exec.done} / {exec.counted}
+        {executionPoints(exec)} / {exec.counted}
       </span>
     </div>
   )
@@ -288,7 +291,7 @@ function WeekCell({ cycle, week, current }: { cycle: Cycle; week: number; curren
 
 function PctCell({ exec, strong }: { exec: Execution; strong?: boolean }) {
   return (
-    <td className={`num-col ${pctClass(exec.pct)}${strong ? ' strong' : ''}`} title={`${exec.done} / ${exec.counted}`}>
+    <td className={`num-col ${pctClass(exec.pct)}${strong ? ' strong' : ''}`} title={`${executionPoints(exec)} / ${exec.counted}`}>
       {formatPct(exec.pct)}
     </td>
   )

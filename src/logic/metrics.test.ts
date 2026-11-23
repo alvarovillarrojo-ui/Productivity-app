@@ -5,6 +5,8 @@ import {
   cycleExecution,
   cycleTotals,
   execution,
+  executionPoints,
+  sumExecution,
   formatHours,
   formatPct,
   hoursLevel,
@@ -158,8 +160,9 @@ describe('hours', () => {
 
 describe('counts and formatting', () => {
   it('counts all tasks including "Other"', () => {
-    expect(taskCounts([task('done'), task('missed', { tactic: null }), task('todo'), task('todo')])).toEqual({
+    expect(taskCounts([task('done'), task('partial'), task('missed', { tactic: null }), task('todo'), task('todo')])).toEqual({
       done: 1,
+      partial: 1,
       missed: 1,
       open: 2,
     })
@@ -170,5 +173,22 @@ describe('counts and formatting', () => {
     expect(formatPct(0)).toBe('0%')
     expect(formatHours(2.25)).toBe('2.3 h')
     expect(formatHours(2)).toBe('2 h')
+  })
+})
+
+describe('minimum version (½)', () => {
+  it('a partial task counts half', () => {
+    // done 1 + ½ + missed 1 → 1.5 / 3 = 50%
+    const e = execution([task('done'), task('partial'), task('missed')], WEEK1_END, '2026-11-20')
+    expect(e).toMatchObject({ done: 1, partial: 1, missed: 1, counted: 3 })
+    expect(e.pct).toBeCloseTo(0.5)
+    expect(executionPoints(e)).toBe(1.5)
+  })
+  it('two halves equal one done; totals add the halves too', () => {
+    const a = execution([task('partial'), task('partial')], WEEK1_END, '2026-11-20')
+    expect(a.pct).toBeCloseTo(0.5)
+    const total = sumExecution([a, execution([task('done')], WEEK1_END, '2026-11-20')])
+    expect(total).toMatchObject({ done: 1, partial: 2, counted: 3 })
+    expect(total.pct).toBeCloseTo(2 / 3)
   })
 })
