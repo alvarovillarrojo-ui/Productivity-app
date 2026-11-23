@@ -6,6 +6,8 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
 ### Added
 
 - Plan your 12 weeks with Claude (Data, and a link on the welcome screen):
@@ -89,6 +91,7 @@ First version.
 - Docs: import/export format (`docs/import_schema.md`) and a sample import
   file (`examples/sample_import.json`).
 
-[Unreleased]: https://github.com/alvarovillarrojo-ui/Productivity-app/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/alvarovillarrojo-ui/Productivity-app/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/alvarovillarrojo-ui/Productivity-app/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alvarovillarrojo-ui/Productivity-app/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alvarovillarrojo-ui/Productivity-app/releases/tag/v0.1.0

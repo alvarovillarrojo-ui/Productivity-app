@@ -1,6 +1,11 @@
 # Roadmap
 
-## v0.2 (current)
+## v0.3 (current)
+
+Tactic schedules (tasks appear in the calendar by themselves), .ics
+calendar import, and planning the 12 weeks with Claude (copy/paste).
+
+## v0.2
 
 Calendar (week and month views, events, task blocks), Focus (pomodoro
 timer that records time on tasks), Habits (Atomic Habits set-up, 7 Habits
