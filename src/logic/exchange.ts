@@ -386,17 +386,20 @@ export function parseImport(
     }
   }
 
-  // Tasks already in the target cycle, to skip duplicates.
+  // How many copies of each task the target cycle already has. A file task is
+  // skipped only while there are existing copies left to match it, so a file
+  // may hold the same task twice (e.g. "Run 5 km" on Monday and Wednesday),
+  // and importing the same file again still adds nothing.
   const tg = tacticToGoal(existingTactics)
   const tacticById = new Map(existingTactics.map((t) => [t.id, t]))
-  const seenTasks = new Set(
-    (target?.tasks ?? []).map((t) => {
-      const goalId = goalOfTask(t, tg)
-      const goal = goalId ? (goalById.get(goalId)?.name ?? null) : null
-      const tactic = t.tactic_id ? (tacticById.get(t.tactic_id)?.name ?? null) : null
-      return taskKey(t.week_number, t.title, goal, tactic)
-    }),
-  )
+  const existingCopies = new Map<string, number>()
+  for (const t of target?.tasks ?? []) {
+    const goalId = goalOfTask(t, tg)
+    const goal = goalId ? (goalById.get(goalId)?.name ?? null) : null
+    const tactic = t.tactic_id ? (tacticById.get(t.tactic_id)?.name ?? null) : null
+    const key = taskKey(t.week_number, t.title, goal, tactic)
+    existingCopies.set(key, (existingCopies.get(key) ?? 0) + 1)
+  }
 
   const tasks: PlanTask[] = []
   let duplicates = 0
@@ -419,11 +422,12 @@ export function parseImport(
       }
     }
     const key = taskKey(task.week_number, task.title, goal, task.tactic)
-    if (seenTasks.has(key)) {
+    const left = existingCopies.get(key) ?? 0
+    if (left > 0) {
+      existingCopies.set(key, left - 1)
       duplicates++
       continue
     }
-    seenTasks.add(key)
     tasks.push({ ...task, goal })
   }
 

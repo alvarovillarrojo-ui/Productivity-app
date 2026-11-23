@@ -214,3 +214,31 @@ describe('backup', () => {
     expect(parseBackup(badRecord).issues[0]).toEqual({ code: 'record', path: 'data.goals[0].weekly_hours_target' })
   })
 })
+
+describe('examples/sample_import.json', () => {
+  it('is a valid import file', async () => {
+    const { readFileSync } = await import('node:fs')
+    const json = JSON.parse(readFileSync(new URL('../../examples/sample_import.json', import.meta.url), 'utf8'))
+    const r = parseImport(json, null)
+    expect(r.issues).toEqual([])
+    expect(r.plan!.newGoals.map((g) => g.name)).toEqual(['Fitness', 'Learning'])
+    expect(r.plan!.tasks).toHaveLength(8)
+  })
+})
+
+describe('repeated tasks', () => {
+  it('keeps two identical tasks from a file, but skips them once they exist', () => {
+    const file = {
+      schema_version: '1.0',
+      tasks: [
+        { week_number: 2, title: 'Study', goal: 'Grades', tactic: 'Study block' },
+        { week_number: 2, title: 'Study', goal: 'Grades', tactic: 'Study block' },
+      ],
+    }
+    expect(parseImport(file, target()).plan!.tasks).toHaveLength(2)
+    const one = parseImport(file, target([task({ title: 'Study' })])).plan!
+    expect([one.tasks.length, one.duplicates]).toEqual([1, 1])
+    const both = parseImport(file, target([task({ title: 'Study' }), task({ title: 'Study' })])).plan!
+    expect([both.tasks.length, both.duplicates]).toEqual([0, 2])
+  })
+})
