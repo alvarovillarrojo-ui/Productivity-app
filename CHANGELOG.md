@@ -8,6 +8,13 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Import a calendar file (.ics) from Google Calendar, Outlook or a
+  university timetable (Data → Import a calendar, or from the Calendar).
+  Preview first; weekly repeats kept (several weekdays → several weekly
+  events); times converted to local time; an optional “from” date leaves
+  out old history; importing the same file again updates instead of
+  duplicating.
+
 - Tactic schedules: choose the days, time and duration of a tactic in Goals
   (or with `days`, `time`, `hours` in an import file). Its weekly tasks are
   then created on those days and appear in the calendar by themselves; this

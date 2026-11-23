@@ -672,7 +672,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -705,7 +705,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   },
   events: {
     id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',
-    repeat_weekly: 'bool', repeat_until: 'dateNull', notes: 'text', created_at: 'text', updated_at: 'text',
+    repeat_weekly: 'bool', repeat_until: 'dateNull', notes: 'text', ics_uid: 'textOptional', created_at: 'text', updated_at: 'text',
   },
 }
 
@@ -733,6 +733,7 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'timeOptional': return v === undefined || v === null || (typeof v === 'string' && isValidTime(v))
     case 'weekdaysOptional':
       return v === undefined || v === null || (Array.isArray(v) && v.every((d) => Number.isInteger(d) && d >= 1 && d <= 7))
+    case 'textOptional': return v === undefined || v === null || typeof v === 'string'
     case 'numOptional': return v === undefined || v === null || (typeof v === 'number' && Number.isFinite(v))
     case 'category': return HABIT_CATEGORIES.includes(v as HabitCategory)
     case 'weekdays':

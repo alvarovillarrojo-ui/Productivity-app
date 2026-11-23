@@ -22,7 +22,7 @@ list your tasks, tick them off, and see your **execution %** (aim for 85%) and
 | **Focus** | Pomodoro timer for a task; finished rounds add their minutes to the task’s hours. |
 | **Goals** | Edit the cycle, goals (hour targets) and tactics (times per week). |
 | **Tracking** | The whole cycle: execution % per week (chart), week-by-week table, hours per goal. |
-| **Data** | Backup / restore, export a week (JSON + Markdown), import from JSON. |
+| **Data** | Backup / restore, export a week (JSON + Markdown), import from JSON, import a calendar (.ics). |
 | **About** | How to use the method and the app; how the numbers are calculated. |
 
 ## How execution % is calculated

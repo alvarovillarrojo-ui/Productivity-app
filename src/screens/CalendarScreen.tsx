@@ -125,7 +125,9 @@ export default function CalendarScreen() {
             onItem={openItem}
             onSlot={(d, time) => setDialog({ kind: 'new', date: d, time })}
           />
-          <p className="muted small-text">{c.clickSlot}</p>
+          <p className="muted small-text">
+            {c.clickSlot} <Link to="/data?action=ics">{c.importIcs}</Link>
+          </p>
           {inCycle && (
             <div className="card">
               <h2>{c.unscheduled(unplaced.length)}</h2>

@@ -25,9 +25,10 @@ import {
   type ImportPlan,
   type ImportTarget,
 } from '../logic/exchange'
-import { defaultWeek, lastCompletedWeek, todayISO, weekStart } from '../logic/weeks'
+import { addDays, defaultWeek, lastCompletedWeek, todayISO, weekStart } from '../logic/weeks'
+import { parseIcs } from '../logic/ics'
 
-const SECTIONS = ['backup', 'restore', 'export', 'import'] as const
+const SECTIONS = ['backup', 'restore', 'export', 'import', 'ics'] as const
 
 export default function DataScreen() {
   const { t } = useI18n()
@@ -62,6 +63,9 @@ export default function DataScreen() {
       )}
       <div id="import" className={highlight('import')}>
         <ImportSection />
+      </div>
+      <div id="ics" className={highlight('ics')}>
+        <IcsSection />
       </div>
       <div id="restore" className={highlight('restore')}>
         <RestoreSection />
@@ -369,6 +373,86 @@ function ImportSection() {
       {done && (
         <p className="flash">
           {m.done} <Link to="/">{m.goHome}</Link>
+        </p>
+      )}
+    </>
+  )
+}
+
+// ---------- 3b. calendar file (.ics) ----------
+
+function IcsSection() {
+  const { t, date } = useI18n()
+  const m = t.data.ics
+  const [file, setFile] = useState<{ name: string; text: string } | null>(null)
+  const [from, setFrom] = useState(addDays(todayISO(), -7))
+  const [done, setDone] = useState<{ added: number; updated: number } | null>(null)
+  const result = file ? parseIcs(file.text, from) : null
+  const looksWrong = file !== null && !/BEGIN:VCALENDAR/i.test(file.text)
+
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const chosen = await readChosenFile(e)
+    if (!chosen) return
+    setDone(null)
+    setFile(chosen)
+  }
+  const apply = async () => {
+    if (!result) return
+    setDone(await repo.importIcsEvents(result.events))
+    setFile(null)
+  }
+
+  const n = result?.notes
+  const weekly = result?.events.filter((e) => e.repeat_weekly).length ?? 0
+  return (
+    <>
+      <h2>{m.title}</h2>
+      <p className="muted small-text">{m.hint}</p>
+      <div className="row">
+        <label className="btn file-btn">
+          {m.choose}
+          <input type="file" accept=".ics,text/calendar" onChange={onFile} />
+        </label>
+        <label className="row small-text">
+          <span>{m.from}</span>
+          <input type="date" value={from} onChange={(e) => e.target.value && setFrom(e.target.value)} />
+        </label>
+      </div>
+      {looksWrong && <p className="bad">{m.notIcs}</p>}
+      {result && !looksWrong && (
+        <div className="preview">
+          <p>
+            <strong>{file!.name}</strong>: {m.found(result.events.length, weekly)}
+          </p>
+          {result.events.length > 0 && (
+            <ul className="small-text">
+              {result.events.slice(0, 6).map((e) => (
+                <li key={e.ics_uid}>
+                  {date(e.date)} {e.start_time ? `${e.start_time}–${e.end_time}` : m.allDay} · {e.repeat_weekly ? '↻ ' : ''}
+                  {e.title}
+                </li>
+              ))}
+              {result.events.length > 6 && <li className="muted">{m.andMore(result.events.length - 6)}</li>}
+            </ul>
+          )}
+          {n && (n.repeatsSimplified > 0 || n.multiDay > 0 || n.skippedBefore > 0 || n.skippedCancelled + n.skippedExceptions > 0) && (
+            <ul className="muted small-text">
+              {n.skippedBefore > 0 && <li>{m.skippedBefore(n.skippedBefore)}</li>}
+              {n.repeatsSimplified > 0 && <li>{m.repeatsSimplified(n.repeatsSimplified)}</li>}
+              {n.multiDay > 0 && <li>{m.multiDay(n.multiDay)}</li>}
+              {n.skippedCancelled + n.skippedExceptions > 0 && <li>{m.skippedOther(n.skippedCancelled + n.skippedExceptions)}</li>}
+            </ul>
+          )}
+          {result.events.length > 0 && (
+            <button className="btn primary" onClick={apply}>
+              {m.button(result.events.length)}
+            </button>
+          )}
+        </div>
+      )}
+      {done && (
+        <p className="flash">
+          {m.done(done.added, done.updated)} <Link to="/calendar">{m.openCalendar}</Link>
         </p>
       )}
     </>

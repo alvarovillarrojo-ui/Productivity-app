@@ -446,3 +446,17 @@ describe('tactic schedule', () => {
     expect(await repo.listTasksForWeek(cycle.id, 1)).toHaveLength(0)
   })
 })
+
+describe('importIcsEvents', () => {
+  const ev = (over = {}) => ({
+    ics_uid: 'u1', title: 'Class', date: '2026-11-24', start_time: '09:00', end_time: '10:30',
+    repeat_weekly: true, repeat_until: null, notes: '', ...over,
+  })
+  it('adds new events and updates ones imported before (same calendar id)', async () => {
+    expect(await repo.importIcsEvents([ev(), ev({ ics_uid: 'u2', title: 'Exam' })])).toEqual({ added: 2, updated: 0 })
+    expect(await repo.importIcsEvents([ev({ start_time: '10:00', end_time: '11:30' })])).toEqual({ added: 0, updated: 1 })
+    const events = await repo.listEvents()
+    expect(events).toHaveLength(2)
+    expect(events.find((e) => e.ics_uid === 'u1')).toMatchObject({ start_time: '10:00', end_time: '11:30' })
+  })
+})

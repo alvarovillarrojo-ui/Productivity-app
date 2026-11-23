@@ -6,6 +6,7 @@
 import { db } from './db'
 import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
 import { planRecurring, scheduleOf, weeksToPrepare } from '../logic/taskActions'
+import type { IcsEvent } from '../logic/ics'
 import { DEFAULT_FOCUS_SETTINGS, finishPhase, focusMinutesDone, type FocusSettings, type FocusState } from '../logic/focus'
 import { addDays, todayISO, weekStart } from '../logic/weeks'
 import type {
@@ -408,6 +409,29 @@ export async function updateEvent(id: string, changes: Partial<NewEvent>): Promi
 
 export async function deleteEvent(id: string): Promise<void> {
   await db.events.delete(id)
+}
+
+/**
+ * Saves events read from an .ics file. An event already imported before (same
+ * calendar id) is updated instead of added again. One transaction.
+ */
+export async function importIcsEvents(events: IcsEvent[]): Promise<{ added: number; updated: number }> {
+  return db.transaction('rw', db.events, async () => {
+    const existing = new Map((await db.events.toArray()).filter((e) => e.ics_uid).map((e) => [e.ics_uid!, e]))
+    let added = 0
+    let updated = 0
+    for (const e of events) {
+      const old = existing.get(e.ics_uid)
+      if (old) {
+        await db.events.update(old.id, { ...e, updated_at: now() })
+        updated++
+      } else {
+        await db.events.add({ ...e, id: newId(), created_at: now(), updated_at: now() })
+        added++
+      }
+    }
+    return { added, updated }
+  })
 }
 
 // ---------- focus (pomodoro) ----------

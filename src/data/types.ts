@@ -163,6 +163,8 @@ export interface CalendarEvent {
   repeat_weekly: boolean
   repeat_until: ISODate | null
   notes: string
+  /** Id from an imported .ics file, so importing it again updates instead of duplicating. */
+  ics_uid?: string | null
   created_at: string
   updated_at: string
 }
