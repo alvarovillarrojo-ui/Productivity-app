@@ -38,7 +38,6 @@ export const en = {
     minimumHoursOptional: 'Minimum h/week (optional)',
     startNewCycle: 'Start new cycle',
     noActiveCycle: 'There is no active cycle.',
-    placeholder: (step: string) => `This screen is built in ${step}.`,
   },
 
   storage: {
@@ -327,6 +326,66 @@ export const en = {
         case 'manyActive': return 'The backup has more than one active cycle.'
       }
     },
+  },
+
+  about: {
+    title: 'About & how to use',
+    intro:
+      'A personal tracker for the “12 Week Year” method: instead of yearly goals, you plan 12 weeks at a time and check every week whether you did what you planned.',
+    sections: [
+      {
+        title: 'The idea',
+        items: [
+          'Your 12 weeks are your “year”: short enough to feel urgent, long enough to achieve something real.',
+          'Choose 1–3 goals. For each goal, choose tactics: repeatable actions that are fully in your control (e.g. “Study block of 2 h”).',
+          'Each week, turn tactics into tasks and do them. Measure execution (did I do what I planned?), not only results. Results follow execution.',
+          'Aim for 85% execution or more. 100% isn’t needed, and usually means you planned too little.',
+        ],
+      },
+      {
+        title: 'Every day (2 minutes)',
+        items: [
+          'Morning: open Home and look at Today and what is still open this week.',
+          'Evening: tick each task ✓ done or ✗ missed. Actual hours are copied from the planned hours; change them in Tasks if they were different.',
+        ],
+      },
+      {
+        title: 'Every week (15 minutes, e.g. on Sunday)',
+        items: [
+          'Tracking: look at the week’s execution % and hours. What got in the way?',
+          'Tasks → next week: “Generate recurring tasks” creates tasks from your tactics’ “times per week”. Add any one-off tasks.',
+          '“Copy unfinished” takes the tasks you still want to do into the next week.',
+          'Data: make a backup. If you like, export the week as a report.',
+        ],
+      },
+      {
+        title: 'After 12 weeks',
+        items: [
+          'Goals → “Start new cycle”. The wizard shows how the cycle went and lets you carry goals and tactics over.',
+        ],
+      },
+      {
+        title: 'How the numbers work',
+        items: [
+          'Execution % = done ÷ (done + missed + open tasks whose date has passed). Tasks for today or later don’t count against you yet. When the week ends, every open task counts as not done.',
+          'Tasks without a tactic (“Other”) are shown but don’t count.',
+          'The cycle % adds up all counted tasks; it isn’t an average of the weekly percentages.',
+          'Hours: actual hours per goal per week against its target. Green = target reached, orange = only the minimum, red = below.',
+        ],
+      },
+      {
+        title: 'Your data',
+        items: [
+          '🔒 Everything stays in this browser on this device. No account, nothing is sent anywhere.',
+          'Each browser and each device has its own separate data. Clearing the browser’s site data deletes it.',
+          'Back up every week (Data), ideally into a folder synced to the cloud. To move to another device, restore that backup there.',
+          'Tip: install the app (the install icon in the address bar) to open it in its own window. It also makes the browser more likely to keep your data permanently.',
+        ],
+      },
+    ],
+    version: (v: string) => `Version ${v}`,
+    license: 'Free software (MIT licence).',
+    source: 'Source code',
   },
 
   // Texts inside the exported Markdown week report.

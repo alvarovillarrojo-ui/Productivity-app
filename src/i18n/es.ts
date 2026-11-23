@@ -34,7 +34,6 @@ export const es: Dict = {
     minimumHoursOptional: 'Mínimo h/semana (opcional)',
     startNewCycle: 'Empezar nuevo ciclo',
     noActiveCycle: 'No hay ningún ciclo activo.',
-    placeholder: (step: string) => `Esta pantalla se construye en ${step}.`,
   },
 
   storage: {
@@ -327,6 +326,66 @@ export const es: Dict = {
         case 'manyActive': return 'La copia tiene más de un ciclo activo.'
       }
     },
+  },
+
+  about: {
+    title: 'Ayuda: cómo usarla',
+    intro:
+      'Un seguimiento personal para el método “12 Week Year”: en vez de objetivos anuales, planificas 12 semanas cada vez y compruebas cada semana si hiciste lo que habías planeado.',
+    sections: [
+      {
+        title: 'La idea',
+        items: [
+          'Tus 12 semanas son tu “año”: lo bastante cortas para sentir urgencia y lo bastante largas para lograr algo de verdad.',
+          'Elige 1–3 objetivos. Para cada uno, elige tácticas: acciones repetibles que dependen solo de ti (p. ej. “Bloque de estudio de 2 h”).',
+          'Cada semana, convierte las tácticas en tareas y hazlas. Mide la ejecución (¿hice lo que planeé?), no solo los resultados. Los resultados llegan con la ejecución.',
+          'Apunta a un 85 % de ejecución o más. No hace falta el 100 %, y suele significar que planificaste poco.',
+        ],
+      },
+      {
+        title: 'Cada día (2 minutos)',
+        items: [
+          'Mañana: abre Inicio y mira Hoy y lo que sigue pendiente esta semana.',
+          'Noche: marca cada tarea ✓ hecha o ✗ no hecha. Las horas reales se copian de las previstas; cámbialas en Tareas si fueron distintas.',
+        ],
+      },
+      {
+        title: 'Cada semana (15 minutos, p. ej. el domingo)',
+        items: [
+          'Seguimiento: mira el % de ejecución y las horas de la semana. ¿Qué se interpuso?',
+          'Tareas → semana siguiente: “Generar tareas recurrentes” crea tareas según las “veces por semana” de tus tácticas. Añade las tareas puntuales.',
+          '“Copiar pendientes” lleva a la semana siguiente las tareas que aún quieras hacer.',
+          'Datos: haz una copia de seguridad. Si quieres, exporta la semana como informe.',
+        ],
+      },
+      {
+        title: 'Tras las 12 semanas',
+        items: [
+          'Objetivos → “Empezar nuevo ciclo”. El asistente muestra cómo fue el ciclo y te deja mantener objetivos y tácticas.',
+        ],
+      },
+      {
+        title: 'Cómo se calculan los números',
+        items: [
+          '% de ejecución = hechas ÷ (hechas + no hechas + pendientes cuya fecha ya pasó). Las tareas de hoy o posteriores aún no cuentan en tu contra. Al acabar la semana, toda tarea pendiente cuenta como no hecha.',
+          'Las tareas sin táctica (“Otras”) se muestran pero no cuentan.',
+          'El % del ciclo suma todas las tareas contadas; no es una media de los porcentajes semanales.',
+          'Horas: horas reales por objetivo y semana frente a su objetivo. Verde = objetivo cumplido, naranja = solo el mínimo, rojo = por debajo.',
+        ],
+      },
+      {
+        title: 'Tus datos',
+        items: [
+          '🔒 Todo se queda en este navegador y en este dispositivo. Sin cuenta, no se envía nada a ningún sitio.',
+          'Cada navegador y cada dispositivo tiene sus propios datos. Borrar los datos del sitio en el navegador los elimina.',
+          'Haz una copia cada semana (Datos), mejor en una carpeta sincronizada con la nube. Para pasar a otro dispositivo, restaura allí esa copia.',
+          'Consejo: instala la app (icono de instalar en la barra de direcciones) para abrirla en su propia ventana. Además hace más probable que el navegador conserve tus datos de forma permanente.',
+        ],
+      },
+    ],
+    version: (v: string) => `Versión ${v}`,
+    license: 'Software libre (licencia MIT).',
+    source: 'Código fuente',
   },
 
   report: {
