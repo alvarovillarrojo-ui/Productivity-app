@@ -82,12 +82,68 @@ export interface Task {
   updated_at: string
 }
 
+/**
+ * The 7 habits of highly effective people (Stephen Covey), used as habit
+ * categories. "saw" = Sharpen the saw (body, mind, heart, spirit).
+ */
+export const HABIT_CATEGORIES = [
+  'proactive',
+  'end_in_mind',
+  'first_things',
+  'win_win',
+  'understand',
+  'synergize',
+  'saw',
+] as const
+export type HabitCategory = (typeof HABIT_CATEGORIES)[number]
+
+/**
+ * A habit you want to build, set up the "Atomic Habits" way (James Clear).
+ * Habits don't belong to a cycle: they continue from one cycle to the next.
+ * Only `name`, `category` and `days` are required; the rest are prompts.
+ */
+export interface Habit {
+  id: string
+  name: string
+  category: HabitCategory
+  /** Identity: "I am someone who…" */
+  identity: string
+  /** Law 1, make it obvious: "I will [habit] at [time] in [place]". */
+  intention: string
+  /** Law 1, habit stacking: "After [current habit], I will [new habit]". */
+  stack: string
+  /** Law 2, make it attractive: something you enjoy paired with it. */
+  attractive: string
+  /** Law 3, make it easy: the 2-minute version. */
+  two_minute: string
+  /** Law 4, make it satisfying: the reward. */
+  reward: string
+  /** Weekdays it is planned on: 1 = Monday … 7 = Sunday. */
+  days: number[]
+  /** Paused habits are hidden from Home and not scored. */
+  active: boolean
+  /** First day it counts (no misses before this). */
+  start_date: ISODate
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+/** "Done" mark for a habit on one day. Id is "habitId|date" (one per day). */
+export interface HabitCheck {
+  id: string
+  habit_id: string
+  date: ISODate
+}
+
 /** All user data in one object: what a backup contains. */
 export interface AllData {
   cycles: Cycle[]
   goals: Goal[]
   tactics: Tactic[]
   tasks: Task[]
+  habits: Habit[]
+  habit_checks: HabitCheck[]
 }
 
 /**

@@ -16,7 +16,7 @@
 //
 // 3. Backup — every record with its id, restored as-is (replaces everything).
 import type { Dict } from '../i18n/en'
-import type { AllData, Cycle, Goal, ISODate, Tactic, Task, TaskStatus } from '../data/types'
+import { HABIT_CATEGORIES, type AllData, type Cycle, type Goal, type HabitCategory, type ISODate, type Tactic, type Task, type TaskStatus } from '../data/types'
 import {
   formatHours,
   formatPct,
@@ -642,7 +642,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -662,7 +662,17 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     planned_date: 'dateNull', planned_hours: 'numNull', actual_hours: 'numNull', status: 'status',
     miss_reason: 'textNull', notes: 'text', created_at: 'text', updated_at: 'text',
   },
+  // Added in v0.2. Backups from v0.1 don't have these lists (= no habits).
+  habits: {
+    id: 'id', name: 'text', category: 'category', identity: 'text', intention: 'text', stack: 'text',
+    attractive: 'text', two_minute: 'text', reward: 'text', days: 'weekdays', active: 'bool',
+    start_date: 'date', sort_order: 'num', created_at: 'text', updated_at: 'text',
+  },
+  habit_checks: { id: 'id', habit_id: 'id', date: 'date' },
 }
+
+/** Lists that older backups may not have yet. */
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -680,6 +690,9 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     // Optional (added in v0.2): { "week|tacticId": number }
     case 'countsOptional':
       return v === undefined || (isObj(v) && Object.values(v).every((n) => typeof n === 'number'))
+    case 'category': return HABIT_CATEGORIES.includes(v as HabitCategory)
+    case 'weekdays':
+      return Array.isArray(v) && v.length > 0 && v.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)
   }
 }
 
@@ -699,7 +712,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
   const data = {} as AllData
   const ids = new Set<string>()
   for (const table of Object.keys(FIELDS) as (keyof AllData)[]) {
-    const list = raw[table]
+    const list = raw[table] === undefined && OPTIONAL_TABLES.includes(table) ? [] : raw[table]
     if (!Array.isArray(list)) {
       r.add('list', `data.${table}`)
       continue
@@ -729,6 +742,8 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
     if (!cycleIds.has(t.cycle_id)) r.add('link', `data.tasks[${i}].cycle_id`)
     if (t.tactic_id !== null && !tacticIds.has(t.tactic_id)) r.add('link', `data.tasks[${i}].tactic_id`)
   })
+  const habitIds = new Set(data.habits.map((h) => h.id))
+  data.habit_checks.forEach((c, i) => habitIds.has(c.habit_id) || r.add('link', `data.habit_checks[${i}].habit_id`))
   if (data.cycles.filter((c) => c.status === 'active').length > 1) r.add('manyActive')
   if (r.issues.length > 0) return fail(r.issues)
 
@@ -746,6 +761,8 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       goals: data.goals.map((x) => pick(x, 'goals')),
       tactics: data.tactics.map((x) => pick(x, 'tactics')),
       tasks: data.tasks.map((x) => pick(x, 'tasks')),
+      habits: data.habits.map((x) => pick(x, 'habits')),
+      habit_checks: data.habit_checks.map((x) => pick(x, 'habit_checks')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }

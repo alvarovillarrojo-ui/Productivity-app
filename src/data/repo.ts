@@ -11,6 +11,8 @@ import type {
   Cycle,
   CycleStatus,
   Goal,
+  Habit,
+  HabitCheck,
   ISODate,
   PersistStatus,
   SettingKey,
@@ -327,31 +329,81 @@ export async function deleteSetting(key: SettingKey): Promise<void> {
   await db.settings.delete(key)
 }
 
+// ---------- habits (not tied to a cycle) ----------
+
+export async function listHabits(): Promise<Habit[]> {
+  const habits = await db.habits.toArray()
+  return habits.sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at))
+}
+
+export type NewHabit = Omit<Habit, AutoFields | 'sort_order' | 'active' | 'start_date'> &
+  Partial<Pick<Habit, 'active' | 'start_date'>>
+
+export async function createHabit(data: NewHabit, today: ISODate): Promise<Habit> {
+  const habit: Habit = {
+    active: true,
+    start_date: today,
+    ...data,
+    sort_order: await db.habits.count(),
+    id: newId(),
+    created_at: now(),
+    updated_at: now(),
+  }
+  await db.habits.add(habit)
+  return habit
+}
+
+export async function updateHabit(id: string, changes: Partial<Omit<Habit, AutoFields>>): Promise<void> {
+  await db.habits.update(id, { ...changes, updated_at: now() })
+}
+
+/** Deletes a habit and all its ticks. */
+export async function deleteHabit(id: string): Promise<void> {
+  await db.transaction('rw', db.habits, db.habit_checks, async () => {
+    await db.habit_checks.where('habit_id').equals(id).delete()
+    await db.habits.delete(id)
+  })
+}
+
+/** Ticks on or after `from` (all habits). */
+export async function listHabitChecks(from: ISODate): Promise<HabitCheck[]> {
+  return db.habit_checks.where('date').aboveOrEqual(from).toArray()
+}
+
+/** Ticks / unticks a habit for one day. Returns true when it is now done. */
+export async function toggleHabitCheck(habitId: string, date: ISODate): Promise<boolean> {
+  const id = `${habitId}|${date}`
+  return db.transaction('rw', db.habit_checks, async () => {
+    if (await db.habit_checks.get(id)) {
+      await db.habit_checks.delete(id)
+      return false
+    }
+    await db.habit_checks.add({ id, habit_id: habitId, date })
+    return true
+  })
+}
+
 // ---------- whole database (backup / restore / import) ----------
+
+/** The tables a backup contains, in the order they are restored. */
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks'] as const
+const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */
 export async function exportAll(): Promise<AllData> {
-  const [cycles, goals, tactics, tasks] = await Promise.all([
-    db.cycles.toArray(),
-    db.goals.toArray(),
-    db.tactics.toArray(),
-    db.tasks.toArray(),
-  ])
-  return { cycles, goals, tactics, tasks }
+  const lists = await Promise.all(dataTables().map((t) => t.toArray()))
+  return Object.fromEntries(DATA_TABLES.map((name, i) => [name, lists[i]])) as unknown as AllData
 }
 
 /**
- * RESTORE: deletes all current cycles, goals, tactics and tasks and replaces
- * them with `data`. Settings (backup folder etc.) are kept. Runs as one
- * transaction: if anything fails, nothing changes.
+ * RESTORE: deletes all current data (cycles, goals, tactics, tasks, habits)
+ * and replaces it with `data`. Settings (backup folder etc.) are kept. Runs
+ * as one transaction: if anything fails, nothing changes.
  */
 export async function replaceAll(data: AllData): Promise<void> {
-  await db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
-    await Promise.all([db.cycles.clear(), db.goals.clear(), db.tactics.clear(), db.tasks.clear()])
-    await db.cycles.bulkAdd(data.cycles)
-    await db.goals.bulkAdd(data.goals)
-    await db.tactics.bulkAdd(data.tactics)
-    await db.tasks.bulkAdd(data.tasks)
+  await db.transaction('rw', dataTables(), async () => {
+    await Promise.all(dataTables().map((t) => t.clear()))
+    for (const name of DATA_TABLES) await db.table(name).bulkAdd(data[name])
   })
 }
 
@@ -360,12 +412,9 @@ export async function replaceAll(data: AllData): Promise<void> {
  * Runs as one transaction: either everything is added or nothing is.
  */
 export async function addAll(data: AllData): Promise<void> {
-  await db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
+  await db.transaction('rw', dataTables(), async () => {
     for (const c of data.cycles) if (c.status === 'active') await assertNoOtherActive(c.id)
-    await db.cycles.bulkAdd(data.cycles)
-    await db.goals.bulkAdd(data.goals)
-    await db.tactics.bulkAdd(data.tactics)
-    await db.tasks.bulkAdd(data.tasks)
+    for (const name of DATA_TABLES) await db.table(name).bulkAdd(data[name])
   })
 }
 

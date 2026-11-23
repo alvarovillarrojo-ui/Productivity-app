@@ -86,7 +86,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [] })
   })
 })
 
@@ -179,7 +179,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -190,6 +190,8 @@ describe('backup data', () => {
       cycles: [],
       goals: [],
       tactics: [],
+      habits: [],
+      habit_checks: [],
       tasks: [
         {
           id: repo.newId(),
@@ -328,5 +330,39 @@ describe('ensureRecurringTasks', () => {
     expect(backup.issues).toEqual([])
     await repo.replaceAll(backup.data!)
     expect(await repo.ensureRecurringTasks(WED_WEEK1)).toBe(0)
+  })
+})
+
+describe('habits', () => {
+  const newHabit = {
+    name: 'Read 10 pages', category: 'saw' as const, identity: 'I am a reader', intention: '', stack: '',
+    attractive: '', two_minute: 'Read 1 page', reward: '', days: [1, 2, 3, 4, 5, 6, 7],
+  }
+
+  it('creates, ticks and unticks a habit', async () => {
+    const h = await repo.createHabit(newHabit, '2026-11-23')
+    expect(h).toMatchObject({ active: true, start_date: '2026-11-23', sort_order: 0 })
+    expect(await repo.toggleHabitCheck(h.id, '2026-11-23')).toBe(true)
+    expect(await repo.listHabitChecks('2026-11-01')).toEqual([{ id: `${h.id}|2026-11-23`, habit_id: h.id, date: '2026-11-23' }])
+    expect(await repo.toggleHabitCheck(h.id, '2026-11-23')).toBe(false)
+    expect(await repo.listHabitChecks('2026-11-01')).toEqual([])
+  })
+
+  it('deleting a habit deletes its ticks', async () => {
+    const h = await repo.createHabit(newHabit, '2026-11-23')
+    await repo.toggleHabitCheck(h.id, '2026-11-23')
+    await repo.deleteHabit(h.id)
+    expect(await repo.listHabits()).toEqual([])
+    expect(await repo.listHabitChecks('2000-01-01')).toEqual([])
+  })
+
+  it('habits are part of backups', async () => {
+    const h = await repo.createHabit(newHabit, '2026-11-23')
+    await repo.toggleHabitCheck(h.id, '2026-11-23')
+    const all = await repo.exportAll()
+    await repo.deleteHabit(h.id)
+    await repo.replaceAll(all)
+    expect((await repo.listHabits()).map((x) => x.name)).toEqual(['Read 10 pages'])
+    expect(await repo.listHabitChecks('2026-11-23')).toHaveLength(1)
   })
 })

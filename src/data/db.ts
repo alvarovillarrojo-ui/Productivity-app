@@ -4,7 +4,7 @@
 // `repo.ts`, so storage can later be swapped (e.g. for a cloud database)
 // without touching the screens.
 import Dexie, { type EntityTable } from 'dexie'
-import type { Cycle, Goal, Tactic, Task } from './types'
+import type { Cycle, Goal, Habit, HabitCheck, Tactic, Task } from './types'
 
 /** One row of the settings table: a key and its value. */
 export interface SettingRow {
@@ -20,6 +20,8 @@ export class TrackerDB extends Dexie {
   tactics!: EntityTable<Tactic, 'id'>
   tasks!: EntityTable<Task, 'id'>
   settings!: EntityTable<SettingRow, 'key'>
+  habits!: EntityTable<Habit, 'id'>
+  habit_checks!: EntityTable<HabitCheck, 'id'>
 
   constructor(name = DB_NAME) {
     super(name)
@@ -32,6 +34,11 @@ export class TrackerDB extends Dexie {
       tactics: 'id, goal_id',
       tasks: 'id, cycle_id, [cycle_id+week_number], tactic_id',
       settings: 'key',
+    })
+    // v0.2: habits. Existing data is untouched; the new tables start empty.
+    this.version(2).stores({
+      habits: 'id',
+      habit_checks: 'id, habit_id, date',
     })
   }
 }

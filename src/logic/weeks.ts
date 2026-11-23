@@ -136,3 +136,14 @@ export function formatShortDate(date: ISODate, locale = 'en-GB'): string {
     timeZone: 'UTC',
   })
 }
+
+/** Weekday name only: "Mon" / "lun" (style 'short') or "M" / "L" ('narrow'). */
+export function formatWeekday(date: ISODate, locale = 'en-GB', style: 'short' | 'narrow' = 'short'): string {
+  return new Date(toUTC(date)).toLocaleDateString(locale, { weekday: style, timeZone: 'UTC' })
+}
+
+/** The 7 dates Monday → Sunday of the week that contains `date`. */
+export function weekDates(date: ISODate): ISODate[] {
+  const monday = mondayOf(date)
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+}

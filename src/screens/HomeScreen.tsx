@@ -14,6 +14,7 @@ import { useI18n } from '../i18n'
 import NoActiveCycle from '../components/NoActiveCycle'
 import QuickAdd from '../components/QuickAdd'
 import TaskRow from '../components/TaskRow'
+import { TodayHabits } from './HabitsPanel'
 import { tacticLabel } from '../components/TacticSelect'
 import { pctClass } from '../components/pctClass'
 import {
@@ -101,6 +102,8 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
               </ul>
             )}
           </div>
+
+          <TodayHabits />
 
           <div>
             <div className="row spread">

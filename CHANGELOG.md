@@ -6,6 +6,15 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Habits, set up the Atomic Habits way (identity, habit stacking, plan,
+  2-minute version, reward) and grouped by the 7 Habits of Highly Effective
+  People, with suggestions per category. Tick them per day in Tasks → Habits
+  or on Home; streaks, weekly consistency % and a “never miss twice” warning.
+  Habits have their own score and are included in backups (v0.1 backups
+  still restore).
+
 ### Changed
 
 - Recurring tasks are now created automatically every week from each

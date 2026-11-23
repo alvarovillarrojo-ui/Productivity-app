@@ -1,7 +1,7 @@
 // Ready-made live data hooks used by several screens. They update the screen
 // automatically whenever the data changes.
 import * as repo from './repo'
-import type { Cycle, Goal, Tactic, Task } from './types'
+import type { Cycle, Goal, Habit, HabitCheck, Tactic, Task } from './types'
 import { useLive, useLiveMaybe } from './useLive'
 
 /**
@@ -38,4 +38,13 @@ export function useCycleTasks(cycleId: string | undefined): Task[] {
     [cycleId],
     [],
   )
+}
+
+export function useHabits(): Habit[] {
+  return useLive(repo.listHabits, [], [])
+}
+
+/** All habit ticks from `from` on (live). */
+export function useHabitChecks(from: string): HabitCheck[] {
+  return useLive(() => repo.listHabitChecks(from), [from], [])
 }

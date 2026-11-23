@@ -16,16 +16,43 @@ import QuickAdd from '../components/QuickAdd'
 import { tacticLabel } from '../components/TacticSelect'
 import TaskEditForm from '../components/TaskEditForm'
 import TaskRow from '../components/TaskRow'
+import HabitsPanel from './HabitsPanel'
 import { pctClass } from '../components/pctClass'
 import { execution, formatPct, isDue, taskCounts } from '../logic/metrics'
 import { unfinishedCopies } from '../logic/taskActions'
 import { defaultWeek, todayISO, weekEnd, weekStart } from '../logic/weeks'
 
 export default function TasksScreen() {
+  const { t } = useI18n()
   const cycle = useActiveCycle()
-  if (cycle === undefined) return null
-  if (cycle === null) return <NoActiveCycle />
-  return <TasksForCycle cycle={cycle} />
+  // Two tabs: this week's tasks (default) and habits (#/tasks?view=habits).
+  const [params, setParams] = useSearchParams()
+  const view = params.get('view') === 'habits' ? 'habits' : 'week'
+  const tab = (id: 'week' | 'habits', label: string) => (
+    <button
+      role="tab"
+      aria-selected={view === id}
+      className={view === id ? 'tab on' : 'tab'}
+      onClick={() => setParams(id === 'habits' ? { view: 'habits' } : {}, { replace: true })}
+    >
+      {label}
+    </button>
+  )
+  return (
+    <>
+      <div className="tabs" role="tablist">
+        {tab('week', t.habits.tabWeek)}
+        {tab('habits', t.habits.tabHabits)}
+      </div>
+      {view === 'habits' ? (
+        <HabitsPanel />
+      ) : cycle === undefined ? null : cycle === null ? (
+        <NoActiveCycle />
+      ) : (
+        <TasksForCycle cycle={cycle} />
+      )}
+    </>
+  )
 }
 
 function TasksForCycle({ cycle }: { cycle: Cycle }) {

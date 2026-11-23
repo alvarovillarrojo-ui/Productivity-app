@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AllData, Cycle, Goal, Tactic, Task } from '../data/types'
+import type { AllData, Cycle, Goal, Habit, Tactic, Task } from '../data/types'
 import { en } from '../i18n/en'
 import {
   backupFileName,
@@ -194,7 +194,15 @@ describe('week report', () => {
 })
 
 describe('backup', () => {
-  const data: AllData = { cycles: [cycle], goals, tactics, tasks: [task({ id: 'k1' })] }
+  const habit: Habit = {
+    id: 'h1', name: 'Read 10 pages', category: 'saw', identity: '', intention: '', stack: '', attractive: '',
+    two_minute: 'Read 1 page', reward: '', days: [1, 2, 3, 4, 5], active: true, start_date: '2026-11-09',
+    sort_order: 0, created_at: 'x', updated_at: 'x',
+  }
+  const data: AllData = {
+    cycles: [cycle], goals, tactics, tasks: [task({ id: 'k1' })],
+    habits: [habit], habit_checks: [{ id: 'h1|2026-11-10', habit_id: 'h1', date: '2026-11-10' }],
+  }
 
   it('round-trips through JSON', () => {
     const file = JSON.parse(JSON.stringify(buildBackup(data, '2026-11-23T08:00:00Z')))
@@ -202,6 +210,23 @@ describe('backup', () => {
     expect(r.issues).toEqual([])
     expect(r.data).toEqual(data)
     expect(r.exportedAt).toBe('2026-11-23T08:00:00Z')
+  })
+
+  it('restores v0.1 backups that have no habits yet', () => {
+    const old = buildBackup(data, 'x') as unknown as { data: Record<string, unknown> }
+    delete old.data.habits
+    delete old.data.habit_checks
+    const r = parseBackup(JSON.parse(JSON.stringify(old)))
+    expect(r.issues).toEqual([])
+    expect(r.data!.habits).toEqual([])
+    expect(r.data!.habit_checks).toEqual([])
+  })
+
+  it('checks habit records and their ticks', () => {
+    const badDays = buildBackup({ ...data, habits: [{ ...habit, days: [0, 8] }] }, 'x')
+    expect(parseBackup(badDays).issues[0]).toEqual({ code: 'record', path: 'data.habits[0].days' })
+    const orphan = buildBackup({ ...data, habit_checks: [{ id: 'z', habit_id: 'gone', date: '2026-11-10' }] }, 'x')
+    expect(parseBackup(orphan).issues).toEqual([{ code: 'link', path: 'data.habit_checks[0].habit_id' }])
   })
 
   it('refuses import files and broken backups', () => {
