@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from './db'
 import * as repo from './repo'
 import { buildBackup, parseBackup, parseImport } from '../logic/exchange'
+import { startFocus } from '../logic/focus'
 
 async function seed() {
   const cycle = await repo.createCycle({
@@ -86,7 +87,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [] })
   })
 })
 
@@ -179,7 +180,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -193,6 +194,7 @@ describe('backup data', () => {
       habits: [],
       habit_checks: [],
       events: [],
+      focus_sessions: [],
       tasks: [
         {
           id: repo.newId(),
@@ -365,5 +367,41 @@ describe('habits', () => {
     await repo.replaceAll(all)
     expect((await repo.listHabits()).map((x) => x.name)).toEqual(['Read 10 pages'])
     expect(await repo.listHabitChecks('2026-11-23')).toHaveLength(1)
+  })
+})
+
+describe('focus (pomodoro)', () => {
+  const MIN = 60_000
+  const T0 = Date.UTC(2026, 0, 7, 9, 0)
+  const S = { focus: 25, shortBreak: 5, longBreak: 15, longEvery: 4 }
+
+  it('a finished focus round is recorded once and adds 25 min to the task', async () => {
+    const { cycle, tactic } = await seed()
+    const task = await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'Study', tactic_id: tactic.id, actual_hours: 0.5 })
+    await repo.setFocusState(startFocus(null, task.id, S, T0))
+    expect(await repo.focusTick(T0 + 10 * MIN)).toBeNull() // still running
+    expect(await repo.focusTick(T0 + 25 * MIN)).toBe('focus')
+    expect(await repo.focusTick(T0 + 25 * MIN + 1000)).toBeNull() // not twice
+    const sessions = await repo.listFocusSessions('2026-01-01')
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]).toMatchObject({ task_id: task.id, task_title: 'Study', minutes: 25, completed: true })
+    expect((await db.tasks.get(task.id))?.actual_hours).toBeCloseTo(0.92, 2) // 0.5 h + 25 min
+    expect((await repo.getFocusState())?.phase).toBe('short')
+    expect(await repo.focusTick(T0 + 30 * MIN)).toBe('short') // break over
+    expect((await repo.getFocusState())?.phase).toBe('ready')
+  })
+
+  it('stopping early saves the whole minutes done, or nothing when discarded', async () => {
+    const { cycle } = await seed()
+    const task = await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'Read' })
+    await repo.setFocusState(startFocus(null, task.id, S, T0))
+    expect(await repo.stopFocus(T0 + 12.7 * MIN, true)).toBe(12)
+    expect((await db.tasks.get(task.id))?.actual_hours).toBe(0.2)
+    expect((await repo.listFocusSessions('2026-01-01'))[0]).toMatchObject({ minutes: 12, completed: false })
+    expect(await repo.getFocusState()).toBeNull()
+
+    await repo.setFocusState(startFocus(null, task.id, S, T0))
+    expect(await repo.stopFocus(T0 + 20 * MIN, false)).toBe(0)
+    expect(await repo.listFocusSessions('2026-01-01')).toHaveLength(1)
   })
 })

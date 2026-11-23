@@ -8,6 +8,12 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Focus (pomodoro) screen: 25 min focus / 5 min break (15 every 4th), with
+  pause, stop-and-save and adjustable lengths. A finished round adds its
+  minutes to the task’s actual hours and asks whether the task is done.
+  The timer keeps running on other screens (badge in the top bar and in the
+  tab title) and plays a short sound. Start it from ▶ on any open task or
+  from a calendar block. Sessions are logged and included in backups.
 - Calendar: week view with hours and month view. Add events (classes,
   exams, meetings), optionally repeating every week; place tasks at a day
   and time as blocks coloured by goal (overlaps shown side by side); tick or

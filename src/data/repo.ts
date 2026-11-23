@@ -6,10 +6,13 @@
 import { db } from './db'
 import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
 import { planRecurring, weeksToPrepare } from '../logic/taskActions'
+import { DEFAULT_FOCUS_SETTINGS, finishPhase, focusMinutesDone, type FocusSettings, type FocusState } from '../logic/focus'
+import { todayISO } from '../logic/weeks'
 import type {
   AllData,
   CalendarEvent,
   Cycle,
+  FocusSession,
   CycleStatus,
   Goal,
   Habit,
@@ -407,10 +410,82 @@ export async function deleteEvent(id: string): Promise<void> {
   await db.events.delete(id)
 }
 
+// ---------- focus (pomodoro) ----------
+
+/** Focus sessions on or after `from`. */
+export async function listFocusSessions(from: ISODate): Promise<FocusSession[]> {
+  const list = await db.focus_sessions.where('date').aboveOrEqual(from).toArray()
+  return list.sort((a, b) => a.started_at.localeCompare(b.started_at))
+}
+
+/**
+ * Saves a focus session and adds its minutes to the task's actual hours.
+ * Call inside a transaction on settings, focus_sessions and tasks.
+ */
+async function saveFocusInTx(taskId: string | null, minutes: number, startedAt: string, completed: boolean): Promise<void> {
+  if (minutes < 1) return
+  const task = taskId ? await db.tasks.get(taskId) : undefined
+  await db.focus_sessions.add({
+    id: newId(),
+    task_id: task ? task.id : null,
+    task_title: task?.title ?? '',
+    date: todayISO(new Date(startedAt)),
+    started_at: startedAt,
+    minutes,
+    completed,
+  })
+  if (task) {
+    const hours = Math.round(((task.actual_hours ?? 0) + minutes / 60) * 100) / 100
+    await db.tasks.update(task.id, { actual_hours: hours, updated_at: now() })
+  }
+}
+
+export async function getFocusSettings(): Promise<FocusSettings> {
+  return (await getSetting('focusSettings')) ?? DEFAULT_FOCUS_SETTINGS
+}
+
+export async function getFocusState(): Promise<FocusState | null> {
+  return (await getSetting('focusTimer')) ?? null
+}
+
+export async function setFocusState(state: FocusState | null): Promise<void> {
+  await setSetting('focusTimer', state)
+}
+
+/**
+ * Called every second while the app is open: when the running phase has
+ * ended, moves the timer on (focus → break → ready) and records a finished
+ * focus round. It is one transaction, so a round is never recorded twice,
+ * even with the app open in two tabs. Returns the phase that just ended.
+ */
+export async function focusTick(nowMs: number): Promise<FocusState['phase'] | null> {
+  return db.transaction('rw', db.settings, db.focus_sessions, db.tasks, async () => {
+    const state = await getFocusState()
+    if (!state || state.endsAt === null || nowMs < state.endsAt) return null
+    const settings = await getFocusSettings()
+    const { state: next, record } = finishPhase(state, settings, state.endsAt)
+    if (record !== null && state.startedAt) await saveFocusInTx(state.taskId, record, state.startedAt, true)
+    await setFocusState(next)
+    return state.phase
+  })
+}
+
+/** Stop button: saves the whole minutes done in this focus round when `save`. */
+export async function stopFocus(nowMs: number, save: boolean): Promise<number> {
+  return db.transaction('rw', db.settings, db.focus_sessions, db.tasks, async () => {
+    const state = await getFocusState()
+    if (!state) return 0
+    const minutes = save && state.startedAt ? focusMinutesDone(state, await getFocusSettings(), nowMs) : 0
+    if (minutes > 0) await saveFocusInTx(state.taskId, minutes, state.startedAt!, false)
+    await setFocusState(null)
+    return minutes
+  })
+}
+
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */

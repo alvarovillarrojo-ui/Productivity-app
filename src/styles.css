@@ -387,3 +387,30 @@ h3 { font-size: 1rem; margin: 0.5rem 0; }
 .month-item.done { text-decoration: line-through; color: var(--muted); }
 .dot-color { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; margin-right: 0.25rem; vertical-align: middle; }
 @media (max-width: 600px) { .month-cell { min-height: 4rem; } .month-item { font-size: 0.65rem; } }
+
+/* ---------- focus (pomodoro) ---------- */
+.focus-badge { font-size: 0.85rem; padding: 0.3rem 0.7rem; border-radius: 999px; background: var(--bad); color: #fff; text-decoration: none; font-variant-numeric: tabular-nums; }
+.focus-badge.short, .focus-badge.long { background: var(--good); }
+.focus-badge.paused { background: var(--muted); }
+.focus-link { color: var(--accent); text-decoration: none; }
+.focus-link:hover { text-decoration: underline; }
+.focus-screen { max-width: 640px; }
+.focus-clock {
+  --p: 0;
+  --c: var(--bad);
+  width: min(16rem, 80vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  align-self: center;
+  background: conic-gradient(var(--c) calc(var(--p) * 1turn), var(--surface) 0);
+  display: grid;
+  place-items: center;
+}
+.focus-clock.short, .focus-clock.long { --c: var(--good); }
+.focus-clock.paused { --c: var(--muted); }
+.focus-clock-inner { width: 86%; aspect-ratio: 1; border-radius: 50%; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem; }
+.focus-phase { font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem; }
+.focus-time { font-size: 3.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.focus-buttons { justify-content: center; }
+.session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+details.card summary { cursor: pointer; font-weight: 600; }

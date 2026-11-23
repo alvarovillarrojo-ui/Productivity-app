@@ -2,6 +2,8 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import TasksScreen from './screens/TasksScreen'
 import CalendarScreen from './screens/CalendarScreen'
+import FocusScreen from './screens/FocusScreen'
+import FocusRunner from './components/FocusRunner'
 import GoalsScreen from './screens/GoalsScreen'
 import TrackingScreen from './screens/TrackingScreen'
 import DataScreen from './screens/DataScreen'
@@ -20,6 +22,7 @@ export default function App() {
     { to: '/', label: t.nav.home },
     { to: '/tasks', label: t.nav.tasks },
     { to: '/calendar', label: t.nav.calendar },
+    { to: '/focus', label: t.nav.focus },
     { to: '/goals', label: t.nav.goals },
     { to: '/tracking', label: t.nav.tracking },
     { to: '/data', label: t.nav.data },
@@ -37,6 +40,7 @@ export default function App() {
             </NavLink>
           ))}
         </nav>
+        <FocusRunner />
         <select
           className="lang-select"
           aria-label={t.language}
@@ -55,6 +59,7 @@ export default function App() {
           <Route path="/" element={<HomeGate />} />
           <Route path="/tasks" element={<TasksScreen />} />
           <Route path="/calendar" element={<CalendarScreen />} />
+          <Route path="/focus" element={<FocusScreen />} />
           <Route path="/goals" element={<GoalsScreen />} />
           <Route path="/tracking" element={<TrackingScreen />} />
           <Route path="/data" element={<DataScreen />} />

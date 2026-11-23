@@ -1,4 +1,5 @@
 // The shapes of everything the app stores.
+import type { FocusSettings, FocusState } from '../logic/focus'
 //
 // Conventions used everywhere:
 // - `id` values are random text UUIDs (e.g. "3f2b…"). Text ids never clash when
@@ -157,6 +158,20 @@ export interface CalendarEvent {
   updated_at: string
 }
 
+/** One focus (pomodoro) session, finished or stopped early. */
+export interface FocusSession {
+  id: string
+  /** The task worked on (null = free focus). */
+  task_id: string | null
+  /** Kept so the log still reads well if the task is deleted. */
+  task_title: string
+  date: ISODate
+  started_at: string
+  minutes: number
+  /** true = a full pomodoro; false = stopped early. */
+  completed: boolean
+}
+
 /** All user data in one object: what a backup contains. */
 export interface AllData {
   cycles: Cycle[]
@@ -166,6 +181,7 @@ export interface AllData {
   habits: Habit[]
   habit_checks: HabitCheck[]
   events: CalendarEvent[]
+  focus_sessions: FocusSession[]
 }
 
 /**
@@ -181,6 +197,10 @@ export interface SettingValues {
   storagePersisted: PersistStatus
   /** Unfinished setup wizard, so closing the browser doesn't lose it. */
   wizardDraft: unknown
+  /** The pomodoro timer in progress (logic/focus.ts). */
+  focusTimer: FocusState | null
+  /** Pomodoro lengths chosen on this device. */
+  focusSettings: FocusSettings
 }
 export type SettingKey = keyof SettingValues
 

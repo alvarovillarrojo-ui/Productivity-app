@@ -206,6 +206,10 @@ describe('backup', () => {
       id: 'e1', title: 'Corporate Finance', date: '2026-11-10', start_time: '09:00', end_time: '10:30',
       repeat_weekly: true, repeat_until: null, notes: '', created_at: 'x', updated_at: 'x',
     }],
+    focus_sessions: [{
+      id: 'f1', task_id: 'k1', task_title: 'Task', date: '2026-11-10', started_at: '2026-11-10T09:00:00.000Z',
+      minutes: 25, completed: true,
+    }],
   }
 
   it('round-trips through JSON', () => {
@@ -221,6 +225,7 @@ describe('backup', () => {
     delete old.data.habits
     delete old.data.habit_checks
     delete old.data.events
+    delete old.data.focus_sessions
     const r = parseBackup(JSON.parse(JSON.stringify(old)))
     expect(r.issues).toEqual([])
     expect(r.data!.habits).toEqual([])

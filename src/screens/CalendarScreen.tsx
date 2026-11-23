@@ -563,6 +563,11 @@ function TaskDialog({
             ✗
           </button>
         </div>
+        {task.status === 'todo' && (
+          <Link className="btn" to={`/focus?task=${task.id}`}>
+            ▶ {t.nav.focus}
+          </Link>
+        )}
         <Link className="small-text" to={`/tasks?week=${task.week_number}`}>
           {c.openInTasks}
         </Link>

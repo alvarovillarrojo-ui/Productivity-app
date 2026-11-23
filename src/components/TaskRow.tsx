@@ -1,5 +1,6 @@
 // One task in a list, with one-click Done / Missed buttons.
 // Clicking the button that is already on puts the task back to "to do".
+import { Link } from 'react-router-dom'
 import { setTaskStatus } from '../data/repo'
 import type { Task, TaskStatus } from '../data/types'
 import { useI18n } from '../i18n'
@@ -58,6 +59,14 @@ export default function TaskRow({ task, context, showDate = true, overdue, onEdi
           )}
           {task.planned_date && task.start_time && <span>🕘 {task.start_time} · </span>}
           {context}
+          {task.status === 'todo' && (
+            <>
+              {' · '}
+              <Link className="focus-link" to={`/focus?task=${task.id}`} aria-label={t.focus.open(task.title)} title={t.focus.open(task.title)}>
+                ▶ {t.nav.focus}
+              </Link>
+            </>
+          )}
           {hours && ` · ${hours}`}
         </span>
       </div>

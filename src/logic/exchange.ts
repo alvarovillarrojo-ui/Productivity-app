@@ -670,6 +670,9 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     start_date: 'date', sort_order: 'num', created_at: 'text', updated_at: 'text',
   },
   habit_checks: { id: 'id', habit_id: 'id', date: 'date' },
+  focus_sessions: {
+    id: 'id', task_id: 'textNull', task_title: 'text', date: 'date', started_at: 'text', minutes: 'num', completed: 'bool',
+  },
   events: {
     id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',
     repeat_weekly: 'bool', repeat_until: 'dateNull', notes: 'text', created_at: 'text', updated_at: 'text',
@@ -677,7 +680,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
 }
 
 /** Lists that older backups may not have yet. */
-const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events']
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -772,6 +775,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       habits: data.habits.map((x) => pick(x, 'habits')),
       habit_checks: data.habit_checks.map((x) => pick(x, 'habit_checks')),
       events: data.events.map((x) => pick(x, 'events')),
+      focus_sessions: data.focus_sessions.map((x) => pick(x, 'focus_sessions')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }
