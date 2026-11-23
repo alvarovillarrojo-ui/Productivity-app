@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from './db'
 import * as repo from './repo'
-import { parseImport } from '../logic/exchange'
+import { buildBackup, parseBackup, parseImport } from '../logic/exchange'
 
 async function seed() {
   const cycle = await repo.createCycle({
@@ -279,5 +279,54 @@ describe('applyImport', () => {
     const { plan } = parseImport(file, null) // planned as if nothing were active
     await expect(repo.applyImport(plan!)).rejects.toThrow()
     expect(await repo.listCycles()).toHaveLength(1)
+  })
+})
+
+describe('ensureRecurringTasks', () => {
+  // seed(): cycle starts Monday 5 Jan 2026; tactic "Run" 3× per week.
+  const WED_WEEK1 = '2026-01-07'
+  const SAT_WEEK1 = '2026-01-10'
+
+  it('creates this week’s tasks once, and remembers them on the cycle', async () => {
+    const { cycle } = await seed()
+    expect(await repo.ensureRecurringTasks(WED_WEEK1)).toBe(3)
+    expect(await repo.ensureRecurringTasks(WED_WEEK1)).toBe(0)
+    const tasks = await repo.listTasksForWeek(cycle.id, 1)
+    expect(tasks.map((t) => t.title)).toEqual(['Run (1/3)', 'Run (2/3)', 'Run (3/3)'])
+    expect((await repo.getCycle(cycle.id))?.recurring_generated).toEqual({ ['1|' + tasks[0].tactic_id]: 3 })
+  })
+
+  it('does not bring back a deleted task', async () => {
+    const { cycle } = await seed()
+    await repo.ensureRecurringTasks(WED_WEEK1)
+    const [first] = await repo.listTasksForWeek(cycle.id, 1)
+    await repo.deleteTask(first.id)
+    expect(await repo.ensureRecurringTasks(WED_WEEK1)).toBe(0)
+    expect(await repo.listTasksForWeek(cycle.id, 1)).toHaveLength(2)
+  })
+
+  it('prepares next week from Saturday', async () => {
+    const { cycle } = await seed()
+    expect(await repo.ensureRecurringTasks(SAT_WEEK1)).toBe(6)
+    expect(await repo.listTasksForWeek(cycle.id, 2)).toHaveLength(3)
+  })
+
+  it('a new tactic gets its tasks in the current week', async () => {
+    const { cycle, goal } = await seed()
+    await repo.ensureRecurringTasks(WED_WEEK1)
+    await repo.createTactic({ goal_id: goal.id, name: 'Swim', description: '', weekly_frequency: 1 })
+    expect(await repo.ensureRecurringTasks(WED_WEEK1)).toBe(1)
+    expect((await repo.listTasksForWeek(cycle.id, 1)).map((t) => t.title)).toContain('Swim')
+  })
+
+  it('survives a backup and restore', async () => {
+    const { cycle } = await seed()
+    await repo.ensureRecurringTasks(WED_WEEK1)
+    const [first] = await repo.listTasksForWeek(cycle.id, 1)
+    await repo.deleteTask(first.id)
+    const backup = parseBackup(JSON.parse(JSON.stringify(buildBackup(await repo.exportAll(), 'x'))))
+    expect(backup.issues).toEqual([])
+    await repo.replaceAll(backup.data!)
+    expect(await repo.ensureRecurringTasks(WED_WEEK1)).toBe(0)
   })
 })

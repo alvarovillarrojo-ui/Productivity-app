@@ -25,6 +25,11 @@ export interface Cycle {
   /** Private long-term vision. Never exported unless the user asks. */
   vision: string | null
   notes: string
+  /**
+   * How many recurring tasks were created automatically, per "week|tacticId"
+   * (see logic/taskActions.ts). Missing in data from v0.1 = nothing yet.
+   */
+  recurring_generated?: Record<string, number>
   created_at: string
   updated_at: string
 }

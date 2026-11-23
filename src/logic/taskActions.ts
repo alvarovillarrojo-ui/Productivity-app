@@ -1,38 +1,70 @@
-// Bulk task actions on the Tasks screen. These functions only CALCULATE which
-// tasks to create; the screen then saves them with repo.createTasks().
+// Task actions. These functions only CALCULATE which tasks to create; the
+// caller saves them with repo.createTasks() (or inside repo.ts).
 import type { NewTask } from '../data/repo'
-import type { Tactic, Task } from '../data/types'
-import { addDays } from './weeks'
+import type { Cycle, ISODate, Tactic, Task } from '../data/types'
+import { addDays, cyclePosition } from './weeks'
+
+/** "Next week" is prepared this many days before it starts (Sat + Sun). */
+export const PREPARE_NEXT_WEEK_DAYS = 2
 
 /**
- * "Generate recurring tasks": for every ACTIVE tactic with a weekly frequency,
- * create the tasks that are still missing this week.
- *
- * Example: "Run" is 3× per week and the week already has 1 Run task
- * → 2 new tasks are created: "Run (2/3)" and "Run (3/3)".
- * Any task linked to the tactic counts as existing, whatever its title.
+ * Which weeks should have their recurring tasks by now:
+ * the current week, plus next week from Saturday on (so it can be planned on
+ * the weekend). Before the cycle starts: week 1, from 2 days before.
  */
-export function recurringTasks(
+export function weeksToPrepare(cycle: Pick<Cycle, 'start_date' | 'length_weeks'>, today: ISODate): number[] {
+  const pos = cyclePosition(cycle, today)
+  if (pos.phase === 'after') return []
+  if (pos.phase === 'before') return pos.daysUntilStart <= PREPARE_NEXT_WEEK_DAYS ? [1] : []
+  const weeks = [pos.week]
+  if (pos.daysLeftInWeek <= PREPARE_NEXT_WEEK_DAYS && pos.week < cycle.length_weeks) weeks.push(pos.week + 1)
+  return weeks
+}
+
+/** Key under which the cycle remembers what it created: "week|tacticId". */
+export const recurringKey = (week: number, tacticId: string) => `${week}|${tacticId}`
+
+/**
+ * AUTOMATIC RECURRING TASKS for one week.
+ *
+ * Every ACTIVE tactic with a weekly frequency gets that many tasks per week,
+ * e.g. "Run" 3× → "Run (1/3)", "Run (2/3)", "Run (3/3)".
+ *
+ * `generated` remembers how many tasks were already created for each
+ * week + tactic, so that:
+ *  - a task you DELETE is not created again;
+ *  - RAISING the frequency adds only the extra tasks (e.g. 3 → 4 adds "(4/4)");
+ *  - lowering it or deactivating the tactic never deletes anything.
+ * The first time a week + tactic is seen, tasks that already exist for the
+ * tactic (e.g. added by hand) are counted, so nothing is duplicated.
+ *
+ * Returns the tasks to create and the updated `generated` record.
+ */
+export function planRecurring(
   cycleId: string,
   week: number,
   tactics: Tactic[],
   weekTasks: Task[],
-): NewTask[] {
-  const result: NewTask[] = []
+  generated: Record<string, number>,
+): { tasks: NewTask[]; generated: Record<string, number> } {
+  const next = { ...generated }
+  const tasks: NewTask[] = []
   for (const tactic of tactics) {
     const freq = tactic.weekly_frequency
     if (!tactic.active || freq === null || freq < 1) continue
-    const existing = weekTasks.filter((t) => t.tactic_id === tactic.id).length
-    for (let i = existing + 1; i <= freq; i++) {
-      result.push({
+    const key = recurringKey(week, tactic.id)
+    const already = next[key] ?? weekTasks.filter((t) => t.tactic_id === tactic.id).length
+    for (let i = already + 1; i <= freq; i++) {
+      tasks.push({
         cycle_id: cycleId,
         week_number: week,
         title: freq === 1 ? tactic.name : `${tactic.name} (${i}/${freq})`,
         tactic_id: tactic.id,
       })
     }
+    next[key] = Math.max(already, freq)
   }
-  return result
+  return { tasks, generated: next }
 }
 
 /**

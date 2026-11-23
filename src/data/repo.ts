@@ -5,11 +5,13 @@
 // same function names; the UI does not need to change.
 import { db } from './db'
 import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
+import { planRecurring, weeksToPrepare } from '../logic/taskActions'
 import type {
   AllData,
   Cycle,
   CycleStatus,
   Goal,
+  ISODate,
   PersistStatus,
   SettingKey,
   SettingValues,
@@ -364,6 +366,36 @@ export async function addAll(data: AllData): Promise<void> {
     await db.goals.bulkAdd(data.goals)
     await db.tactics.bulkAdd(data.tactics)
     await db.tasks.bulkAdd(data.tasks)
+  })
+}
+
+/**
+ * AUTOMATIC RECURRING TASKS: creates this week's tasks from the active
+ * cycle's tactics (and next week's, from Saturday). Safe to call as often as
+ * you like: what was already created is remembered on the cycle, so nothing
+ * is duplicated and deleted tasks don't come back. Returns how many tasks
+ * were created.
+ */
+export async function ensureRecurringTasks(today: ISODate): Promise<number> {
+  return db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
+    const cycle = await getActiveCycle()
+    if (!cycle) return 0
+    const weeks = weeksToPrepare(cycle, today)
+    if (weeks.length === 0) return 0
+    const tactics = await listTacticsForCycle(cycle.id)
+    let generated = cycle.recurring_generated ?? {}
+    const toCreate: NewTask[] = []
+    for (const week of weeks) {
+      const weekTasks = await db.tasks.where('[cycle_id+week_number]').equals([cycle.id, week]).toArray()
+      const plan = planRecurring(cycle.id, week, tactics, weekTasks, generated)
+      toCreate.push(...plan.tasks)
+      generated = plan.generated
+    }
+    if (JSON.stringify(generated) === JSON.stringify(cycle.recurring_generated ?? {})) return 0
+    await db.cycles.update(cycle.id, { recurring_generated: generated })
+    const start = Date.now()
+    await db.tasks.bulkAdd(toCreate.map((t, i) => buildTask(t, new Date(start + i).toISOString())))
+    return toCreate.length
   })
 }
 

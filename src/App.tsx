@@ -8,6 +8,7 @@ import AboutScreen from './screens/AboutScreen'
 import SetupScreen from './screens/SetupScreen'
 import HomeGate from './components/HomeGate'
 import StorageStatus from './components/StorageStatus'
+import AutoRecurring from './components/AutoRecurring'
 import { LANGUAGES, useI18n, type Lang } from './i18n'
 
 export default function App() {
@@ -61,6 +62,7 @@ export default function App() {
         </Routes>
       </main>
       <StorageStatus />
+      <AutoRecurring />
     </div>
   )
 }

@@ -642,12 +642,12 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
     id: 'id', name: 'text', start_date: 'date', length_weeks: 'int', status: 'cycleStatus',
-    vision: 'textNull', notes: 'text', created_at: 'text', updated_at: 'text',
+    vision: 'textNull', notes: 'text', recurring_generated: 'countsOptional', created_at: 'text', updated_at: 'text',
   },
   goals: {
     id: 'id', cycle_id: 'id', name: 'text', description: 'text', weekly_hours_target: 'num',
@@ -677,6 +677,9 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'bool': return typeof v === 'boolean'
     case 'status': return STATUSES.includes(v as TaskStatus)
     case 'cycleStatus': return v === 'planning' || v === 'active' || v === 'closed'
+    // Optional (added in v0.2): { "week|tacticId": number }
+    case 'countsOptional':
+      return v === undefined || (isObj(v) && Object.values(v).every((n) => typeof n === 'number'))
   }
 }
 
@@ -731,7 +734,11 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
 
   // Keep only the known fields (drops anything unexpected).
   const pick = <T,>(rec: T, table: keyof AllData): T =>
-    Object.fromEntries(Object.keys(FIELDS[table]).map((f) => [f, (rec as Obj)[f]])) as T
+    Object.fromEntries(
+      Object.keys(FIELDS[table])
+        .filter((f) => (rec as Obj)[f] !== undefined)
+        .map((f) => [f, (rec as Obj)[f]]),
+    ) as T
   return {
     issues: [],
     data: {

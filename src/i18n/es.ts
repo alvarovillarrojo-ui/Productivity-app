@@ -117,7 +117,7 @@ export const es: Dict = {
       addGoal: '+ Añadir objetivo',
     },
     tactics: {
-      hint: 'Lo ideal son 2–4 tácticas por objetivo. «Veces por semana» es opcional: si lo pones, la pantalla de Tareas puede crear esas tareas cada semana por ti.',
+      hint: 'Lo ideal son 2–4 tácticas por objetivo. «Veces por semana» es opcional: si lo pones, esas tareas se crean solas cada semana.',
       placeholder: 'p. ej. Correr 5 km',
       name: 'Nombre de la táctica',
       remove: 'Quitar táctica',
@@ -353,7 +353,7 @@ export const es: Dict = {
         title: 'Cada semana (15 minutos, p. ej. el domingo)',
         items: [
           'Seguimiento: mira el % de ejecución y las horas de la semana. ¿Qué se interpuso?',
-          'Tareas → semana siguiente: “Generar tareas recurrentes” crea tareas según las “veces por semana” de tus tácticas. Añade las tareas puntuales.',
+          'Tareas → semana siguiente: las tareas de tus tácticas ya están ahí (se crean solas según las “veces por semana” de cada táctica, desde el sábado). Añade las tareas puntuales.',
           '“Copiar pendientes” lleva a la semana siguiente las tareas que aún quieras hacer.',
           'Datos: haz una copia de seguridad. Si quieres, exporta la semana como informe.',
         ],
@@ -418,11 +418,10 @@ export const es: Dict = {
     current: ' (actual)',
     summary: (done: number, missed: number, open: number) =>
       `${done} hechas · ${missed} no hechas · ${open} pendientes · ejecución`,
-    empty: 'Aún no hay tareas esta semana. Añade una arriba o genéralas a partir de tus tácticas.',
-    generate: 'Generar tareas recurrentes',
+    empty: 'Aún no hay tareas esta semana. Añade una arriba. Las tareas de tus tácticas aparecen solas cuando empieza la semana.',
+    autoRecurring:
+      'Las tareas de tus tácticas se crean solas cada semana (desde el sábado para la semana siguiente). Las que borres no vuelven; subir las “veces por semana” de una táctica añade las tareas que faltan.',
     copyTo: (week: string) => `Copiar pendientes a la semana ${week}`,
-    nothingToGenerate: 'Nada que añadir: ya existen todas las tareas recurrentes de esta semana.',
-    generated: (n: number) => `${n} tarea${n === 1 ? '' : 's'} recurrente${n === 1 ? '' : 's'} añadida${n === 1 ? '' : 's'}.`,
     nothingToCopy: 'Nada que copiar: no hay tareas pendientes que no estén ya en la semana siguiente.',
     confirmCopy: (n: number, week: number) =>
       `¿Copiar ${n} tarea(s) pendiente(s) a la semana ${week}? Las originales se quedan aquí como no hechas.`,

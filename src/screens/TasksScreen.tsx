@@ -3,7 +3,8 @@
 //   e.g. #/tasks?week=3)
 // - Quick-add form
 // - List with one-click done/missed, edit and delete
-// - Bulk actions: generate recurring tasks, copy unfinished tasks to next week
+// - Recurring tasks are created automatically (see repo.ensureRecurringTasks)
+// - Bulk action: copy unfinished tasks to next week
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import * as repo from '../data/repo'
@@ -17,7 +18,7 @@ import TaskEditForm from '../components/TaskEditForm'
 import TaskRow from '../components/TaskRow'
 import { pctClass } from '../components/pctClass'
 import { execution, formatPct, isDue, taskCounts } from '../logic/metrics'
-import { recurringTasks, unfinishedCopies } from '../logic/taskActions'
+import { unfinishedCopies } from '../logic/taskActions'
 import { defaultWeek, todayISO, weekEnd, weekStart } from '../logic/weeks'
 
 export default function TasksScreen() {
@@ -54,13 +55,6 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
   const flash = (text: string) => {
     setMessage(text)
     setTimeout(() => setMessage(''), 4000)
-  }
-
-  const generate = async () => {
-    const created = recurringTasks(cycle.id, week, tactics, tasks)
-    if (created.length === 0) return flash(t.tasks.nothingToGenerate)
-    await repo.createTasks(created)
-    flash(t.tasks.generated(created.length))
   }
 
   const copyUnfinished = async () => {
@@ -102,6 +96,7 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
       </p>
 
       <QuickAdd cycle={cycle} week={week} goals={goals} tactics={tactics} minDate={first} maxDate={last} />
+      <p className="muted small-text">↻ {t.tasks.autoRecurring}</p>
 
       {tasks.length === 0 ? (
         <p className="muted">{t.tasks.empty}</p>
@@ -133,9 +128,6 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
       )}
 
       <div className="row">
-        <button className="btn" onClick={generate}>
-          {t.tasks.generate}
-        </button>
         <button className="btn" onClick={copyUnfinished} disabled={isLastWeek}>
           {t.tasks.copyTo(isLastWeek ? '–' : String(week + 1))}
         </button>

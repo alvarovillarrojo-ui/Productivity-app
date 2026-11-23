@@ -119,7 +119,7 @@ export const en = {
       addGoal: '+ Add goal',
     },
     tactics: {
-      hint: '2–4 tactics per goal works best. “Times per week” is optional: with it, the Tasks screen can create that many tasks each week for you.',
+      hint: '2–4 tactics per goal works best. “Times per week” is optional: with it, that many tasks are created for you automatically every week.',
       placeholder: 'e.g. Run 5 km',
       name: 'Tactic name',
       remove: 'Remove tactic',
@@ -353,7 +353,7 @@ export const en = {
         title: 'Every week (15 minutes, e.g. on Sunday)',
         items: [
           'Tracking: look at the week’s execution % and hours. What got in the way?',
-          'Tasks → next week: “Generate recurring tasks” creates tasks from your tactics’ “times per week”. Add any one-off tasks.',
+          'Tasks → next week: your tactics’ tasks are already there (they are created automatically from each tactic’s “times per week”, from Saturday on). Add any one-off tasks.',
           '“Copy unfinished” takes the tasks you still want to do into the next week.',
           'Data: make a backup. If you like, export the week as a report.',
         ],
@@ -419,11 +419,10 @@ export const en = {
     current: ' (current)',
     summary: (done: number, missed: number, open: number) =>
       `${done} done · ${missed} missed · ${open} open · execution`,
-    empty: 'No tasks this week yet. Add one above, or generate them from your tactics.',
-    generate: 'Generate recurring tasks',
+    empty: 'No tasks this week yet. Add one above. Tasks from your tactics appear automatically when the week starts.',
+    autoRecurring:
+      'Your tactics’ tasks are created automatically every week (from Saturday for the next week). Deleted ones don’t come back; raising a tactic’s “times per week” adds the extra tasks.',
     copyTo: (week: string) => `Copy unfinished to week ${week}`,
-    nothingToGenerate: 'Nothing to add: all recurring tasks already exist this week.',
-    generated: (n: number) => `Added ${n} recurring task${n === 1 ? '' : 's'}.`,
     nothingToCopy: 'Nothing to copy: no open tasks that aren’t already in next week.',
     confirmCopy: (n: number, week: number) =>
       `Copy ${n} unfinished task(s) to week ${week}? The originals stay here as not done.`,

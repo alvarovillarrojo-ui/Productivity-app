@@ -6,6 +6,13 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Recurring tasks are now created automatically every week from each
+  tactic’s “times per week” (next week’s from Saturday). Deleted tasks don’t
+  come back; raising a frequency adds the missing tasks right away. The
+  “Generate recurring tasks” button is gone.
+
 ## [0.1.0] - 2026-11-23
 
 First version.
