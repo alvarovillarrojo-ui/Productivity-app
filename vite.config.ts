@@ -28,6 +28,8 @@ export default defineConfig({
     // Makes the app installable (own icon, own window) and usable offline.
     VitePWA({
       registerType: 'autoUpdate',
+      // Also keep the bundled font files for offline use.
+      workbox: { globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'] },
       includeAssets: ['icon.svg'],
       manifest: {
         name: '12 Week Tracker',
