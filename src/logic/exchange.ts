@@ -16,7 +16,7 @@
 //
 // 3. Backup — every record with its id, restored as-is (replaces everything).
 import type { Dict } from '../i18n/en'
-import { HABIT_CATEGORIES, MISS_CAUSES, type MissCause, type AllData, type Cycle, type Goal, type HabitCategory, type ISODate, type Tactic, type Task, type TaskStatus } from '../data/types'
+import { EXAM_KINDS, HABIT_CATEGORIES, MISS_CAUSES, type ExamKind, type MissCause, type AllData, type Cycle, type Goal, type HabitCategory, type ISODate, type Tactic, type Task, type TaskStatus } from '../data/types'
 import {
   formatHours,
   formatPct,
@@ -723,7 +723,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'colorOptional' | 'modeNull'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -743,7 +743,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   tasks: {
     id: 'id', cycle_id: 'id', week_number: 'int', title: 'text', tactic_id: 'textNull',
     planned_date: 'dateNull', planned_hours: 'numNull', actual_hours: 'numNull', status: 'status',
-    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', created_at: 'text', updated_at: 'text',
+    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', subject_id: 'textOptional', created_at: 'text', updated_at: 'text',
   },
   // Added in v0.2. Backups from v0.1 don't have these lists (= no habits).
   habits: {
@@ -752,11 +752,20 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     start_date: 'date', sort_order: 'num', created_at: 'text', updated_at: 'text',
   },
   habit_checks: { id: 'id', habit_id: 'id', date: 'date' },
+  subjects: {
+    id: 'id', name: 'text', color: 'colorOptional', info: 'text', weekly_hours_target: 'numNull', archived: 'bool',
+    sort_order: 'num', created_at: 'text', updated_at: 'text',
+  },
+  topics: { id: 'id', subject_id: 'id', name: 'text', status: 'topicStatus', difficult: 'bool', notes: 'text', sort_order: 'num' },
+  exams: {
+    id: 'id', subject_id: 'id', kind: 'examKind', title: 'text', date: 'date', start_time: 'timeNull', weight: 'numNull',
+    grade: 'numNull', notes: 'text', created_at: 'text', updated_at: 'text',
+  },
   days: {
     date: 'date', must_do: 'textNull', mode: 'modeNull', reflection: 'text', opened_at: 'textNull', closed_at: 'textNull',
   },
   focus_sessions: {
-    id: 'id', task_id: 'textNull', task_title: 'text', date: 'date', started_at: 'text', minutes: 'num', completed: 'bool',
+    id: 'id', task_id: 'textNull', task_title: 'text', date: 'date', started_at: 'text', minutes: 'num', completed: 'bool', subject_id: 'textOptional',
   },
   events: {
     id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',
@@ -765,7 +774,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
 }
 
 /** Lists that older backups may not have yet. */
-const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days']
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -788,6 +797,8 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'timeOptional': return v === undefined || v === null || (typeof v === 'string' && isValidTime(v))
     case 'weekdaysOptional':
       return v === undefined || v === null || (Array.isArray(v) && v.every((d) => Number.isInteger(d) && d >= 1 && d <= 7))
+    case 'topicStatus': return v === 'todo' || v === 'progress' || v === 'mastered'
+    case 'examKind': return EXAM_KINDS.includes(v as ExamKind)
     case 'modeNull': return v === null || v === 'planned' || v === 'reactive'
     case 'colorOptional': return v === undefined || v === null || (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v))
     case 'textOptional': return v === undefined || v === null || typeof v === 'string'
@@ -846,6 +857,9 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
   })
   const habitIds = new Set(data.habits.map((h) => h.id))
   data.habit_checks.forEach((c, i) => habitIds.has(c.habit_id) || r.add('link', `data.habit_checks[${i}].habit_id`))
+  const subjectIds = new Set(data.subjects.map((s) => s.id))
+  data.topics.forEach((x, i) => subjectIds.has(x.subject_id) || r.add('link', `data.topics[${i}].subject_id`))
+  data.exams.forEach((x, i) => subjectIds.has(x.subject_id) || r.add('link', `data.exams[${i}].subject_id`))
   if (data.cycles.filter((c) => c.status === 'active').length > 1) r.add('manyActive')
   if (r.issues.length > 0) return fail(r.issues)
 
@@ -868,6 +882,9 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       events: data.events.map((x) => pick(x, 'events')),
       focus_sessions: data.focus_sessions.map((x) => pick(x, 'focus_sessions')),
       days: data.days.map((x) => pick(x, 'days')),
+      subjects: data.subjects.map((x) => pick(x, 'subjects')),
+      topics: data.topics.map((x) => pick(x, 'topics')),
+      exams: data.exams.map((x) => pick(x, 'exams')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }

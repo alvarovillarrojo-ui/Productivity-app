@@ -31,6 +31,8 @@ export interface FocusState {
   startedAt: string | null
   /** Focus rounds completed in this run (for the long break). */
   round: number
+  /** For a free focus (no task): the subject studied, if chosen. */
+  subjectId?: string | null
   /** Set right after a focus round ends: asks "mark the task done?". */
   finished: { taskId: string | null; minutes: number } | null
 }

@@ -15,6 +15,7 @@ import { useI18n } from '../i18n'
 import NumberField from '../components/NumberField'
 import { useFocusState, useNow } from '../components/FocusRunner'
 import { unlockSound } from '../components/sound'
+import SubjectSelect from '../components/SubjectSelect'
 import {
   DEFAULT_FOCUS_SETTINGS,
   focusMinutesDone,
@@ -45,6 +46,7 @@ export default function FocusScreen() {
   // undefined = nothing picked in the dropdown; null = free focus.
   const [chosen, setChosen] = useState<string | null | undefined>(params.get('task') ?? undefined)
   const [message, setMessage] = useState('')
+  const [freeSubject, setFreeSubject] = useState<string | null>(null)
 
   // During a round or break the timer decides the task; between rounds the
   // dropdown does (so you can switch task for the next pomodoro).
@@ -64,7 +66,7 @@ export default function FocusScreen() {
   const start = async () => {
     unlockSound()
     setMessage('')
-    await repo.setFocusState(startFocus(state, taskId, settings, Date.now()))
+    await repo.setFocusState({ ...startFocus(state, taskId, settings, Date.now()), subjectId: taskId ? null : freeSubject })
   }
   const stop = async (save: boolean) => {
     const saved = await repo.stopFocus(Date.now(), save)
@@ -97,6 +99,12 @@ export default function FocusScreen() {
           ))}
         </select>
       </label>
+      {taskId === null && (
+        <label className="field">
+          <span>{t.students.subject}</span>
+          <SubjectSelect value={state?.subjectId ?? freeSubject} onChange={setFreeSubject} disabled={!between} />
+        </label>
+      )}
 
       <div className={`focus-clock ${phase}${paused ? ' paused' : ''}`} style={{ ['--p' as string]: progress }}>
         <div className="focus-clock-inner">

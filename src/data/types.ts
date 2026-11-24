@@ -101,6 +101,8 @@ export interface Task {
   status: TaskStatus
   /** For a missed task: why (a MissCause), or null if not given. */
   miss_reason: string | null
+  /** The subject studied in this task (Students tab), if any. */
+  subject_id?: string | null
   notes: string
   created_at: string
   updated_at: string
@@ -195,6 +197,8 @@ export interface FocusSession {
   minutes: number
   /** true = a full pomodoro; false = stopped early. */
   completed: boolean
+  /** For a free focus (no task): the subject studied, if chosen. */
+  subject_id?: string | null
 }
 
 /** The opening/closing record of one day. */
@@ -211,6 +215,57 @@ export interface DayEntry {
   closed_at: string | null
 }
 
+/** A subject you study (Students tab). Not tied to a cycle. */
+export interface Subject {
+  id: string
+  name: string
+  /** Colour ("#2a78d6"); null = automatic by order. */
+  color: string | null
+  /** Free text: professor, room, credits, links… */
+  info: string
+  /** Study hours you aim for per week (null = none). */
+  weekly_hours_target: number | null
+  /** Finished subjects can be archived (hidden from the overview). */
+  archived: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type TopicStatus = 'todo' | 'progress' | 'mastered'
+
+/** A topic of a subject, e.g. "DCF valuation". */
+export interface Topic {
+  id: string
+  subject_id: string
+  name: string
+  status: TopicStatus
+  /** Marked as difficult (what still needs extra work). */
+  difficult: boolean
+  notes: string
+  sort_order: number
+}
+
+export const EXAM_KINDS = ['quiz', 'midterm', 'final', 'assignment', 'other'] as const
+export type ExamKind = (typeof EXAM_KINDS)[number]
+
+/** An exam or graded deliverable of a subject. Shown in the calendar. */
+export interface Exam {
+  id: string
+  subject_id: string
+  kind: ExamKind
+  title: string
+  date: ISODate
+  start_time: string | null
+  /** Share of the final grade, in % (null = unknown). */
+  weight: number | null
+  /** Grade obtained, 0–10 (null = not yet). */
+  grade: number | null
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
 /** All user data in one object: what a backup contains. */
 export interface AllData {
   cycles: Cycle[]
@@ -222,6 +277,9 @@ export interface AllData {
   events: CalendarEvent[]
   focus_sessions: FocusSession[]
   days: DayEntry[]
+  subjects: Subject[]
+  topics: Topic[]
+  exams: Exam[]
 }
 
 /**
@@ -243,6 +301,8 @@ export interface SettingValues {
   focusSettings: FocusSettings
   /** Waking hours used to calculate free time ("HH:MM"). */
   dayWindow: { start: string; end: string }
+  /** Average grade you aim for (Students tab), e.g. 9. */
+  gradeGoal: number
 }
 export type SettingKey = keyof SettingValues
 

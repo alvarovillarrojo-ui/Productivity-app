@@ -8,6 +8,7 @@ import {
   CalendarDays,
   CheckSquare,
   Database,
+  GraduationCap,
   HelpCircle,
   Home,
   MoreHorizontal,
@@ -20,6 +21,7 @@ import TasksScreen from './screens/TasksScreen'
 import DayScreen from './screens/DayScreen'
 import CalendarScreen from './screens/CalendarScreen'
 import FocusScreen from './screens/FocusScreen'
+import StudentsScreen from './screens/StudentsScreen'
 import FocusRunner, { FocusBadge } from './components/FocusRunner'
 import GoalsScreen from './screens/GoalsScreen'
 import TrackingScreen from './screens/TrackingScreen'
@@ -50,7 +52,8 @@ export default function App() {
     { to: '/day', label: t.nav.day, icon: Sun, main: true },
     { to: '/tasks', label: t.nav.tasks, icon: CheckSquare, main: true },
     { to: '/calendar', label: t.nav.calendar, icon: CalendarDays, main: true },
-    { to: '/focus', label: t.nav.focus, icon: Timer, main: true },
+    { to: '/students', label: t.nav.students, icon: GraduationCap, main: true },
+    { to: '/focus', label: t.nav.focus, icon: Timer },
     { to: '/goals', label: t.nav.goals, icon: Target },
     { to: '/tracking', label: t.nav.tracking, icon: BarChart3 },
     { to: '/data', label: t.nav.data, icon: Database },
@@ -94,6 +97,8 @@ export default function App() {
             <Route path="/tasks" element={<TasksScreen />} />
             <Route path="/calendar" element={<CalendarScreen />} />
             <Route path="/focus" element={<FocusScreen />} />
+            <Route path="/students" element={<StudentsScreen />} />
+            <Route path="/students/:id" element={<StudentsScreen />} />
             <Route path="/goals" element={<GoalsScreen />} />
             <Route path="/tracking" element={<TrackingScreen />} />
             <Route path="/data" element={<DataScreen />} />

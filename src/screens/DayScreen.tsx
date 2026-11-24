@@ -10,7 +10,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import * as repo from '../data/repo'
 import { useActiveCycle, useCycleTasks, useGoals, useHabitChecks, useHabits, useTactics } from '../data/hooks'
 import { useLive } from '../data/useLive'
-import type { CalendarEvent, Cycle, DayEntry, FocusSession, Goal, Tactic, Task } from '../data/types'
+import type { Cycle, DayEntry, FocusSession, Goal, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import TaskRow from '../components/TaskRow'
 import StatusButtons from '../components/StatusButtons'
@@ -18,6 +18,7 @@ import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import { pctClass } from '../components/pctClass'
 import { TodayHabits } from './HabitsPanel'
 import { useNow } from '../components/FocusRunner'
+import { useCalendarEvents } from '../components/useCalendarEvents'
 import { calendarItems, fromMinutes, isValidTime, toMinutes } from '../logic/calendar'
 import { busyOn, deadlinesRadar, formatMinutes, freeSlots, lagging } from '../logic/day'
 import { checkSet, isPlanned, missedLastTime } from '../logic/habits'
@@ -83,7 +84,7 @@ function Opening({ cycle, today, entry, nowMin }: { cycle: Cycle; today: string;
   const { t, date } = useI18n()
   const d = t.day
   const { goals, tactics, tasks, week, weekTasks } = useDayData(cycle, today)
-  const events = useLive(repo.listEvents, [], [] as CalendarEvent[])
+  const { events } = useCalendarEvents()
   const window = useLive(repo.getDayWindow, [], repo.DEFAULT_DAY_WINDOW)
   const habits = useHabits()
   const habitDone = checkSet(useHabitChecks(addDays(today, -8)))

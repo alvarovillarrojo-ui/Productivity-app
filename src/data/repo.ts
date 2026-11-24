@@ -14,7 +14,10 @@ import type {
   CalendarEvent,
   Cycle,
   DayEntry,
+  Exam,
   FocusSession,
+  Subject,
+  Topic,
   CycleStatus,
   Goal,
   Habit,
@@ -467,7 +470,7 @@ export async function listFocusSessions(from: ISODate): Promise<FocusSession[]> 
  * Saves a focus session and adds its minutes to the task's actual hours.
  * Call inside a transaction on settings, focus_sessions and tasks.
  */
-async function saveFocusInTx(taskId: string | null, minutes: number, startedAt: string, completed: boolean): Promise<void> {
+async function saveFocusInTx(taskId: string | null, minutes: number, startedAt: string, completed: boolean, subjectId: string | null = null): Promise<void> {
   if (minutes < 1) return
   const task = taskId ? await db.tasks.get(taskId) : undefined
   await db.focus_sessions.add({
@@ -478,6 +481,7 @@ async function saveFocusInTx(taskId: string | null, minutes: number, startedAt: 
     started_at: startedAt,
     minutes,
     completed,
+    subject_id: task ? null : subjectId,
   })
   if (task) {
     const hours = Math.round(((task.actual_hours ?? 0) + minutes / 60) * 100) / 100
@@ -509,7 +513,7 @@ export async function focusTick(nowMs: number): Promise<FocusState['phase'] | nu
     if (!state || state.endsAt === null || nowMs < state.endsAt) return null
     const settings = await getFocusSettings()
     const { state: next, record } = finishPhase(state, settings, state.endsAt)
-    if (record !== null && state.startedAt) await saveFocusInTx(state.taskId, record, state.startedAt, true)
+    if (record !== null && state.startedAt) await saveFocusInTx(state.taskId, record, state.startedAt, true, state.subjectId ?? null)
     await setFocusState(next)
     return state.phase
   })
@@ -521,7 +525,7 @@ export async function stopFocus(nowMs: number, save: boolean): Promise<number> {
     const state = await getFocusState()
     if (!state) return 0
     const minutes = save && state.startedAt ? focusMinutesDone(state, await getFocusSettings(), nowMs) : 0
-    if (minutes > 0) await saveFocusInTx(state.taskId, minutes, state.startedAt!, false)
+    if (minutes > 0) await saveFocusInTx(state.taskId, minutes, state.startedAt!, false, state.subjectId ?? null)
     await setFocusState(null)
     return minutes
   })
@@ -552,10 +556,111 @@ export async function getDayWindow(): Promise<{ start: string; end: string }> {
   return (await getSetting('dayWindow')) ?? DEFAULT_DAY_WINDOW
 }
 
+// ---------- students: subjects, topics, exams ----------
+
+export async function listSubjects(): Promise<Subject[]> {
+  return (await db.subjects.toArray()).sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at))
+}
+
+export async function createSubject(name: string): Promise<Subject> {
+  const subject: Subject = {
+    id: newId(),
+    name,
+    color: null,
+    info: '',
+    weekly_hours_target: null,
+    archived: false,
+    sort_order: await db.subjects.count(),
+    created_at: now(),
+    updated_at: now(),
+  }
+  await db.subjects.add(subject)
+  return subject
+}
+
+export async function updateSubject(id: string, changes: Partial<Omit<Subject, AutoFields>>): Promise<void> {
+  await db.subjects.update(id, { ...changes, updated_at: now() })
+}
+
+/** Deletes a subject with its topics and exams; its tasks are kept (without subject). */
+export async function deleteSubject(id: string): Promise<void> {
+  await db.transaction('rw', db.subjects, db.topics, db.exams, db.tasks, db.focus_sessions, async () => {
+    await db.topics.where('subject_id').equals(id).delete()
+    await db.exams.where('subject_id').equals(id).delete()
+    await db.tasks.where('subject_id').equals(id).modify({ subject_id: null })
+    await db.focus_sessions.filter((s) => s.subject_id === id).modify({ subject_id: null })
+    await db.subjects.delete(id)
+  })
+}
+
+export async function listTopics(subjectId?: string): Promise<Topic[]> {
+  const list = subjectId ? await db.topics.where('subject_id').equals(subjectId).toArray() : await db.topics.toArray()
+  return list.sort((a, b) => a.sort_order - b.sort_order)
+}
+
+export async function createTopic(subjectId: string, name: string): Promise<Topic> {
+  const topic: Topic = {
+    id: newId(),
+    subject_id: subjectId,
+    name,
+    status: 'todo',
+    difficult: false,
+    notes: '',
+    sort_order: await db.topics.where('subject_id').equals(subjectId).count(),
+  }
+  await db.topics.add(topic)
+  return topic
+}
+
+export async function updateTopic(id: string, changes: Partial<Omit<Topic, 'id' | 'subject_id'>>): Promise<void> {
+  await db.topics.update(id, changes)
+}
+
+export async function deleteTopic(id: string): Promise<void> {
+  await db.topics.delete(id)
+}
+
+/** All exams (or one subject's), soonest first. */
+export async function listExams(subjectId?: string): Promise<Exam[]> {
+  const list = subjectId ? await db.exams.where('subject_id').equals(subjectId).toArray() : await db.exams.toArray()
+  return list.sort((a, b) => a.date.localeCompare(b.date) || (a.start_time ?? '').localeCompare(b.start_time ?? ''))
+}
+
+export type NewExam = Omit<Exam, AutoFields>
+
+export async function createExam(data: NewExam): Promise<Exam> {
+  const exam: Exam = { ...data, id: newId(), created_at: now(), updated_at: now() }
+  await db.exams.add(exam)
+  return exam
+}
+
+export async function updateExam(id: string, changes: Partial<NewExam>): Promise<void> {
+  await db.exams.update(id, { ...changes, updated_at: now() })
+}
+
+export async function deleteExam(id: string): Promise<void> {
+  await db.exams.delete(id)
+}
+
+/** Tasks linked to a subject (all cycles). */
+export async function listSubjectTasks(subjectId: string): Promise<Task[]> {
+  return db.tasks.where('subject_id').equals(subjectId).toArray()
+}
+
+/** All tasks that have a subject (for study hours). */
+export async function listStudyTasks(): Promise<Task[]> {
+  return db.tasks.filter((t) => !!t.subject_id).toArray()
+}
+
+/** All focus sessions (used for study hours of free focus). */
+export async function listAllFocusSessions(): Promise<FocusSession[]> {
+  return db.focus_sessions.toArray()
+}
+
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */

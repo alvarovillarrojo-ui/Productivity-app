@@ -8,6 +8,21 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Studies tab: subjects with info, exams (type, date, time, weight %, grade →
+  weighted average), topics (to study / in progress / mastered, difficult
+  flag, notes) and study hours vs a weekly target. Overview with the overall
+  average vs your goal, study hours this week, upcoming exams and one card
+  per subject. Exams appear in the calendar (click opens the subject) and in
+  the deadlines radar. Tasks can have a subject (task edit, calendar
+  window, subject page), and a free pomodoro can be given a subject.
+
+### Changed
+
+- New calm & modern look (Inter font bundled offline, soft cards, indigo
+  accent) with a sidebar on computers and a bottom bar on phones.
+
+### Added
+
 - Day screen with the daily Opening and Closing. Opening: week and cycle days
   left, planned or reactive, today's must-do (also on Home), today's
   schedule, free time (waking hours minus the calendar, adjustable), a

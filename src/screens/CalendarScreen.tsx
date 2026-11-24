@@ -7,16 +7,17 @@
 // Click an empty slot to add an event or place a task there; click a block to
 // change it. The address remembers the view: #/calendar?view=month&date=…
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useCalendarEvents } from '../components/useCalendarEvents'
 import * as repo from '../data/repo'
 import { useActiveCycle, useCycleTasks, useGoals, useTactics } from '../data/hooks'
-import { useLive } from '../data/useLive'
 import type { CalendarEvent, Cycle, Goal, ISODate, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import Modal from '../components/Modal'
 import NumberField from '../components/NumberField'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import StatusButtons from '../components/StatusButtons'
+import SubjectSelect from '../components/SubjectSelect'
 import CausePicker from '../components/CausePicker'
 import { EVENT_COLOR, eventColorOf, goalColorOf } from '../components/colors'
 import ColorPicker from '../components/ColorPicker'
@@ -59,7 +60,8 @@ export default function CalendarScreen() {
   const goals = useGoals(cycle?.id)
   const tactics = useTactics(cycle?.id)
   const tasks = useCycleTasks(cycle?.id)
-  const events = useLive(repo.listEvents, [], [] as CalendarEvent[])
+  const { events, subjectOfEvent } = useCalendarEvents()
+  const navigate = useNavigate()
   const [dialog, setDialog] = useState<Dialog | null>(null)
 
   const goalColorById = new Map(goals.map((g, i) => [g.id, goalColorOf(g, i)]))
@@ -69,10 +71,14 @@ export default function CalendarScreen() {
     const goalId = item.task?.tactic_id ? tacticGoal.get(item.task.tactic_id) : undefined
     return (goalId !== undefined && goalColorById.get(goalId)) || OTHER_COLOR
   }
-  const openItem = (item: CalendarItem) =>
-    item.kind === 'event'
+  const openItem = (item: CalendarItem) => {
+    // An exam opens its subject (exams are edited in Studies).
+    const subjectId = item.kind === 'event' ? subjectOfEvent(item.event!.id) : null
+    if (subjectId) return navigate(`/students/${subjectId}`)
+    return item.kind === 'event'
       ? setDialog({ kind: 'event', event: item.event!, date: item.date, time: item.event!.start_time })
       : setDialog({ kind: 'task', task: item.task!, date: item.date, time: item.task!.start_time ?? '09:00' })
+  }
 
   const days = weekDates(date)
   const grid = monthGrid(date)
@@ -598,6 +604,9 @@ function TaskDialog({
         <Link className="small-text" to={`/tasks?week=${task.week_number}`}>
           {c.openInTasks}
         </Link>
+      </div>
+      <div className="row">
+        <SubjectSelect value={task.subject_id ?? null} onChange={(id) => repo.updateTask(task.id, { subject_id: id })} />
       </div>
       <div className="row">
         <label className="field">

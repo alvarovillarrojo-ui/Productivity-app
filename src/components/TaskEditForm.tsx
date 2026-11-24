@@ -5,6 +5,7 @@ import type { Goal, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import NumberField from './NumberField'
 import TacticSelect from './TacticSelect'
+import SubjectSelect from './SubjectSelect'
 
 interface Props {
   task: Task
@@ -35,6 +36,7 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
       planned_hours: form.planned_hours,
       actual_hours: form.actual_hours,
       notes: form.notes,
+      subject_id: form.subject_id ?? null,
     })
     onClose()
   }
@@ -80,6 +82,10 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
           <label className="field">
             <span>{t.tasks.edit.actualH}</span>
             <NumberField className="num small" value={form.actual_hours} placeholder="–" onChange={(v) => set({ actual_hours: v })} />
+          </label>
+          <label className="field">
+            <span>{t.students.subject}</span>
+            <SubjectSelect value={form.subject_id ?? null} onChange={(id) => set({ subject_id: id })} />
           </label>
           <label className="field grow">
             <span>{t.tasks.edit.notes}</span>

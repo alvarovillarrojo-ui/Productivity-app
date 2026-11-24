@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Task } from '../data/types'
 import StatusButtons from './StatusButtons'
 import CausePicker from './CausePicker'
+import { SubjectTag } from './SubjectSelect'
 import { useI18n } from '../i18n'
 import { formatHours } from '../logic/metrics'
 
@@ -40,6 +41,7 @@ export default function TaskRow({ task, context, showDate = true, overdue, minim
           )}
           {task.planned_date && task.start_time && <span>🕘 {task.start_time} · </span>}
           {context}
+          {task.subject_id && <SubjectTag id={task.subject_id} />}
           {task.status === 'todo' && (
             <>
               {' · '}
