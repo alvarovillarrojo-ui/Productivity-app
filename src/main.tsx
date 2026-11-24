@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import App from './App'
 import { I18nProvider } from './i18n'
+import '@fontsource-variable/inter'
 import './styles.css'
 
 // HashRouter keeps the page path after a "#" (e.g. /#/tasks). That way the app

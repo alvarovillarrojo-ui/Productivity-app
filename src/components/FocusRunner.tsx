@@ -1,6 +1,6 @@
-// Always mounted (in the top bar): moves the pomodoro timer on every second,
+// Always mounted (once): moves the pomodoro timer on every second,
 // on whatever screen you are, plays the ding, keeps the browser tab title up
-// to date ("12:34 · Focus") and shows a small ⏱ badge linking to Focus.
+// to date ("12:34 · Focus"). The visible ⏱ badge is FocusBadge below.
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import * as repo from '../data/repo'
@@ -43,10 +43,18 @@ export default function FocusRunner() {
     document.title = active ? `${clock} · ${phase}` : t.appName
   }, [active, clock, phase, t.appName])
 
-  if (!active) return null
+  return null
+}
+
+/** The small ⏱ badge (shown in the sidebar and the phone's top bar). */
+export function FocusBadge() {
+  const { t } = useI18n()
+  const now = useNow()
+  const state = useFocusState()
+  if (state === null || state.phase === 'ready') return null
   return (
     <NavLink to="/focus" className={`focus-badge ${state.phase}${state.endsAt === null ? ' paused' : ''}`}>
-      {t.focus.badge(clock, phase)}
+      {t.focus.badge(formatClock(remainingMs(state, now)), t.focus.phase[state.phase])}
     </NavLink>
   )
 }

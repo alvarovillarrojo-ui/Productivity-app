@@ -20,6 +20,7 @@ export const en = {
     tracking: 'Tracking',
     data: 'Data',
     about: 'About',
+    more: 'More',
   },
 
   common: {

@@ -16,6 +16,7 @@ export const es: Dict = {
     tracking: 'Seguimiento',
     data: 'Datos',
     about: 'Ayuda',
+    more: 'Más',
   },
 
   common: {
