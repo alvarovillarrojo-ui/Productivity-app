@@ -309,6 +309,10 @@ function TacticRow({ tactic }: { tactic: Tactic }) {
         value={tactic.minimum_version ?? ''}
         onSave={(v) => save({ minimum_version: v.trim() || null })}
       />
+      <label className="row small-text muted show-home">
+        <input type="checkbox" checked={!!tactic.show_on_home} onChange={(e) => save({ show_on_home: e.target.checked })} />
+        {t.goalsScreen.showOnHome}
+      </label>
     </div>
     <TacticSchedule tactic={tactic} />
     </>

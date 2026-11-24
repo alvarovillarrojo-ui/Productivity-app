@@ -196,6 +196,7 @@ export const en = {
       needDay: 'Pick at least one day.',
     },
     minimum: 'Minimum version',
+    showOnHome: 'Show on Home (still open this week)',
     color: 'Colour',
     autoColor: 'Automatic colour',
     cycles: {
@@ -660,6 +661,7 @@ export const en = {
     closingTitle: 'Today’s blocks of the plan',
     closingHint: 'What did you do of today’s plan? Mark each block ✓ done, ½ minimum version or ✗ (with why).',
     noneToday: 'No blocks planned today.',
+    noDay: (n: number) => `Blocks without a fixed day this week (${n} open), e.g. runs: mark the ones you did today`,
     earlier: (n: number) => `${n} block(s) from earlier this week still unmarked`,
   },
 
@@ -688,8 +690,8 @@ export const en = {
     freeLeftToday: (time: string) => `${time} free for the rest of today`,
     noFree: 'No free time left today.',
     windowLabel: 'Awake from … to',
-    deadlinesTitle: 'Deadlines (next 3 weeks)',
-    noDeadlines: 'No one-off events in the next 3 weeks.',
+    deadlinesTitle: 'Upcoming deadlines (3 weeks)',
+    noDeadlines: 'No deadlines in the next 3 weeks.',
     today: 'today',
     tomorrow: 'tomorrow',
     inDays: (d: number) => `in ${d} days`,
@@ -717,6 +719,7 @@ export const en = {
     closed: (time: string) => `Day closed at ${time}. Rest well!`,
     // Home + Tracking
     mustDoBanner: 'Must-do today',
+    noMustDo: 'No must-do chosen yet: pick it in the Opening.',
     openingLink: 'Opening →',
     closingLink: 'Closing →',
     reflectionsTitle: 'Reflections this week',

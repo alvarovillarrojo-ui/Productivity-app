@@ -22,7 +22,8 @@ import { useCalendarEvents } from '../components/useCalendarEvents'
 import { isBlock } from '../logic/taskActions'
 import { StatusBadge } from '../components/StatusButtons'
 import { calendarItems, fromMinutes, isValidTime, toMinutes } from '../logic/calendar'
-import { busyOn, deadlinesRadar, formatMinutes, freeSlots, lagging } from '../logic/day'
+import { busyOn, formatMinutes, freeSlots, lagging } from '../logic/day'
+import DeadlinesCard from '../components/DeadlinesCard'
 import { checkSet, isPlanned, missedLastTime } from '../logic/habits'
 import { executionPoints, formatHours, formatPct, isDue, weekExecution } from '../logic/metrics'
 import { addDays, cycleEnd, cyclePosition, daysBetween, defaultWeek, todayISO, weekEnd } from '../logic/weeks'
@@ -83,7 +84,7 @@ function useDayData(cycle: Cycle, today: string) {
 // ---------- OPENING ----------
 
 function Opening({ cycle, today, entry, nowMin }: { cycle: Cycle; today: string; entry: DayEntry | null; nowMin: number }) {
-  const { t, date } = useI18n()
+  const { t } = useI18n()
   const d = t.day
   const { goals, tactics, tasks, week, weekTasks } = useDayData(cycle, today)
   const { events } = useCalendarEvents()
@@ -94,7 +95,6 @@ function Opening({ cycle, today, entry, nowMin }: { cycle: Cycle; today: string;
 
   const items = calendarItems(events, tasks, today, today)
   const free = freeSlots(busyOn(items, today), { start: toMinutes(window.start), end: toMinutes(window.end) }, nowMin)
-  const radar = deadlinesRadar(events, today)
   const exec = weekExecution(cycle, week, weekTasks, goals, tactics, today)
   const lags = lagging(goals, tactics, weekTasks, exec.byGoal, today)
   const overdue = weekTasks.filter((x) => x.status === 'todo' && isDue(x, weekEnd(cycle, week), today)).length
@@ -205,28 +205,7 @@ function Opening({ cycle, today, entry, nowMin }: { cycle: Cycle; today: string;
         </div>
       </div>
 
-      <div className="card stack">
-        <h2>📅 {d.deadlinesTitle}</h2>
-        {radar.length === 0 ? (
-          <p className="muted">{d.noDeadlines}</p>
-        ) : (
-          <ul className="radar">
-            {radar.map((x) => (
-              <li key={x.event.id} className={x.daysLeft <= 3 ? 'urgent' : x.daysLeft <= 7 ? 'soon' : undefined}>
-                <span className="radar-days">{x.daysLeft === 0 ? d.today : x.daysLeft === 1 ? d.tomorrow : d.inDays(x.daysLeft)}</span>
-                <span>
-                  {x.event.title}
-                  <span className="muted small-text">
-                    {' '}
-                    · {date(x.date)}
-                    {x.event.start_time ? ` ${x.event.start_time}` : ''}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <DeadlinesCard />
 
       <div className="card stack">
         <h2>⚠️ {d.laggingTitle}</h2>
@@ -282,6 +261,8 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
   // Blocks of the plan are marked HERE (and only here).
   const blocksToday = list.filter(block)
   const blocksEarlier = weekTasks.filter((x) => block(x) && x.status === 'todo' && x.planned_date !== null && x.planned_date < today)
+  // Blocks without a day (e.g. "Run 3× per week"): marked here too, any day.
+  const blocksNoDay = weekTasks.filter((x) => block(x) && x.planned_date === null && (x.status === 'todo' || x.updated_at.slice(0, 10) === today))
   const tasksToday = list.filter((x) => !block(x))
   const others = weekTasks.filter((x) => !block(x) && x.status === 'todo' && x.planned_date !== today && x.id !== mustDo?.id)
 
@@ -308,6 +289,16 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
               <TaskRow key={x.id} task={x} context={(x.id === mustDo?.id ? '⭐ ' : '') + label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} showDate={false} />
             ))}
           </ul>
+        )}
+        {blocksNoDay.length > 0 && (
+          <details className="other-open" open>
+            <summary className="small-text">{t.blocks.noDay(blocksNoDay.filter((x) => x.status === 'todo').length)}</summary>
+            <ul className="task-list">
+              {blocksNoDay.map((x) => (
+                <TaskRow key={x.id} task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} />
+              ))}
+            </ul>
+          </details>
         )}
         {blocksEarlier.length > 0 && (
           <details className="other-open" open>
@@ -408,7 +399,7 @@ export function MustDoBanner({ tasks, tactics, goals }: { tasks: Task[]; tactics
           <span className="muted small-text">{tacticLabel(task.tactic_id, goals, tactics, t.common.other)}</span>
         </div>
       ) : (
-        <span />
+        <span className="muted small-text">⭐ {t.day.noMustDo}</span>
       )}
       <Link className="btn" to={`/day?view=${hour >= CLOSING_FROM_HOUR ? 'close' : 'open'}`}>
         {hour >= CLOSING_FROM_HOUR ? `🌙 ${t.day.closingLink}` : `☀️ ${t.day.openingLink}`}

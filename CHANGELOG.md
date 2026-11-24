@@ -8,6 +8,16 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Home → Today shows everything of today in time order: tasks, blocks of
+  the plan (status only) and calendar events (classes, 🚩 deadlines).
+- Home → Still open this week: your tasks plus the open blocks of tactics
+  switched on with the new “Show on Home” option (Goals), e.g. runs.
+- Home: new “Upcoming deadlines (3 weeks)” card (also used in Day).
+- Day → Closing: blocks without a fixed day (e.g. “Run 3× per week”) can be
+  marked there; the empty must-do banner now explains what to do.
+
+### Changed
+
 - Blocks vs tasks: items created automatically from tactics are now BLOCKS
   of the plan. They live in the calendar and are marked ✓ ½ ✗ only in
   Day → Closing (which also lists earlier unmarked blocks of the week).

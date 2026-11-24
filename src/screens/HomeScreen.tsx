@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom'
 import * as repo from '../data/repo'
 import { useActiveCycle, useGoals, useTactics, useWeekTasks } from '../data/hooks'
 import { useLive } from '../data/useLive'
-import type { Cycle, Goal } from '../data/types'
+import type { Cycle, Goal, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import NoActiveCycle from '../components/NoActiveCycle'
 import QuickAdd from '../components/QuickAdd'
@@ -18,6 +18,10 @@ import { TodayHabits } from './HabitsPanel'
 import { MustDoBanner } from './DayScreen'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import { isBlock } from '../logic/taskActions'
+import DeadlinesCard from '../components/DeadlinesCard'
+import { useCalendarEvents } from '../components/useCalendarEvents'
+import { eventColorOf } from '../components/colors'
+import { calendarItems, fromMinutes, toMinutes, type CalendarItem } from '../logic/calendar'
 import { pctClass } from '../components/pctClass'
 import {
   formatHours,
@@ -52,6 +56,7 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
   const goals = useGoals(cycle.id)
   const tactics = useTactics(cycle.id)
   const tasks = useWeekTasks(cycle.id, week)
+  const { events } = useCalendarEvents()
 
   const first = weekStart(cycle, week)
   const last = weekEnd(cycle, week)
@@ -60,10 +65,21 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
 
   // Home lists TASKS (things to do). Blocks of the plan live in the calendar
   // and are marked in Day → Closing.
-  const todos = tasks.filter((x) => !isBlock(x, tactics))
-  const todayBlocks = tasks.filter((x) => isBlock(x, tactics) && x.planned_date === today)
-  const todayTasks = todos.filter((x) => x.planned_date === today)
-  const openTasks = todos.filter((x) => x.status === 'todo' && x.planned_date !== today)
+  const block = (x: Task) => isBlock(x, tactics)
+  const shownOnHome = new Set(tactics.filter((x) => x.show_on_home).map((x) => x.id))
+  const todayBlocks = tasks.filter((x) => block(x) && x.planned_date === today)
+  // TODAY: everything of today (tasks, blocks of the plan, calendar events).
+  const todayTasks = tasks.filter((x) => x.planned_date === today)
+  const todayEvents = calendarItems(events, [], today, today)
+  const timeOf = (x: Task) => (x.start_time ? toMinutes(x.start_time) : 24 * 60)
+  const todayItems: { key: string; at: number; task?: Task; event?: CalendarItem }[] = [
+    ...todayTasks.map((x) => ({ key: x.id, at: timeOf(x), task: x })),
+    ...todayEvents.map((e) => ({ key: e.key, at: e.start ?? -1, event: e })),
+  ].sort((a, b) => a.at - b.at)
+  // STILL OPEN: your tasks, plus the open blocks of tactics marked "show on Home".
+  const openTasks = tasks.filter(
+    (x) => x.status === 'todo' && x.planned_date !== today && (!block(x) || (x.tactic_id !== null && shownOnHome.has(x.tactic_id))),
+  )
   const label = (tacticId: string | null) => tacticLabel(tacticId, goals, tactics, t.common.other)
 
   return (
@@ -107,13 +123,29 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
                 <Link to="/day?view=close">{t.blocks.toClosing}</Link>
               </p>
             )}
-            {todayTasks.length === 0 ? (
+            {todayItems.length === 0 ? (
               <p className="muted">{t.home.nothingToday}</p>
             ) : (
               <ul className="task-list">
-                {todayTasks.map((x) => (
-                  <TaskRow key={x.id} task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} showDate={false} />
-                ))}
+                {todayItems.map((it) =>
+                  it.task ? (
+                    <TaskRow key={it.key} task={it.task} readOnly={block(it.task)} context={label(it.task.tactic_id)} minimum={minimumOf(it.task.tactic_id, tactics)} showDate={false} />
+                  ) : (
+                    <li key={it.key} className={it.event!.event?.kind === 'deadline' ? 'task-row event-row deadline' : 'task-row event-row'}>
+                      <span className="event-dot" style={{ background: eventColorOf(it.event!.event!) }} />
+                      <div className="task-main">
+                        <span className="task-title">
+                          {it.event!.event?.kind === 'deadline' ? '🚩 ' : ''}
+                          {it.event!.event!.title}
+                        </span>
+                        <span className="task-meta">
+                          {it.event!.start !== null ? `🕘 ${fromMinutes(it.event!.start)}–${fromMinutes(it.event!.end!)}` : t.calendar.allDay}
+                          {it.event!.event?.kind ? ` · ${t.calendar.kinds[it.event!.event.kind]}` : ''}
+                        </span>
+                      </div>
+                    </li>
+                  ),
+                )}
               </ul>
             )}
           </div>
@@ -130,7 +162,7 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
             ) : (
               <ul className="task-list">
                 {openTasks.map((x) => (
-                  <TaskRow key={x.id} task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} overdue={isDue(x, last, today)} />
+                  <TaskRow key={x.id} task={x} readOnly={block(x)} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} overdue={isDue(x, last, today)} />
                 ))}
               </ul>
             )}
@@ -138,6 +170,7 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
         </div>
 
         <div className="stack">
+          <DeadlinesCard max={6} />
           <div className="card">
             <h2>{t.home.execution}</h2>
             <ExecutionBars overall={exec.overall} goals={goals} byGoal={exec.byGoal} />

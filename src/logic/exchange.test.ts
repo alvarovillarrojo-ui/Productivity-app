@@ -415,3 +415,14 @@ describe('fail causes in files', () => {
     expect(bad.issues).toEqual([{ code: 'cause', path: 'tasks[0].cause', detail: 'lazy' }])
   })
 })
+
+describe('show on Home in backups', () => {
+  it('keeps the tactic switch and rejects a non-boolean', () => {
+    const shown = { ...tactics[0], show_on_home: true }
+    const data = { cycles: [cycle], goals, tactics: [shown], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [] }
+    const ok = parseBackup(JSON.parse(JSON.stringify(buildBackup(data, 'x'))))
+    expect(ok.data!.tactics[0].show_on_home).toBe(true)
+    const bad = buildBackup({ ...data, tactics: [{ ...shown, show_on_home: 'yes' as unknown as boolean }] }, 'x')
+    expect(parseBackup(bad).issues).toEqual([{ code: 'record', path: 'data.tactics[0].show_on_home' }])
+  })
+})

@@ -80,6 +80,8 @@ export interface Tactic {
   schedule_hours?: number | null
   /** The minimum version, e.g. "20 min easy". Doing only this counts ½. */
   minimum_version?: string | null
+  /** Show this tactic's open blocks on Home → "Still open this week" (e.g. runs). */
+  show_on_home?: boolean
   /** Display order (0, 1, 2…). */
   sort_order: number
 }

@@ -723,7 +723,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind' | 'eventKindOptional' | 'taskKindOptional'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind' | 'eventKindOptional' | 'taskKindOptional' | 'boolOptional'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -738,7 +738,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     id: 'id', goal_id: 'id', name: 'text', description: 'text', active: 'bool',
     weekly_frequency: 'numNull', sort_order: 'num',
     schedule_days: 'weekdaysOptional', schedule_time: 'timeOptional', schedule_hours: 'numOptional',
-    minimum_version: 'textOptional',
+    minimum_version: 'textOptional', show_on_home: 'boolOptional',
   },
   tasks: {
     id: 'id', cycle_id: 'id', week_number: 'int', title: 'text', tactic_id: 'textNull',
@@ -797,6 +797,7 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'timeOptional': return v === undefined || v === null || (typeof v === 'string' && isValidTime(v))
     case 'weekdaysOptional':
       return v === undefined || v === null || (Array.isArray(v) && v.every((d) => Number.isInteger(d) && d >= 1 && d <= 7))
+    case 'boolOptional': return v === undefined || v === null || typeof v === 'boolean'
     case 'eventKindOptional': return v === undefined || v === null || v === 'class' || v === 'deadline' || v === 'other'
     case 'taskKindOptional': return v === undefined || v === null || v === 'block' || v === 'todo'
     case 'topicStatus': return v === 'todo' || v === 'progress' || v === 'mastered'
