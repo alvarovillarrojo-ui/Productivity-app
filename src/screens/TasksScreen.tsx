@@ -19,7 +19,7 @@ import TaskRow from '../components/TaskRow'
 import HabitsPanel from './HabitsPanel'
 import { pctClass } from '../components/pctClass'
 import { execution, formatPct, isDue, taskCounts } from '../logic/metrics'
-import { unfinishedCopies } from '../logic/taskActions'
+import { isBlock, unfinishedCopies } from '../logic/taskActions'
 import { defaultWeek, todayISO, weekEnd, weekStart } from '../logic/weeks'
 
 export default function TasksScreen() {
@@ -76,6 +76,10 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
   const first = weekStart(cycle, week)
   const last = weekEnd(cycle, week)
   const counts = taskCounts(tasks)
+  // Tasks (things to do) are listed and ticked here; blocks of the plan are
+  // shown apart, read-only: they are marked in Day → Closing.
+  const todos = tasks.filter((x) => !isBlock(x, tactics))
+  const blocks = tasks.filter((x) => isBlock(x, tactics))
   const exec = execution(tasks, last, today)
   const isLastWeek = week === cycle.length_weeks
 
@@ -85,7 +89,7 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
   }
 
   const copyUnfinished = async () => {
-    const copies = unfinishedCopies(tasks, nextWeekTasks)
+    const copies = unfinishedCopies(tasks, nextWeekTasks, tactics)
     if (copies.length === 0) return flash(t.tasks.nothingToCopy)
     if (!confirm(t.tasks.confirmCopy(copies.length, week + 1))) return
     await repo.createTasks(copies)
@@ -125,11 +129,11 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
       <QuickAdd cycle={cycle} week={week} goals={goals} tactics={tactics} minDate={first} maxDate={last} />
       <p className="muted small-text">↻ {t.tasks.autoRecurring}</p>
 
-      {tasks.length === 0 ? (
+      {todos.length === 0 ? (
         <p className="muted">{t.tasks.empty}</p>
       ) : (
         <ul className="task-list">
-          {tasks.map((task) =>
+          {todos.map((task) =>
             editing === task.id ? (
               <TaskEditForm
                 key={task.id}
@@ -153,6 +157,31 @@ function TasksForCycle({ cycle }: { cycle: Cycle }) {
             ),
           )}
         </ul>
+      )}
+
+      {blocks.length > 0 && (
+        <details className="card blocks-card">
+          <summary>
+            🗓 {t.blocks.weekTitle(blocks.length, blocks.filter((x) => x.status !== 'todo').length)}
+          </summary>
+          <p className="muted small-text">{t.blocks.weekHint}</p>
+          <ul className="task-list">
+            {blocks.map((task) =>
+              editing === task.id ? (
+                <TaskEditForm key={task.id} task={task} goals={goals} tactics={tactics} minDate={first} maxDate={last} onClose={() => setEditing(null)} />
+              ) : (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  readOnly
+                  context={tacticLabel(task.tactic_id, goals, tactics, t.common.other)}
+                  onEdit={() => setEditing(task.id)}
+                  onDelete={() => remove(task.id, task.title)}
+                />
+              ),
+            )}
+          </ul>
+        </details>
       )}
 
       <div className="row">

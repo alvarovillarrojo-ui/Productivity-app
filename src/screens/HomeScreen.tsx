@@ -17,6 +17,7 @@ import TaskRow from '../components/TaskRow'
 import { TodayHabits } from './HabitsPanel'
 import { MustDoBanner } from './DayScreen'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
+import { isBlock } from '../logic/taskActions'
 import { pctClass } from '../components/pctClass'
 import {
   formatHours,
@@ -57,8 +58,12 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
   const exec = weekExecution(cycle, week, tasks, goals, tactics, today)
   const hours = weekHours(tasks, goals, tactics)
 
-  const todayTasks = tasks.filter((x) => x.planned_date === today)
-  const openTasks = tasks.filter((x) => x.status === 'todo' && x.planned_date !== today)
+  // Home lists TASKS (things to do). Blocks of the plan live in the calendar
+  // and are marked in Day → Closing.
+  const todos = tasks.filter((x) => !isBlock(x, tactics))
+  const todayBlocks = tasks.filter((x) => isBlock(x, tactics) && x.planned_date === today)
+  const todayTasks = todos.filter((x) => x.planned_date === today)
+  const openTasks = todos.filter((x) => x.status === 'todo' && x.planned_date !== today)
   const label = (tacticId: string | null) => tacticLabel(tacticId, goals, tactics, t.common.other)
 
   return (
@@ -96,6 +101,12 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
 
           <div>
             <h2>{t.home.today}</h2>
+            {todayBlocks.length > 0 && (
+              <p className="plan-line small-text">
+                🗓 {t.blocks.todayLine(todayBlocks.length, todayBlocks.filter((x) => x.status !== 'todo').length)}{' '}
+                <Link to="/day?view=close">{t.blocks.toClosing}</Link>
+              </p>
+            )}
             {todayTasks.length === 0 ? (
               <p className="muted">{t.home.nothingToday}</p>
             ) : (

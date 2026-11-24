@@ -278,6 +278,9 @@ function buildTask(data: NewTask, createdAt = now()): Task {
     status: 'todo',
     miss_reason: null,
     notes: '',
+    // Anything created by hand or imported is a task to do; recurring
+    // generation passes kind 'block' itself.
+    kind: 'todo',
     ...data,
     id: newId(),
     created_at: createdAt,
@@ -439,12 +442,13 @@ export async function deleteEvent(id: string): Promise<void> {
  * Saves events read from an .ics file. An event already imported before (same
  * calendar id) is updated instead of added again. One transaction.
  */
-export async function importIcsEvents(events: IcsEvent[]): Promise<{ added: number; updated: number }> {
+export async function importIcsEvents(events: IcsEvent[], kind: 'class' | 'deadline' | 'other' = 'other'): Promise<{ added: number; updated: number }> {
   return db.transaction('rw', db.events, async () => {
     const existing = new Map((await db.events.toArray()).filter((e) => e.ics_uid).map((e) => [e.ics_uid!, e]))
     let added = 0
     let updated = 0
-    for (const e of events) {
+    for (const raw of events) {
+      const e = { ...raw, kind: raw.kind ?? kind }
       const old = existing.get(e.ics_uid)
       if (old) {
         await db.events.update(old.id, { ...e, updated_at: now() })

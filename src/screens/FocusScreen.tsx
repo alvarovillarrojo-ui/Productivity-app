@@ -117,7 +117,7 @@ export default function FocusScreen() {
       {state?.finished && (
         <div className="note stack">
           <strong>{f.finished(state.finished.minutes, finishedTask?.title ?? '')}</strong>
-          {finishedTask && finishedTask.status !== 'done' ? (
+          {finishedTask && finishedTask.status !== 'done' && finishedTask.kind !== 'block' ? (
             <div className="row">
               <span>{f.markDone}</span>
               <button className="btn primary" onClick={() => answerDone(true)}>

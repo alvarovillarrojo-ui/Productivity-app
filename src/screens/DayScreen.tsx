@@ -19,6 +19,8 @@ import { pctClass } from '../components/pctClass'
 import { TodayHabits } from './HabitsPanel'
 import { useNow } from '../components/FocusRunner'
 import { useCalendarEvents } from '../components/useCalendarEvents'
+import { isBlock } from '../logic/taskActions'
+import { StatusBadge } from '../components/StatusButtons'
 import { calendarItems, fromMinutes, isValidTime, toMinutes } from '../logic/calendar'
 import { busyOn, deadlinesRadar, formatMinutes, freeSlots, lagging } from '../logic/day'
 import { checkSet, isPlanned, missedLastTime } from '../logic/habits'
@@ -98,7 +100,7 @@ function Opening({ cycle, today, entry, nowMin }: { cycle: Cycle; today: string;
   const overdue = weekTasks.filter((x) => x.status === 'todo' && isDue(x, weekEnd(cycle, week), today)).length
   const atRisk = habits.filter((h) => h.active && isPlanned(h, today) && !habitDone.has(`${h.id}|${today}`) && missedLastTime(h, habitDone, today))
   const unplaced = weekTasks.filter((x) => x.status === 'todo' && !(x.planned_date && x.start_time)).length
-  const choices = [...weekTasks.filter((x) => x.status === 'todo')].sort(
+  const choices = [...weekTasks.filter((x) => x.status === 'todo' && (!isBlock(x, tactics) || x.planned_date === today))].sort(
     (a, b) => Number(b.planned_date === today) - Number(a.planned_date === today),
   )
   const mustDo = entry?.must_do ? tasks.find((x) => x.id === entry.must_do) : undefined
@@ -149,7 +151,7 @@ function Opening({ cycle, today, entry, nowMin }: { cycle: Cycle; today: string;
         </select>
         {mustDo && (
           <div className="row">
-            <StatusButtons task={mustDo} minimum={minimumOf(mustDo.tactic_id, tactics)} />
+            {isBlock(mustDo, tactics) ? <StatusBadge status={mustDo.status} /> : <StatusButtons task={mustDo} minimum={minimumOf(mustDo.tactic_id, tactics)} />}
             <span>{mustDo.title}</span>
           </div>
         )}
@@ -273,10 +275,15 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
   const focus = useLive(() => repo.listFocusSessions(today), [today], [] as FocusSession[])
   const label = (id: string | null) => tacticLabel(id, goals, tactics, t.common.other)
 
+  const block = (x: Task) => isBlock(x, tactics)
   const todays = tasks.filter((x) => x.planned_date === today)
   const mustDo = entry?.must_do ? tasks.find((x) => x.id === entry.must_do) : undefined
   const list = mustDo && mustDo.planned_date !== today ? [mustDo, ...todays] : todays
-  const others = weekTasks.filter((x) => x.status === 'todo' && x.planned_date !== today && x.id !== mustDo?.id)
+  // Blocks of the plan are marked HERE (and only here).
+  const blocksToday = list.filter(block)
+  const blocksEarlier = weekTasks.filter((x) => block(x) && x.status === 'todo' && x.planned_date !== null && x.planned_date < today)
+  const tasksToday = list.filter((x) => !block(x))
+  const others = weekTasks.filter((x) => !block(x) && x.status === 'todo' && x.planned_date !== today && x.id !== mustDo?.id)
 
   // Day score: today's tasks that belong to a tactic.
   const scored = list.filter((x) => x.tactic_id !== null)
@@ -291,12 +298,36 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
   return (
     <>
       <div className="card">
+        <h2>🗓 {t.blocks.closingTitle}</h2>
+        <p className="muted small-text">{t.blocks.closingHint}</p>
+        {blocksToday.length === 0 ? (
+          <p className="muted">{t.blocks.noneToday}</p>
+        ) : (
+          <ul className="task-list">
+            {blocksToday.map((x) => (
+              <TaskRow key={x.id} task={x} context={(x.id === mustDo?.id ? '⭐ ' : '') + label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} showDate={false} />
+            ))}
+          </ul>
+        )}
+        {blocksEarlier.length > 0 && (
+          <details className="other-open" open>
+            <summary className="small-text warn">{t.blocks.earlier(blocksEarlier.length)}</summary>
+            <ul className="task-list">
+              {blocksEarlier.map((x) => (
+                <TaskRow key={x.id} task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} />
+              ))}
+            </ul>
+          </details>
+        )}
+      </div>
+
+      <div className="card">
         <h2>{d.todayTasks}</h2>
-        {list.length === 0 ? (
+        {tasksToday.length === 0 ? (
           <p className="muted">{d.noTodayTasks}</p>
         ) : (
           <ul className="task-list">
-            {list.map((x) => (
+            {tasksToday.map((x) => (
               <TaskRow key={x.id} task={x} context={(x.id === mustDo?.id ? '⭐ ' : '') + label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} showDate={false} />
             ))}
           </ul>
@@ -372,7 +403,7 @@ export function MustDoBanner({ tasks, tactics, goals }: { tasks: Task[]; tactics
       {task ? (
         <div className="row">
           <strong>⭐ {t.day.mustDoBanner}:</strong>
-          <StatusButtons task={task} minimum={minimumOf(task.tactic_id, tactics)} />
+          {isBlock(task, tactics) ? <StatusBadge status={task.status} /> : <StatusButtons task={task} minimum={minimumOf(task.tactic_id, tactics)} />}
           <span>{task.title}</span>
           <span className="muted small-text">{tacticLabel(task.tactic_id, goals, tactics, t.common.other)}</span>
         </div>

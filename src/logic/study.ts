@@ -98,6 +98,7 @@ export function examEvents(exams: Exam[], subjects: Subject[], kindLabel: (k: Ex
         start_time: e.start_time,
         end_time: end,
         repeat_weekly: false,
+        kind: 'deadline' as const,
         repeat_until: null,
         notes: '',
         color: color(subject),

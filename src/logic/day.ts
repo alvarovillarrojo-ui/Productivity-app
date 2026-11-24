@@ -3,9 +3,9 @@
 //   - FREE TIME: your waking hours (default 08:30–22:30) minus everything
 //     already in the calendar that day (events and task blocks). Today, only
 //     the time from now on counts.
-//   - DEADLINES RADAR: one-off events (exams, deliverables, meetings) in the
-//     next 3 weeks. Weekly events (classes) are left out: they aren't
-//     deadlines.
+//   - DEADLINES RADAR: events of type "deadline" (exams, deliverables) in the
+//     next 3 weeks, including your subjects' exams. Classes and other
+//     events are left out.
 //   - WHAT'S LAGGING: per goal, execution below the 85% target, or hours
 //     behind the pace needed to reach the weekly target by Sunday.
 import type { CalendarEvent, Goal, ISODate, Tactic, Task } from '../data/types'
@@ -56,11 +56,11 @@ export interface Deadline {
   daysLeft: number
 }
 
-/** One-off events from today to `days` days ahead, soonest first. */
+/** Deadlines (event type "deadline") from today to `days` days ahead, soonest first. */
 export function deadlinesRadar(events: CalendarEvent[], today: ISODate, days = RADAR_DAYS): Deadline[] {
   const last = addDays(today, days)
   return events
-    .filter((e) => !e.repeat_weekly && e.date >= today && e.date <= last)
+    .filter((e) => e.kind === 'deadline' && e.date >= today && e.date <= last)
     .map((e) => ({ event: e, date: e.date, daysLeft: daysBetween(today, e.date) }))
     .sort((a, b) => a.date.localeCompare(b.date) || (a.event.start_time ?? '').localeCompare(b.event.start_time ?? ''))
 }

@@ -10,7 +10,7 @@ import * as repo from '../data/repo'
 import { useGoals, useTactics } from '../data/hooks'
 import { useLive } from '../data/useLive'
 import { canPickFolder, downloadFile, ensurePermission, isCancel, pickFolder, writeToFolder } from '../data/files'
-import type { AllData, Cycle } from '../data/types'
+import type { AllData, Cycle, EventKind } from '../data/types'
 import { useI18n } from '../i18n'
 import {
   backupFileName,
@@ -479,6 +479,7 @@ function IcsSection() {
   const m = t.data.ics
   const [file, setFile] = useState<{ name: string; text: string } | null>(null)
   const [from, setFrom] = useState(addDays(todayISO(), -7))
+  const [kind, setKind] = useState<EventKind | ''>('')
   const [done, setDone] = useState<{ added: number; updated: number } | null>(null)
   const result = file ? parseIcs(file.text, from) : null
   const looksWrong = file !== null && !/BEGIN:VCALENDAR/i.test(file.text)
@@ -491,7 +492,8 @@ function IcsSection() {
   }
   const apply = async () => {
     if (!result) return
-    setDone(await repo.importIcsEvents(result.events))
+    if (!kind) return
+    setDone(await repo.importIcsEvents(result.events, kind))
     setFile(null)
   }
 
@@ -537,9 +539,20 @@ function IcsSection() {
             </ul>
           )}
           {result.events.length > 0 && (
-            <button className="btn primary" onClick={apply}>
-              {m.button(result.events.length)}
-            </button>
+            <>
+              <label className="field">
+                <span>{m.kindLabel}</span>
+                <select value={kind} onChange={(e) => setKind(e.target.value as EventKind)}>
+                  <option value="">{m.kindChoose}</option>
+                  <option value="class">{t.calendar.kinds.class}</option>
+                  <option value="deadline">{t.calendar.kinds.deadline}</option>
+                  <option value="other">{t.calendar.kinds.other}</option>
+                </select>
+              </label>
+              <button className="btn primary" onClick={apply} disabled={!kind}>
+                {m.button(result.events.length)}
+              </button>
+            </>
           )}
         </div>
       )}

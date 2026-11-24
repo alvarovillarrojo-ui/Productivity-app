@@ -75,6 +75,7 @@ export function planRecurring(
         week_number: week,
         title: freq === 1 ? tactic.name : `${tactic.name} (${i}/${freq})`,
         tactic_id: tactic.id,
+        kind: 'block',
       }
       const day = schedule?.days[i - 1]
       if (schedule && day && dates) {
@@ -89,17 +90,38 @@ export function planRecurring(
   return { tasks, generated: next }
 }
 
+/** "Name (2/5)" → true for the tactic "Name". */
+function isNumberedCopy(title: string, name: string): boolean {
+  if (!title.startsWith(`${name} (`) || !title.endsWith(')')) return false
+  const inside = title.slice(name.length + 2, -1) // "2/5"
+  return /^\d+\/\d+$/.test(inside)
+}
+
+/**
+ * Is this a BLOCK of the plan (created automatically from a tactic) rather
+ * than a task you have to do? New items say so in `kind`. Older items (from
+ * before blocks existed) are recognised by their title: the tactic's name,
+ * or "Name (2/5)".
+ */
+export function isBlock(task: Task, tactics: Tactic[]): boolean {
+  if (task.kind) return task.kind === 'block'
+  const tactic = task.tactic_id ? tactics.find((t) => t.id === task.tactic_id) : undefined
+  if (!tactic) return false
+  return task.title === tactic.name || isNumberedCopy(task.title, tactic.name)
+}
+
 /**
  * "Copy unfinished tasks to next week": every open (todo) task is copied to
  * the next week, with its date moved 7 days later. The original stays where
  * it is (it still counts as not done in its own week, which is the honest
  * score). Tasks already present next week (same title and tactic) are skipped,
- * so pressing the button twice doesn't create duplicates.
+ * so pressing the button twice doesn't create duplicates. Blocks are not
+ * copied: next week gets its own blocks automatically.
  */
-export function unfinishedCopies(weekTasks: Task[], nextWeekTasks: Task[]): NewTask[] {
+export function unfinishedCopies(weekTasks: Task[], nextWeekTasks: Task[], tactics: Tactic[] = []): NewTask[] {
   const already = new Set(nextWeekTasks.map((t) => `${t.title}|${t.tactic_id}`))
   return weekTasks
-    .filter((t) => t.status === 'todo' && !already.has(`${t.title}|${t.tactic_id}`))
+    .filter((t) => t.status === 'todo' && !isBlock(t, tactics) && !already.has(`${t.title}|${t.tactic_id}`))
     .map((t) => ({
       cycle_id: t.cycle_id,
       week_number: t.week_number + 1,
@@ -107,6 +129,8 @@ export function unfinishedCopies(weekTasks: Task[], nextWeekTasks: Task[]): NewT
       tactic_id: t.tactic_id,
       planned_date: t.planned_date ? addDays(t.planned_date, 7) : null,
       planned_hours: t.planned_hours,
+      subject_id: t.subject_id ?? null,
       notes: t.notes,
+      kind: 'todo' as const,
     }))
 }

@@ -103,6 +103,12 @@ export interface Task {
   miss_reason: string | null
   /** The subject studied in this task (Students tab), if any. */
   subject_id?: string | null
+  /**
+   * block = a session of the plan, created automatically from a tactic: it
+   * lives in the calendar and is marked in the night closing.
+   * todo = something you have to do (tasks you add). See logic/taskActions.
+   */
+  kind?: 'block' | 'todo'
   notes: string
   created_at: string
   updated_at: string
@@ -162,6 +168,9 @@ export interface HabitCheck {
   date: ISODate
 }
 
+export const EVENT_KINDS = ['class', 'deadline', 'other'] as const
+export type EventKind = (typeof EVENT_KINDS)[number]
+
 /**
  * Something in the calendar that isn't a task: a class, an exam, a meeting.
  * No times = all day. A weekly event repeats every week on the same weekday
@@ -181,6 +190,12 @@ export interface CalendarEvent {
   ics_uid?: string | null
   /** Colour in the calendar ("#0891b2"); missing = grey. */
   color?: string | null
+  /**
+   * What it is: a class, a deadline (exam, deliverable…) or other. Only
+   * deadlines appear in the deadlines radar. Missing = other.
+   */
+  kind?: EventKind
+
   created_at: string
   updated_at: string
 }

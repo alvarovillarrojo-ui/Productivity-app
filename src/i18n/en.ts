@@ -336,6 +336,8 @@ export const en = {
       hint: 'Add your classes, exams or meetings from Google Calendar, Outlook or your university timetable: export the calendar as an .ics file and choose it here. Weekly repeats are kept. Importing the same file again updates instead of duplicating. Nothing leaves this device.',
       choose: 'Choose .ics file',
       from: 'Only events from',
+      kindLabel: 'What does this file contain?',
+      kindChoose: '— choose —',
       notIcs: 'This doesn’t look like a calendar file (.ics).',
       found: (n: number, weekly: number) => `${n} event(s) to import${weekly ? `, ${weekly} repeating weekly` : ''}.`,
       allDay: 'all day',
@@ -518,7 +520,10 @@ export const en = {
     allPlaced: 'All of this week’s tasks are in the calendar.',
     outsideCycle: 'This week is outside your current cycle: only events are shown.',
     clickSlot: 'Click an empty slot to add an event or place a task.',
-    eventsLegend: 'Events (colour of your choice)',
+    eventsLegend: 'Events (colour of your choice) · 🚩 deadline',
+    kindLabel: 'Type',
+    kinds: { class: 'Class', deadline: 'Deadline / exam', other: 'Other' },
+    kindHint: 'Only deadlines appear in Day → deadlines radar.',
     changeColors: 'Change goal colours →',
     color: 'Colour',
     autoColor: 'Automatic (grey)',
@@ -646,6 +651,18 @@ export const en = {
     notFound: 'This subject doesn’t exist any more.',
   },
 
+  blocks: {
+    todayLine: (n: number, marked: number) => `Today’s plan: ${n} block(s) in the calendar, ${marked} marked.`,
+    toClosing: 'Mark them in the closing →',
+    weekTitle: (n: number, marked: number) => `Blocks of the plan this week (${n}, ${marked} marked)`,
+    weekHint: 'Created from your tactics. They live in the calendar and are marked ✓ ½ ✗ in Day → Closing.',
+    markInClosing: 'Marked in the night closing',
+    closingTitle: 'Today’s blocks of the plan',
+    closingHint: 'What did you do of today’s plan? Mark each block ✓ done, ½ minimum version or ✗ (with why).',
+    noneToday: 'No blocks planned today.',
+    earlier: (n: number) => `${n} block(s) from earlier this week still unmarked`,
+  },
+
   day: {
     title: 'Opening & closing',
     opening: 'Opening',
@@ -686,7 +703,7 @@ export const en = {
     startDay: 'Start the day',
     opened: (time: string) => `Day opened at ${time}.`,
     // closing
-    todayTasks: 'Today’s tasks',
+    todayTasks: 'Tasks for today',
     noTodayTasks: 'No tasks dated today.',
     otherOpen: (n: number) => `Other open tasks this week (${n})`,
     scoreTitle: 'Day score',
@@ -818,7 +835,7 @@ export const en = {
       `${done} done · ${partial} ½ · ${missed} missed · ${open} open · execution`,
     empty: 'No tasks this week yet. Add one above. Tasks from your tactics appear automatically when the week starts.',
     autoRecurring:
-      'Your tactics’ tasks are created automatically every week (from Saturday for the next week). Deleted ones don’t come back; raising a tactic’s “times per week” adds the extra tasks.',
+      'These are your tasks (things to do). Your tactics create BLOCKS of the plan automatically every week; they are in the calendar and are marked in Day → Closing.',
     copyTo: (week: string) => `Copy unfinished to week ${week}`,
     nothingToCopy: 'Nothing to copy: no open tasks that aren’t already in next week.',
     confirmCopy: (n: number, week: number) =>

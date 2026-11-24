@@ -6,6 +6,19 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Blocks vs tasks: items created automatically from tactics are now BLOCKS
+  of the plan. They live in the calendar and are marked ✓ ½ ✗ only in
+  Day → Closing (which also lists earlier unmarked blocks of the week).
+  Home and Tasks list only TASKS (things to do), which can be ticked
+  anytime; the week's blocks are folded away, read-only. Older items are
+  recognised as blocks by their title.
+- Calendar events have a type: Class, Deadline / exam or Other. Only
+  deadlines (and subject exams) appear in the deadlines radar; deadlines
+  show a 🚩 in the calendar. The .ics import asks what the file contains;
+  re-importing a file changes the type without duplicating.
+
 ### Added
 
 - Studies tab: subjects with info, exams (type, date, time, weight %, grade →

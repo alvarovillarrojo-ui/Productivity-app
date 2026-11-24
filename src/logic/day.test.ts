@@ -33,11 +33,22 @@ describe('free time', () => {
 })
 
 describe('deadlines radar', () => {
-  const ev = (id: string, date: string, weekly = false): CalendarEvent => ({
-    id, title: id, date, start_time: '10:00', end_time: '11:00', repeat_weekly: weekly, repeat_until: null, notes: '', created_at: '', updated_at: '',
+  const ev = (id: string, date: string, kind?: 'class' | 'deadline' | 'other', weekly = false): CalendarEvent => ({
+    id, title: id, date, start_time: '10:00', end_time: '11:00', repeat_weekly: weekly, repeat_until: null, notes: '', created_at: '', updated_at: '', kind,
   })
-  it('lists one-off events in the next 3 weeks with days left; weekly classes are left out', () => {
-    const r = deadlinesRadar([ev('exam', '2026-12-10'), ev('quiz', '2026-11-24'), ev('class', '2026-11-25', true), ev('far', '2027-01-20'), ev('past', '2026-11-20')], '2026-11-23')
+  it('lists only deadlines in the next 3 weeks with days left (not classes or other events)', () => {
+    const r = deadlinesRadar(
+      [
+        ev('exam', '2026-12-10', 'deadline'),
+        ev('quiz', '2026-11-24', 'deadline'),
+        ev('one-off class', '2026-11-25', 'class'),
+        ev('meeting', '2026-11-26', 'other'),
+        ev('untyped', '2026-11-26'),
+        ev('far', '2027-01-20', 'deadline'),
+        ev('past', '2026-11-20', 'deadline'),
+      ],
+      '2026-11-23',
+    )
     expect(r.map((d) => [d.event.id, d.daysLeft])).toEqual([
       ['quiz', 1],
       ['exam', 17],

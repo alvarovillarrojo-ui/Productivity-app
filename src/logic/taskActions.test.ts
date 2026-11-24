@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Tactic, Task, TaskStatus } from '../data/types'
-import { planRecurring, unfinishedCopies, weeksToPrepare } from './taskActions'
+import { isBlock, planRecurring, unfinishedCopies, weeksToPrepare } from './taskActions'
 
 const tactic = (id: string, name: string, freq: number | null, active = true): Tactic => ({
   id,
@@ -146,5 +146,26 @@ describe('scheduled tactics', () => {
   it('a tactic without days keeps undated tasks', () => {
     const { tasks } = planRecurring('c', 2, [tactic('run', 'Run', 2)], [], {}, dates('2026-11-15'))
     expect(tasks.every((t) => t.planned_date === undefined)).toBe(true)
+  })
+})
+
+describe('blocks vs tasks', () => {
+  const run = tactic('run', 'Study block 09:00–11:00', 5)
+  it('automatic items are blocks; older ones are recognised by their title', () => {
+    expect(planRecurring('c', 1, [run], [], {}).tasks.every((t) => t.kind === 'block')).toBe(true)
+    expect(isBlock(task({ tactic_id: 'run', title: 'Study block 09:00–11:00 (2/5)' }), [run])).toBe(true)
+    expect(isBlock(task({ tactic_id: 'run', title: 'Study block 09:00–11:00' }), [run])).toBe(true)
+    expect(isBlock(task({ tactic_id: 'run', title: 'Read chapter 3 of the book' }), [run])).toBe(false)
+    expect(isBlock(task({ tactic_id: null, title: 'Buy shoes' }), [run])).toBe(false)
+    // an explicit kind always wins
+    expect(isBlock(task({ tactic_id: 'run', title: 'Study block 09:00–11:00', kind: 'todo' }), [run])).toBe(false)
+  })
+  it('copying unfinished work to next week skips blocks', () => {
+    const copies = unfinishedCopies(
+      [task({ tactic_id: 'run', title: 'Study block 09:00–11:00 (3/5)' }), task({ tactic_id: 'run', title: 'Prepare slides' })],
+      [],
+      [run],
+    )
+    expect(copies.map((c) => [c.title, c.kind])).toEqual([['Prepare slides', 'todo']])
   })
 })

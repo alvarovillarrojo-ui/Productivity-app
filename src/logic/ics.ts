@@ -25,6 +25,8 @@ export interface IcsEvent {
   repeat_weekly: boolean
   repeat_until: ISODate | null
   notes: string
+  /** Set by the import screen: what this file contains. */
+  kind?: 'class' | 'deadline' | 'other'
 }
 
 export interface IcsResult {

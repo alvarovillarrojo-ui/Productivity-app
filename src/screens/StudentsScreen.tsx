@@ -20,6 +20,7 @@ import TacticSelect, { minimumOf, tacticLabel } from '../components/TacticSelect
 import { goalColor } from '../components/colors'
 import { subjectColorOf } from '../components/useCalendarEvents'
 import { formatHours, formatPct } from '../logic/metrics'
+import { isBlock } from '../logic/taskActions'
 import { difficultTopics, nextExam, overallAverage, studyHours, subjectGrades, topicProgress } from '../logic/study'
 import { addDays, defaultWeek, mondayOf, todayISO } from '../logic/weeks'
 
@@ -486,7 +487,7 @@ function StudyTasksCard({ subjectId, cycle, week, tasks }: { subjectId: string; 
       ) : (
         <ul className="task-list">
           {tasks.map((x) => (
-            <TaskRow key={x.id} task={x} context={tacticLabel(x.tactic_id, goals, tactics, t.common.other)} minimum={minimumOf(x.tactic_id, tactics)} />
+            <TaskRow key={x.id} task={x} readOnly={isBlock(x, tactics)} context={tacticLabel(x.tactic_id, goals, tactics, t.common.other)} minimum={minimumOf(x.tactic_id, tactics)} />
           ))}
         </ul>
       )}

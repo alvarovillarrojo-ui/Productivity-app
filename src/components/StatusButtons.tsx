@@ -26,3 +26,14 @@ export default function StatusButtons({ task, minimum }: { task: Task; minimum?:
     </div>
   )
 }
+
+/** The status shown without buttons (blocks outside the closing). */
+export function StatusBadge({ status }: { status: Task['status'] }) {
+  const { t } = useI18n()
+  const symbol = { todo: '·', done: '✓', partial: '½', missed: '✗' }[status]
+  return (
+    <span className={`status-badge ${status}`} title={t.blocks.markInClosing}>
+      {symbol}
+    </span>
+  )
+}

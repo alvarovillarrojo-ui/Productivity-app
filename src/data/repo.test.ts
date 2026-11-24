@@ -552,3 +552,27 @@ describe('free pomodoro with a subject', () => {
     expect(session).toMatchObject({ task_id: null, subject_id: s.id, minutes: 25 })
   })
 })
+
+describe('.ics import with a type', () => {
+  it('tags the file’s events, and re-importing changes the type without duplicating', async () => {
+    const ev = { ics_uid: 'd1', title: 'Quiz', date: '2026-11-30', start_time: '10:00', end_time: '11:00', repeat_weekly: false, repeat_until: null, notes: '' }
+    await repo.importIcsEvents([ev])
+    expect((await repo.listEvents())[0].kind).toBe('other')
+    expect(await repo.importIcsEvents([ev], 'deadline')).toEqual({ added: 0, updated: 1 })
+    const events = await repo.listEvents()
+    expect(events).toHaveLength(1)
+    expect(events[0].kind).toBe('deadline')
+  })
+})
+
+describe('task kind', () => {
+  it('tasks created by hand are tasks; automatic ones are blocks', async () => {
+    const { cycle } = await seed()
+    const mine = await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'Buy shoes' })
+    expect(mine.kind).toBe('todo')
+    await repo.ensureRecurringTasks('2026-01-07')
+    const auto = (await repo.listTasksForWeek(cycle.id, 1)).filter((t) => t.id !== mine.id)
+    expect(auto.length).toBeGreaterThan(0)
+    expect(auto.every((t) => t.kind === 'block')).toBe(true)
+  })
+})

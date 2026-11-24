@@ -618,3 +618,15 @@ details.card summary { cursor: pointer; font-weight: 600; }
 .topic-row.status-mastered .seg button.on { color: var(--good); }
 .chip.hard.on { background: var(--warn); border-color: var(--warn); color: #fff; }
 .subject-tag { display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.35rem; font-size: 0.72rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: var(--surface); color: var(--text); }
+
+/* deadlines in the calendar: a flag and a red edge, so they don't look like classes */
+.cal-item.deadline { box-shadow: inset 3px 0 0 var(--bad), 0 1px 2px rgba(0, 0, 0, 0.12); background-image: none; }
+
+/* ---------- blocks of the plan ---------- */
+.status-badge { width: 2.15rem; height: 2.15rem; flex: none; display: grid; place-items: center; border-radius: 9px; border: 1px dashed var(--border); color: var(--muted); font-weight: 700; }
+.status-badge.done { background: #dcfce7; color: var(--good); border-style: solid; border-color: #86efac; }
+.status-badge.partial { background: #fef3c7; color: var(--warn); border-style: solid; border-color: #fcd34d; }
+.status-badge.missed { background: #fee2e2; color: var(--bad); border-style: solid; border-color: #fca5a5; }
+.plan-line { margin: 0 0 0.4rem; background: var(--accent-soft); color: var(--text); padding: 0.45rem 0.7rem; border-radius: var(--radius-sm); }
+.blocks-card summary { cursor: pointer; font-weight: 600; }
+.blocks-card[open] summary { margin-bottom: 0.5rem; }

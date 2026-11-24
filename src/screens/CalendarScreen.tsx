@@ -16,7 +16,8 @@ import { useI18n } from '../i18n'
 import Modal from '../components/Modal'
 import NumberField from '../components/NumberField'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
-import StatusButtons from '../components/StatusButtons'
+import StatusButtons, { StatusBadge } from '../components/StatusButtons'
+import { isBlock } from '../logic/taskActions'
 import SubjectSelect from '../components/SubjectSelect'
 import CausePicker from '../components/CausePicker'
 import { EVENT_COLOR, eventColorOf, goalColorOf } from '../components/colors'
@@ -365,7 +366,7 @@ function ItemButton({
   const time = item.start !== null ? `${fromMinutes(item.start)}–${fromMinutes(item.end!)}` : ''
   return (
     <button
-      className={`cal-item ${item.kind}${status ? ` status-${status}` : ''}${compact ? ' compact' : ''}`}
+      className={`cal-item ${item.kind}${item.event?.kind === 'deadline' ? ' deadline' : ''}${status ? ` status-${status}` : ''}${compact ? ' compact' : ''}`}
       style={{ ...style, background: color, borderColor: color }}
       title={`${time} ${title}`.trim()}
       onClick={(e) => {
@@ -375,6 +376,7 @@ function ItemButton({
     >
       <span className="cal-item-title">
         {status === 'done' ? '✓ ' : status === 'partial' ? '½ ' : status === 'missed' ? '✗ ' : ''}
+        {item.event?.kind === 'deadline' ? '🚩 ' : ''}
         {item.event?.repeat_weekly ? '↻ ' : ''}
         {title}
       </span>
@@ -448,6 +450,7 @@ function EventDialog({ event, date, time, onClose }: { event: CalendarEvent | nu
       repeat_weekly: false,
       repeat_until: null,
       notes: '',
+      kind: 'other',
     },
   )
   const [error, setError] = useState('')
@@ -523,6 +526,17 @@ function EventDialog({ event, date, time, onClose }: { event: CalendarEvent | nu
         <input value={f.notes} onChange={(e) => set({ notes: e.target.value })} />
       </label>
       <div className="field">
+        <span>{c.kindLabel}</span>
+        <div className="seg">
+          {(['class', 'deadline', 'other'] as const).map((k) => (
+            <button key={k} type="button" className={(f.kind ?? 'other') === k ? 'on' : undefined} aria-pressed={(f.kind ?? 'other') === k} onClick={() => set({ kind: k })}>
+              {c.kinds[k]}
+            </button>
+          ))}
+        </div>
+        <span className="muted small-text">{c.kindHint}</span>
+      </div>
+      <div className="field">
         <span>{c.color}</span>
         <ColorPicker
           value={f.color ?? null}
@@ -594,8 +608,17 @@ function TaskDialog({
     <Modal title={task.title} onClose={onClose}>
       <p className="muted small-text">{tacticLabel(task.tactic_id, goals, tactics, t.common.other)}</p>
       <div className="row">
-        <StatusButtons task={task} minimum={minimumOf(task.tactic_id, tactics)} />
-        <CausePicker task={task} />
+        {isBlock(task, tactics) ? (
+          <span className="row small-text">
+            <StatusBadge status={task.status} />
+            <Link to="/day?view=close">{t.blocks.markInClosing} →</Link>
+          </span>
+        ) : (
+          <>
+            <StatusButtons task={task} minimum={minimumOf(task.tactic_id, tactics)} />
+            <CausePicker task={task} />
+          </>
+        )}
         {task.status === 'todo' && (
           <Link className="btn" to={`/focus?task=${task.id}`}>
             ▶ {t.nav.focus}

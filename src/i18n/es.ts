@@ -335,6 +335,8 @@ export const es: Dict = {
       hint: 'Añade tus clases, exámenes o reuniones desde Google Calendar, Outlook o el horario de tu universidad: exporta el calendario como archivo .ics y elígelo aquí. Las repeticiones semanales se mantienen. Importar el mismo archivo otra vez actualiza en vez de duplicar. Nada sale de este dispositivo.',
       choose: 'Elegir archivo .ics',
       from: 'Solo eventos desde',
+      kindLabel: '¿Qué contiene este archivo?',
+      kindChoose: '— elige —',
       notIcs: 'Esto no parece un archivo de calendario (.ics).',
       found: (n: number, weekly: number) => `${n} evento(s) para importar${weekly ? `, ${weekly} se repiten cada semana` : ''}.`,
       allDay: 'todo el día',
@@ -516,7 +518,10 @@ export const es: Dict = {
     allPlaced: 'Todas las tareas de esta semana están en el calendario.',
     outsideCycle: 'Esta semana está fuera de tu ciclo actual: solo se ven los eventos.',
     clickSlot: 'Pulsa un hueco libre para añadir un evento o colocar una tarea.',
-    eventsLegend: 'Eventos (color a tu elección)',
+    eventsLegend: 'Eventos (color a tu elección) · 🚩 entrega',
+    kindLabel: 'Tipo',
+    kinds: { class: 'Clase', deadline: 'Entrega / examen', other: 'Otro' },
+    kindHint: 'Solo las entregas aparecen en Día → radar de entregas.',
     changeColors: 'Cambiar colores de objetivos →',
     color: 'Color',
     autoColor: 'Automático (gris)',
@@ -642,6 +647,18 @@ export const es: Dict = {
     notFound: 'Esta asignatura ya no existe.',
   },
 
+  blocks: {
+    todayLine: (n: number, marked: number) => `Plan de hoy: ${n} bloque(s) en el calendario, ${marked} marcado(s).`,
+    toClosing: 'Se marcan en el cierre →',
+    weekTitle: (n: number, marked: number) => `Bloques del plan esta semana (${n}, ${marked} marcados)`,
+    weekHint: 'Salen de tus tácticas. Están en el calendario y se marcan ✓ ½ ✗ en Día → Cierre.',
+    markInClosing: 'Se marca en el cierre de la noche',
+    closingTitle: 'Bloques del plan de hoy',
+    closingHint: '¿Qué hiciste del plan de hoy? Marca cada bloque ✓ hecho, ½ versión mínima o ✗ (con el porqué).',
+    noneToday: 'Hoy no hay bloques planificados.',
+    earlier: (n: number) => `${n} bloque(s) de días anteriores de esta semana sin marcar`,
+  },
+
   day: {
     title: 'Apertura y cierre',
     opening: 'Apertura',
@@ -680,7 +697,7 @@ export const es: Dict = {
     habitsAtRisk: (names: string) => `Hábitos que no puedes fallar dos veces: ${names}`,
     startDay: 'Empezar el día',
     opened: (time: string) => `Día abierto a las ${time}.`,
-    todayTasks: 'Tareas de hoy',
+    todayTasks: 'Tareas para hoy',
     noTodayTasks: 'No hay tareas con fecha de hoy.',
     otherOpen: (n: number) => `Otras pendientes esta semana (${n})`,
     scoreTitle: 'Puntuación del día',
@@ -809,7 +826,7 @@ export const es: Dict = {
       `${done} hechas · ${partial} ½ · ${missed} no hechas · ${open} pendientes · ejecución`,
     empty: 'Aún no hay tareas esta semana. Añade una arriba. Las tareas de tus tácticas aparecen solas cuando empieza la semana.',
     autoRecurring:
-      'Las tareas de tus tácticas se crean solas cada semana (desde el sábado para la semana siguiente). Las que borres no vuelven; subir las “veces por semana” de una táctica añade las tareas que faltan.',
+      'Estas son tus tareas (cosas que hacer). Tus tácticas crean solas BLOQUES del plan cada semana; están en el calendario y se marcan en Día → Cierre.',
     copyTo: (week: string) => `Copiar pendientes a la semana ${week}`,
     nothingToCopy: 'Nada que copiar: no hay tareas pendientes que no estén ya en la semana siguiente.',
     confirmCopy: (n: number, week: number) =>

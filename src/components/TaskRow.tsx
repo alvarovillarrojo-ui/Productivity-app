@@ -1,7 +1,7 @@
 // One task in a list, with one-click ✓ / ½ / ✗ buttons (see StatusButtons).
 import { Link } from 'react-router-dom'
 import type { Task } from '../data/types'
-import StatusButtons from './StatusButtons'
+import StatusButtons, { StatusBadge } from './StatusButtons'
 import CausePicker from './CausePicker'
 import { SubjectTag } from './SubjectSelect'
 import { useI18n } from '../i18n'
@@ -17,11 +17,13 @@ interface Props {
   overdue?: boolean
   /** The tactic's minimum version (what a ½ means), if any. */
   minimum?: string | null
+  /** Blocks of the plan: show the status, don't offer ✓ ½ ✗ (they are marked in the closing). */
+  readOnly?: boolean
   onEdit?: () => void
   onDelete?: () => void
 }
 
-export default function TaskRow({ task, context, showDate = true, overdue, minimum, onEdit, onDelete }: Props) {
+export default function TaskRow({ task, context, showDate = true, overdue, minimum, readOnly, onEdit, onDelete }: Props) {
   const { t, date } = useI18n()
   const hours =
     task.actual_hours !== null
@@ -32,7 +34,7 @@ export default function TaskRow({ task, context, showDate = true, overdue, minim
 
   return (
     <li className={`task-row status-${task.status}`}>
-      <StatusButtons task={task} minimum={minimum} />
+      {readOnly ? <StatusBadge status={task.status} /> : <StatusButtons task={task} minimum={minimum} />}
       <div className="task-main">
         <span className="task-title">{task.title}</span>
         <span className="task-meta">
@@ -55,7 +57,7 @@ export default function TaskRow({ task, context, showDate = true, overdue, minim
             <span className="minimum"> · ½ = {minimum}</span>
           )}
         </span>
-        <CausePicker task={task} />
+        {!readOnly && <CausePicker task={task} />}
       </div>
       {(onEdit || onDelete) && (
         <div className="task-actions">
