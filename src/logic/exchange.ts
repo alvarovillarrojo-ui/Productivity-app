@@ -723,7 +723,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'color' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind' | 'eventKindOptional' | 'taskKindOptional' | 'boolOptional'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'color' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind' | 'eventKindOptional' | 'taskKindOptional' | 'boolOptional' | 'deliverablesOptional'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -759,7 +759,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   topics: { id: 'id', subject_id: 'id', name: 'text', status: 'topicStatus', difficult: 'bool', notes: 'text', sort_order: 'num' },
   exams: {
     id: 'id', subject_id: 'id', kind: 'examKind', title: 'text', date: 'date', start_time: 'timeNull', weight: 'numNull',
-    grade: 'numNull', notes: 'text', created_at: 'text', updated_at: 'text',
+    grade: 'numNull', notes: 'text', deliverables: 'deliverablesOptional', created_at: 'text', updated_at: 'text',
   },
   days: {
     date: 'date', must_do: 'textNull', mode: 'modeNull', reflection: 'text', opened_at: 'textNull', closed_at: 'textNull',
@@ -802,6 +802,21 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'eventKindOptional': return v === undefined || v === null || v === 'class' || v === 'deadline' || v === 'other'
     case 'taskKindOptional': return v === undefined || v === null || v === 'block' || v === 'todo'
     case 'topicStatus': return v === 'todo' || v === 'progress' || v === 'mastered'
+    case 'deliverablesOptional':
+      return (
+        v === undefined ||
+        v === null ||
+        (Array.isArray(v) &&
+          v.every(
+            (d) =>
+              isObj(d) &&
+              typeof d.id === 'string' &&
+              typeof d.title === 'string' &&
+              typeof d.date === 'string' &&
+              isValidDate(d.date) &&
+              (d.start_time === null || (typeof d.start_time === 'string' && isValidTime(d.start_time))),
+          ))
+      )
     case 'examKind': return EXAM_KINDS.includes(v as ExamKind)
     case 'modeNull': return v === null || v === 'planned' || v === 'reactive'
     case 'color': return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)

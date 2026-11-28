@@ -645,3 +645,9 @@ details.card summary { cursor: pointer; font-weight: 600; }
 .block-task-list li.status-done .grow { text-decoration: line-through; color: var(--muted); }
 li.block-inside { list-style: none; margin: -0.2rem 0 0.4rem 2.2rem; }
 .cal-item-badge { font-weight: 400; opacity: 0.9; }
+
+/* ---------- project / group work dates ---------- */
+.deliverables-row td { padding-top: 0; }
+.deliverables { padding: 0.3rem 0 0.5rem 0.8rem; border-left: 3px solid var(--border); white-space: normal; max-width: 34rem; }
+.deliverable { gap: 0.4rem; }
+.deliverable input { max-width: 12rem; }

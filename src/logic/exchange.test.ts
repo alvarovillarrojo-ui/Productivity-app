@@ -213,7 +213,8 @@ describe('backup', () => {
     days: [{ date: '2026-11-10', must_do: 'k1', mode: 'planned', reflection: 'Good day', opened_at: 'x', closed_at: null }],
     subjects: [{ id: 's1', name: 'Corporate Finance', color: null, info: 'Prof. X', weekly_hours_target: 4, archived: false, sort_order: 0, created_at: 'x', updated_at: 'x' }],
     topics: [{ id: 'tp1', subject_id: 's1', name: 'WACC', status: 'progress', difficult: true, notes: 'Review betas', sort_order: 0 }],
-    exams: [{ id: 'ex1', subject_id: 's1', kind: 'final', title: 'Final', date: '2027-01-14', start_time: '18:30', weight: 60, grade: null, notes: '', created_at: 'x', updated_at: 'x' }],
+    exams: [{ id: 'ex1', subject_id: 's1', kind: 'final', title: 'Final', date: '2027-01-14', start_time: '18:30', weight: 60, grade: null, notes: '', created_at: 'x', updated_at: 'x' },
+      { id: 'ex2', subject_id: 's1', kind: 'group', title: 'Case', date: '2027-01-20', start_time: null, weight: 30, grade: null, notes: '', deliverables: [{ id: 'dl1', title: 'Presentation', date: '2027-01-10', start_time: '10:00' }], created_at: 'x', updated_at: 'x' }],
     categories: [{ id: 'cat1', name: 'Uni', color: '#2a78d6', sort_order: 0 }],
   }
 
@@ -247,6 +248,11 @@ describe('backup', () => {
     expect(parseBackup(badDays).issues[0]).toEqual({ code: 'record', path: 'data.habits[0].days' })
     const orphan = buildBackup({ ...data, habit_checks: [{ id: 'z', habit_id: 'gone', date: '2026-11-10' }] }, 'x')
     expect(parseBackup(orphan).issues).toEqual([{ code: 'link', path: 'data.habit_checks[0].habit_id' }])
+  })
+
+  it('rejects a project date that is not a date', () => {
+    const bad = buildBackup({ ...data, exams: [{ id: 'p', subject_id: 's1', kind: 'project', title: '', date: '2027-01-20', start_time: null, weight: null, grade: null, notes: '', created_at: 'x', updated_at: 'x', deliverables: [{ id: 'd', title: 'x', date: 'soon', start_time: null }] }] }, 'x')
+    expect(parseBackup(bad).issues[0]).toEqual({ code: 'record', path: 'data.exams[0].deliverables' })
   })
 
   it('refuses import files and broken backups', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Exam, FocusSession, Subject, Task, Topic } from '../data/types'
-import { difficultTopics, examEvents, nextExam, overallAverage, studyHours, subjectGrades, topicProgress } from './study'
+import { difficultTopics, examEvents, examIdOfEvent, nextExam, overallAverage, studyHours, subjectGrades, topicProgress } from './study'
 
 const exam = (over: Partial<Exam>): Exam => ({
   id: Math.random().toString(), subject_id: 's', kind: 'final', title: '', date: '2027-01-14', start_time: null,
@@ -55,5 +55,31 @@ describe('exams and topics', () => {
     const subject: Subject = { id: 's', name: 'Corporate Finance', color: '#e34948', info: '', weekly_hours_target: null, archived: false, sort_order: 0, created_at: '', updated_at: '' }
     const [ev] = examEvents([exam({ id: 'e1', title: '', start_time: '18:30' })], [subject], () => 'Final', (s) => s.color!)
     expect(ev).toMatchObject({ id: 'exam:e1', title: 'Corporate Finance · Final', start_time: '18:30', end_time: '19:30', repeat_weekly: false, color: '#e34948' })
+  })
+})
+
+describe('projects with several dates', () => {
+  const subject: Subject = { id: 's', name: 'Strategy', color: '#2a78d6', info: '', weekly_hours_target: null, archived: false, sort_order: 0, created_at: '', updated_at: '' }
+  const group = exam({
+    id: 'g1', kind: 'group', title: '', date: '2026-12-15',
+    deliverables: [
+      { id: 'd1', title: 'Report', date: '2026-12-01', start_time: '23:00' },
+      { id: 'd2', title: 'Presentation', date: '2026-12-10', start_time: null },
+    ],
+  })
+  it('the next date can be a deliverable', () => {
+    const r = nextExam([group, exam({ id: 'f', date: '2026-12-20' })], '2026-12-02')
+    expect([r!.exam.id, r!.deliverable?.title, r!.daysLeft]).toEqual(['g1', 'Presentation', 8])
+  })
+  it('each deliverable is its own calendar event, linked back to the project', () => {
+    const evs = examEvents([group], [subject], () => 'Group work', (s) => s.color!)
+    expect(evs.map((e) => [e.id, e.title, e.date])).toEqual([
+      ['exam:g1:d1', 'Strategy · Group work — Report', '2026-12-01'],
+      ['exam:g1:d2', 'Strategy · Group work — Presentation', '2026-12-10'],
+      ['exam:g1', 'Strategy · Group work', '2026-12-15'],
+    ])
+    expect(evs.every((e) => e.kind === 'deadline')).toBe(true)
+    expect(evs.map((e) => examIdOfEvent(e.id))).toEqual(['g1', 'g1', 'g1'])
+    expect(examIdOfEvent('abc')).toBeNull()
   })
 })

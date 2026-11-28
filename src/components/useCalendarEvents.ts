@@ -5,7 +5,7 @@ import * as repo from '../data/repo'
 import { useLive } from '../data/useLive'
 import type { CalendarEvent, EventCategory, Exam, Subject } from '../data/types'
 import { useI18n } from '../i18n'
-import { EXAM_EVENT_PREFIX, examEvents } from '../logic/study'
+import { examEvents, examIdOfEvent } from '../logic/study'
 import { goalColor } from './colors'
 
 export const subjectColorOf = (s: Subject, index: number): string => s.color ?? goalColor(index)
@@ -29,7 +29,9 @@ export function useCalendarEvents(): {
     (k) => t.students.kinds[k],
     (s) => subjectColorOf(s, subjects.indexOf(s)),
   )
-  const subjectOfEvent = (id: string) =>
-    id.startsWith(EXAM_EVENT_PREFIX) ? (exams.find((e) => `${EXAM_EVENT_PREFIX}${e.id}` === id)?.subject_id ?? null) : null
+  const subjectOfEvent = (id: string) => {
+    const examId = examIdOfEvent(id)
+    return examId ? (exams.find((e) => e.id === examId)?.subject_id ?? null) : null
+  }
   return { events: [...events, ...asEvents], categories, subjectOfEvent }
 }

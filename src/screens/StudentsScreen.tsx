@@ -5,12 +5,23 @@
 //                    (status, difficult, notes), study hours, this week's
 //                    study tasks
 // Exams also appear in the Calendar and in Day → deadlines radar.
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import * as repo from '../data/repo'
 import { useActiveCycle, useGoals, useTactics } from '../data/hooks'
 import { useLive } from '../data/useLive'
-import { EXAM_KINDS, type Cycle, type Exam, type ExamKind, type FocusSession, type Subject, type Task, type Topic, type TopicStatus } from '../data/types'
+import {
+  EXAM_KINDS,
+  type Cycle,
+  type Deliverable,
+  type Exam,
+  type ExamKind,
+  type FocusSession,
+  type Subject,
+  type Task,
+  type Topic,
+  type TopicStatus,
+} from '../data/types'
 import { useI18n } from '../i18n'
 import TextField from '../components/TextField'
 import NumberField from '../components/NumberField'
@@ -21,13 +32,17 @@ import { goalColor } from '../components/colors'
 import { subjectColorOf } from '../components/useCalendarEvents'
 import { formatHours, formatPct } from '../logic/metrics'
 import { isBlock } from '../logic/taskActions'
-import { difficultTopics, nextExam, overallAverage, studyHours, subjectGrades, topicProgress } from '../logic/study'
+import { difficultTopics, examDates, nextExam, overallAverage, studyHours, subjectGrades, topicProgress } from '../logic/study'
 import { addDays, defaultWeek, mondayOf, todayISO } from '../logic/weeks'
 
 const DEFAULT_GRADE_GOAL = 9
 const UPCOMING_DAYS = 30
 
 const subjectColor = subjectColorOf
+/** "Final", "Group work — Presentation". */
+const examLabel = (e: Exam, d: Deliverable | null, kind: string) => `${e.title || kind}${d ? ` — ${d.title || '…'}` : ''}`
+/** Projects and group work can have several dates (deliverables). */
+const hasDeliverables = (kind: ExamKind) => kind === 'project' || kind === 'group'
 const fmtGrade = (g: number | null) => (g === null ? '–' : (Math.round(g * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 }))
 
 /** Everything both views need, live. */
@@ -70,7 +85,9 @@ function Overview() {
   const avgOf = (id: string) => subjectGrades(exams.filter((e) => e.subject_id === id)).average
   const overall = overallAverage(active.map((x) => avgOf(x.id)))
   const weekHours = active.reduce((sum, x) => sum + studyHours(x.id, tasks, sessions, inWeek), 0)
-  const upcoming = exams.filter((e) => e.date >= today && e.date <= addDays(today, UPCOMING_DAYS) && active.some((x) => x.id === e.subject_id))
+  const upcoming = examDates(exams.filter((e) => active.some((x) => x.id === e.subject_id))).filter(
+    (d) => d.date >= today && d.date <= addDays(today, UPCOMING_DAYS),
+  )
   const indexOf = (x: Subject) => subjects.indexOf(x)
 
   const add = async () => {
@@ -111,15 +128,16 @@ function Overview() {
             <span className="muted">{s.noUpcoming}</span>
           ) : (
             <ul className="upcoming">
-              {upcoming.slice(0, 4).map((e) => {
+              {upcoming.slice(0, 4).map((d) => {
+                const e = d.exam
                 const subj = subjects.find((x) => x.id === e.subject_id)!
-                const days = Math.round((Date.parse(e.date) - Date.parse(today)) / 86400000)
+                const days = Math.round((Date.parse(d.date) - Date.parse(today)) / 86400000)
                 return (
-                  <li key={e.id}>
+                  <li key={`${e.id}:${d.deliverable?.id ?? ''}`}>
                     <span className="dot-color" style={{ background: subjectColor(subj, indexOf(subj)) }} />
-                    <Link to={`/students/${subj.id}`}>{subj.name}</Link> · {e.title || s.kinds[e.kind]}{' '}
+                    <Link to={`/students/${subj.id}`}>{subj.name}</Link> · {examLabel(e, d.deliverable, s.kinds[e.kind])}{' '}
                     <span className={days <= 3 ? 'bad' : days <= 7 ? 'warn' : 'muted'}>
-                      · {date(e.date)} ({days === 0 ? t.day.today : days === 1 ? t.day.tomorrow : t.day.inDays(days)})
+                      · {date(d.date)} ({days === 0 ? t.day.today : days === 1 ? t.day.tomorrow : t.day.inDays(days)})
                     </span>
                   </li>
                 )
@@ -189,7 +207,7 @@ function SubjectCard({
     <Link to={`/students/${subject.id}`} className="card subject-card" style={{ borderTopColor: color }}>
       <strong className="subject-name">{subject.name}</strong>
       <span className={next ? (next.daysLeft <= 7 ? 'bad small-text' : 'small-text') : 'muted small-text'}>
-        📅 {next ? `${s.nextExam(next.daysLeft)} · ${next.exam.title || s.kinds[next.exam.kind]}` : s.noExams}
+        📅 {next ? `${s.nextExam(next.daysLeft)} · ${examLabel(next.exam, next.deliverable, s.kinds[next.exam.kind])}` : s.noExams}
       </span>
       <div>
         <div className="mini-bar">
@@ -345,38 +363,94 @@ function ExamRow({ exam, past }: { exam: Exam; past: boolean }) {
   const { t } = useI18n()
   const s = t.students
   const save = (changes: Partial<repo.NewExam>) => repo.updateExam(exam.id, changes)
+  const list = exam.deliverables ?? []
+  const setList = (deliverables: Deliverable[]) => save({ deliverables })
+  const change = (id: string, patch: Partial<Deliverable>) => setList(list.map((d) => (d.id === id ? { ...d, ...patch } : d)))
   return (
-    <tr className={past ? 'past-exam' : undefined}>
-      <td>
-        <select value={exam.kind} onChange={(e) => save({ kind: e.target.value as ExamKind })}>
-          {EXAM_KINDS.map((k) => (
-            <option key={k} value={k}>
-              {s.kinds[k]}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td>
-        <TextField ariaLabel={s.examTitle} placeholder={s.kinds[exam.kind]} value={exam.title} onSave={(title) => save({ title })} />
-      </td>
-      <td>
-        <input type="date" value={exam.date} onChange={(e) => e.target.value && save({ date: e.target.value })} />
-      </td>
-      <td>
-        <input type="time" step={900} value={exam.start_time ?? ''} onChange={(e) => save({ start_time: e.target.value || null })} />
-      </td>
-      <td className="num-col">
-        <NumberField className="num small" step={5} max={100} value={exam.weight} placeholder="–" onChange={(v) => save({ weight: v })} />
-      </td>
-      <td className="num-col">
-        <NumberField className="num small" step={0.1} max={10} value={exam.grade} placeholder="–" onChange={(v) => save({ grade: v === null ? null : Math.min(10, v) })} />
-      </td>
-      <td>
-        <button className="link danger" aria-label={t.common.delete} onClick={() => confirm(s.confirmDeleteExam) && repo.deleteExam(exam.id)}>
-          ✕
-        </button>
-      </td>
-    </tr>
+    <Fragment>
+      <tr className={past ? 'past-exam' : undefined}>
+        <td>
+          <select value={exam.kind} onChange={(e) => save({ kind: e.target.value as ExamKind })}>
+            {EXAM_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {s.kinds[k]}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td>
+          <TextField ariaLabel={s.examTitle} placeholder={s.kinds[exam.kind]} value={exam.title} onSave={(title) => save({ title })} />
+        </td>
+        <td>
+          <input type="date" value={exam.date} onChange={(e) => e.target.value && save({ date: e.target.value })} />
+        </td>
+        <td>
+          <input type="time" step={900} value={exam.start_time ?? ''} onChange={(e) => save({ start_time: e.target.value || null })} />
+        </td>
+        <td className="num-col">
+          <NumberField className="num small" step={5} max={100} value={exam.weight} placeholder="–" onChange={(v) => save({ weight: v })} />
+        </td>
+        <td className="num-col">
+          <NumberField
+            className="num small"
+            step={0.1}
+            max={10}
+            value={exam.grade}
+            placeholder="–"
+            onChange={(v) => save({ grade: v === null ? null : Math.min(10, v) })}
+          />
+        </td>
+        <td>
+          <button className="link danger" aria-label={t.common.delete} onClick={() => confirm(s.confirmDeleteExam) && repo.deleteExam(exam.id)}>
+            ✕
+          </button>
+        </td>
+      </tr>
+      {hasDeliverables(exam.kind) && (
+        <tr className="deliverables-row">
+          <td colSpan={7}>
+            <div className="deliverables stack-tight">
+              <span className="small-text">
+                <strong>{s.deliverables}</strong> <span className="muted">· {s.deliverablesHint}</span>
+              </span>
+              {[...list]
+                .sort((a, b) => a.date.localeCompare(b.date))
+                .map((d) => (
+                  <div key={d.id} className="row deliverable">
+                    <span aria-hidden>↳</span>
+                    <TextField
+                      ariaLabel={s.deliverableTitle}
+                      placeholder={s.deliverablePlaceholder}
+                      value={d.title}
+                      onSave={(title) => change(d.id, { title })}
+                    />
+                    <input type="date" aria-label={s.date} value={d.date} onChange={(e) => e.target.value && change(d.id, { date: e.target.value })} />
+                    <input
+                      type="time"
+                      aria-label={s.time}
+                      step={900}
+                      value={d.start_time ?? ''}
+                      onChange={(e) => change(d.id, { start_time: e.target.value || null })}
+                    />
+                    <button
+                      className="link danger"
+                      aria-label={t.common.delete}
+                      onClick={() => confirm(s.confirmDeleteDeliverable) && setList(list.filter((x) => x.id !== d.id))}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              <div>
+                <button className="link" onClick={() => setList([...list, { id: repo.newId(), title: '', date: exam.date, start_time: null }])}>
+                  {s.addDeliverable}
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </Fragment>
   )
 }
 
@@ -442,7 +516,11 @@ function TopicRow({ topic }: { topic: Topic }) {
               </button>
             ))}
           </div>
-          <button className={topic.difficult ? 'chip small hard on' : 'chip small hard'} aria-pressed={topic.difficult} onClick={() => save({ difficult: !topic.difficult })}>
+          <button
+            className={topic.difficult ? 'chip small hard on' : 'chip small hard'}
+            aria-pressed={topic.difficult}
+            onClick={() => save({ difficult: !topic.difficult })}
+          >
             ⚠ {s.difficultFlag}
           </button>
           <button className="link small-text" onClick={() => setOpen(!open)}>
@@ -487,7 +565,13 @@ function StudyTasksCard({ subjectId, cycle, week, tasks }: { subjectId: string; 
       ) : (
         <ul className="task-list">
           {tasks.map((x) => (
-            <TaskRow key={x.id} task={x} readOnly={isBlock(x, tactics)} context={tacticLabel(x.tactic_id, goals, tactics, t.common.other)} minimum={minimumOf(x.tactic_id, tactics)} />
+            <TaskRow
+              key={x.id}
+              task={x}
+              readOnly={isBlock(x, tactics)}
+              context={tacticLabel(x.tactic_id, goals, tactics, t.common.other)}
+              minimum={minimumOf(x.tactic_id, tactics)}
+            />
           ))}
         </ul>
       )}

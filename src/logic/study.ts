@@ -7,7 +7,7 @@
 //     pomodoros (no task) given that subject. Pomodoros on a task are already
 //     in the task's hours, so they are not counted twice.
 //   - EXAMS also appear in the calendar and the deadlines radar, as events.
-import type { CalendarEvent, Exam, FocusSession, ISODate, Subject, Task, Topic } from '../data/types'
+import type { CalendarEvent, Deliverable, Exam, FocusSession, ISODate, Subject, Task, Topic } from '../data/types'
 import { daysBetween } from './weeks'
 
 export interface GradeSummary {
@@ -61,12 +61,29 @@ export function studyHours(
   return Math.round((fromTasks + fromFocus) * 100) / 100
 }
 
-/** The next exam on or after today, with days left. */
-export function nextExam(exams: Exam[], today: ISODate): { exam: Exam; daysLeft: number } | null {
-  const next = exams
-    .filter((e) => e.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date) || (a.start_time ?? '').localeCompare(b.start_time ?? ''))[0]
-  return next ? { exam: next, daysLeft: daysBetween(today, next.date) } : null
+/** One date of an exam: its main date, or one of its deliverables. */
+export interface ExamDate {
+  exam: Exam
+  date: ISODate
+  start_time: string | null
+  /** The deliverable (e.g. "Presentation"), or null for the main date. */
+  deliverable: Deliverable | null
+}
+
+/** All dates of these exams (main dates + deliverables), soonest first. */
+export function examDates(exams: Exam[]): ExamDate[] {
+  return exams
+    .flatMap((exam) => [
+      { exam, date: exam.date, start_time: exam.start_time, deliverable: null },
+      ...(exam.deliverables ?? []).map((d) => ({ exam, date: d.date, start_time: d.start_time, deliverable: d })),
+    ])
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.start_time ?? '').localeCompare(b.start_time ?? ''))
+}
+
+/** The next exam date (or deliverable) on or after today, with days left. */
+export function nextExam(exams: Exam[], today: ISODate): (ExamDate & { daysLeft: number }) | null {
+  const next = examDates(exams).find((d) => d.date >= today)
+  return next ? { ...next, daysLeft: daysBetween(today, next.date) } : null
 }
 
 /** Topics still marked difficult (not yet mastered). */
@@ -80,23 +97,33 @@ export function topicProgress(topics: Topic[]): number | null {
 /** Prefix of the calendar-event id of an exam (so the calendar can open the subject). */
 export const EXAM_EVENT_PREFIX = 'exam:'
 
+/** The calendar-event id of an exam date: "exam:<examId>" or "exam:<examId>:<deliverableId>". */
+export const examEventId = (examId: string, deliverableId?: string): string =>
+  deliverableId ? `${EXAM_EVENT_PREFIX}${examId}:${deliverableId}` : `${EXAM_EVENT_PREFIX}${examId}`
+
+/** The exam id inside an exam event id (null for ordinary events). */
+export const examIdOfEvent = (eventId: string): string | null =>
+  eventId.startsWith(EXAM_EVENT_PREFIX) ? eventId.slice(EXAM_EVENT_PREFIX.length).split(':')[0] : null
+
 /**
- * Exams as one-off calendar events (1 h by default), so the calendar and the
- * deadlines radar show them. Titles: "Corporate Finance · Final".
+ * Exams (and each project deliverable) as one-off calendar events, 1 h by
+ * default, so the calendar and the deadlines radar show them. Titles:
+ * "Corporate Finance · Final", "Strategy · Group work — Presentation".
  */
 export function examEvents(exams: Exam[], subjects: Subject[], kindLabel: (k: Exam['kind']) => string, color: (s: Subject) => string): CalendarEvent[] {
   const byId = new Map(subjects.map((s) => [s.id, s]))
-  return exams.flatMap((e) => {
+  const endOf = (start: string | null) => (start ? `${String(Math.min(23, Number(start.slice(0, 2)) + 1)).padStart(2, '0')}${start.slice(2)}` : null)
+  return examDates(exams).flatMap(({ exam: e, date, start_time, deliverable }) => {
     const subject = byId.get(e.subject_id)
     if (!subject) return []
-    const end = e.start_time ? `${String(Math.min(23, Number(e.start_time.slice(0, 2)) + 1)).padStart(2, '0')}${e.start_time.slice(2)}` : null
+    const name = `${subject.name} · ${e.title || kindLabel(e.kind)}`
     return [
       {
-        id: `${EXAM_EVENT_PREFIX}${e.id}`,
-        title: `${subject.name} · ${e.title || kindLabel(e.kind)}`,
-        date: e.date,
-        start_time: e.start_time,
-        end_time: end,
+        id: examEventId(e.id, deliverable?.id),
+        title: deliverable ? `${name} — ${deliverable.title || '…'}` : name,
+        date,
+        start_time,
+        end_time: endOf(start_time),
         repeat_weekly: false,
         kind: 'deadline' as const,
         repeat_until: null,

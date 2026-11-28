@@ -275,8 +275,17 @@ export interface Topic {
   sort_order: number
 }
 
-export const EXAM_KINDS = ['quiz', 'midterm', 'final', 'assignment', 'other'] as const
+export const EXAM_KINDS = ['quiz', 'midterm', 'final', 'assignment', 'project', 'group', 'other'] as const
 export type ExamKind = (typeof EXAM_KINDS)[number]
+
+/** One more date of a project or group work, e.g. "Presentation". */
+export interface Deliverable {
+  id: string
+  title: string
+  date: ISODate
+  /** "HH:MM", or null = no time. */
+  start_time: string | null
+}
 
 /** An exam or graded deliverable of a subject. Shown in the calendar. */
 export interface Exam {
@@ -291,6 +300,11 @@ export interface Exam {
   /** Grade obtained, 0–10 (null = not yet). */
   grade: number | null
   notes: string
+  /**
+   * Projects and group work: more dates besides the main one (e.g. hand in
+   * the report, then present it). Each shows in the calendar and the radar.
+   */
+  deliverables?: Deliverable[]
   created_at: string
   updated_at: string
 }
