@@ -921,6 +921,8 @@ export const en = {
     newTitle: 'New task title',
     dateOptional: 'Date (optional)',
     hoursOptional: 'Planned hours (optional)',
+    timeOptional: 'Time (optional): the task shows in the calendar',
+    timeNeedsDate: 'Choose a date first to give it a time',
     dateInWeek: 'Date must be in this week.',
     otherNotCounted: 'Other (not counted)',
     planned: 'planned',

@@ -247,6 +247,7 @@ h3 { font-size: 1rem; margin: 0.5rem 0; }
 .home .quick-add input.grow { flex-basis: 100%; }
 .home .quick-add select { flex: 1; max-width: none; }
 .home .quick-add input[type='date'] { width: 9.5rem; }
+.home .quick-add input[type='time'] { width: 7rem; }
 
 .backup-badge {
   font-size: 0.85rem;

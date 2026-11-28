@@ -1,5 +1,6 @@
 // Quick-add form for tasks, used on Home and Tasks.
-// Title + tactic + optional date/hours, Enter to add. The chosen tactic is
+// Title + tactic + optional date/time/hours, Enter to add. A task with a
+// date and a time shows in the calendar for its planned hours (1 h if none). The chosen tactic is
 // kept after adding, so several tasks for the same tactic are quick to enter.
 import { useRef, useState } from 'react'
 import * as repo from '../data/repo'
@@ -7,7 +8,7 @@ import type { Cycle, Goal, Tactic } from '../data/types'
 import { useI18n } from '../i18n'
 import NumberField from './NumberField'
 import TacticSelect from './TacticSelect'
-import { DateInput } from './DateTimeInput'
+import { DateInput, TimeInput } from './DateTimeInput'
 
 interface Props {
   cycle: Cycle
@@ -27,6 +28,7 @@ export default function QuickAdd({ cycle, week, goals, tactics, minDate, maxDate
   // null = "Other"; text = a tactic id.
   const [tacticId, setTacticId] = useState<string | null | undefined>(undefined)
   const [date, setDate] = useState('')
+  const [time, setTime] = useState('')
   const [hours, setHours] = useState<number | null>(null)
 
   const firstActive = tactics.find((x) => x.active)?.id ?? null
@@ -42,11 +44,13 @@ export default function QuickAdd({ cycle, week, goals, tactics, minDate, maxDate
       title: title.trim(),
       tactic_id: chosen,
       planned_date: date || null,
+      start_time: date && time ? time : null,
       planned_hours: hours,
     }
     // Clear the form BEFORE saving, so anything typed while saving isn't lost.
     setTitle('')
     setDate('')
+    setTime('')
     setHours(null)
     titleRef.current?.focus()
     await repo.createTask(task)
@@ -70,6 +74,7 @@ export default function QuickAdd({ cycle, week, goals, tactics, minDate, maxDate
         value={date}
         onChange={(v) => setDate(v)}
       />
+      <TimeInput aria-label={t.tasks.timeOptional} title={date ? t.tasks.timeOptional : t.tasks.timeNeedsDate} disabled={!date} value={time} onChange={setTime} />
       <NumberField className="num small" ariaLabel={t.tasks.hoursOptional} placeholder="h" value={hours} onChange={setHours} />
       <button className="btn primary" type="submit" disabled={!title.trim() || !dateOk}>
         {t.common.add}

@@ -912,6 +912,8 @@ export const es: Dict = {
     newTitle: 'Título de la nueva tarea',
     dateOptional: 'Fecha (opcional)',
     hoursOptional: 'Horas previstas (opcional)',
+    timeOptional: 'Hora (opcional): la tarea sale en el calendario',
+    timeNeedsDate: 'Elige primero una fecha para ponerle hora',
     dateInWeek: 'La fecha debe estar en esta semana.',
     otherNotCounted: 'Otras (no cuentan)',
     planned: 'previstas',
