@@ -116,6 +116,8 @@ export interface Task {
   kind?: 'block' | 'todo'
   /** For a task: the block (plan session) it will be done in, if any. */
   block_id?: string | null
+  /** A step of this project (Projects tab), if any. */
+  project_id?: string | null
   notes: string
   created_at: string
   updated_at: string
@@ -333,6 +335,26 @@ export interface Exam {
   updated_at: string
 }
 
+/** Any project in your life, with steps (tasks), progress and links (logic/projects.ts). */
+export interface Project {
+  id: string
+  name: string
+  notes: string
+  status: 'active' | 'done'
+  /** Its own deadline: shown in the calendar and the deadlines radar. */
+  deadline: ISODate | null
+  /** A subject, and one of its exams/projects (class work), if any. */
+  subject_id: string | null
+  exam_id: string | null
+  /** A tactic of a 12-week goal: its steps then count in that goal's execution %. */
+  tactic_id: string | null
+  /** Progress set by hand (0–100); null = from the steps. */
+  manual_progress: number | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 /**
  * A task that repeats every week (e.g. "Do the laundry", Sunday 10:00).
  * Each week of the active cycle it creates one normal task by itself.
@@ -380,6 +402,8 @@ export interface AllData {
   inbox: InboxItem[]
   /** Added in v0.7 (older backups: none). */
   routines: Routine[]
+  /** Added in v0.7 (older backups: none). */
+  projects: Project[]
 }
 
 /**

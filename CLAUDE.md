@@ -50,11 +50,11 @@ TypeScript + Vite PWA. Live at https://alvarovillarrojo-ui.github.io/Productivit
 - **Storage:**
   - All storage access goes through `src/data/repo.ts`.
   - Schema changes add a new `this.version(n)` in `src/data/db.ts`
-    (currently v10). New record fields are optional, so old data and backups
+    (currently v11). New record fields are optional, so old data and backups
     still load.
   - Add every new field and table to the backup checks: `FIELDS` and
     `OPTIONAL_TABLES` in `src/logic/exchange.ts`.
-- **Logic:** pure logic lives in `src/logic/*.ts` with Vitest tests (~201).
+- **Logic:** pure logic lives in `src/logic/*.ts` with Vitest tests (~207).
   Keep calculations there, not in screens.
 - **Editing files by script:** in Node, use `s.replace(a, () => b)`, because a
   string replacement treats `$&` and `$'` as special. Prefer the Edit tool
@@ -66,7 +66,7 @@ TypeScript + Vite PWA. Live at https://alvarovillarrojo-ui.github.io/Productivit
 src/data/       types.ts (all shapes), db.ts (Dexie), repo.ts (only storage access), hooks.ts, useLive.ts, files.ts
 src/logic/      metrics, weeks, taskActions (recurring blocks, isBlock), calendar, day (free time, radar, lagging),
                 habits, focus (pomodoro), study (grades, hours), exchange (import/export/backup), ics, claudePrompt
-src/screens/    Home, Day (opening/closing), Tasks (+HabitsPanel, RoutinesPanel), Calendar, Studies, Focus, Goals, Tracking, Data, About, setup/
+src/screens/    Home, Day (opening/closing), Tasks (+HabitsPanel, RoutinesPanel), Calendar, Studies, Projects, Focus, Goals, Tracking, Data, About, setup/
 src/components/ TaskRow, StatusButtons (+StatusBadge), CausePicker, QuickAdd, Modal, ColorPicker, DeadlinesCard,
                 useCalendarEvents (events + exams), FocusRunner (+FocusBadge), AutoRecurring, SubjectSelect …
 ```
@@ -92,6 +92,12 @@ font bundled, indigo accent, CSS variables at the top.
   or with no day. They are created with the tactics' blocks
   (`ensureRecurringTasks`) and remembered as `week|r:<id>` in
   `recurring_generated`. A task with no date simply means "this week".
+- **Projects** (`/projects`, `projects` table, logic/projects.ts): any life
+  project. Steps are normal tasks with `project_id` (in the week of their
+  date, or this week) and inherit the project's tactic (they count in that
+  goal's %), subject and exam. Progress = steps done (½ partial) ÷ steps, or
+  `manual_progress`. The deadline is a `project:<id>` deadline event
+  (calendar, radar). Deleting a project keeps its steps.
 - **Execution %** = (done + ½·partial) ÷ (done + partial + missed + overdue).
   Target 85%. Tasks with no tactic ("Other") don't count.
 - **Fail causes** on ✗: Planificación · Imprevisto · Energía · Sentido.

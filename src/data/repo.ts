@@ -4,6 +4,7 @@
 // to a cloud database later, rewrite this file (and `useLive.ts`) and keep the
 // same function names; the UI does not need to change.
 import { AREA_DEFAULT_COLORS, missingFixedAreas } from '../logic/areas'
+import { sortProjects, stepWeek } from '../logic/projects'
 import { db } from './db'
 import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
 import { planRecurring, planRoutines, scheduleOf, weeksToPrepare } from '../logic/taskActions'
@@ -28,6 +29,7 @@ import type {
   Habit,
   HabitCheck,
   InboxItem,
+  Project,
   Routine,
   ISODate,
   MissCause,
@@ -661,11 +663,12 @@ export async function updateSubject(id: string, changes: Partial<Omit<Subject, A
 
 /** Deletes a subject with its topics, exams and logged hours; its tasks are kept (without subject). */
 export async function deleteSubject(id: string): Promise<void> {
-  await db.transaction('rw', [db.subjects, db.topics, db.exams, db.tasks, db.focus_sessions, db.study_logs], async () => {
+  await db.transaction('rw', [db.subjects, db.topics, db.exams, db.tasks, db.focus_sessions, db.study_logs, db.projects], async () => {
     await db.topics.where('subject_id').equals(id).delete()
     await db.exams.where('subject_id').equals(id).delete()
     await db.study_logs.where('subject_id').equals(id).delete()
     await db.tasks.where('subject_id').equals(id).modify({ subject_id: null, topic_id: null, exam_id: null })
+    await db.projects.filter((p) => p.subject_id === id).modify({ subject_id: null, exam_id: null })
     await db.focus_sessions.filter((s) => s.subject_id === id).modify({ subject_id: null, topic_id: null, exam_id: null })
     await db.subjects.delete(id)
   })
@@ -799,6 +802,86 @@ export async function deleteStudyLog(id: string): Promise<void> {
   await db.study_logs.delete(id)
 }
 
+// ---------- projects (steps are tasks with project_id) ----------
+
+export async function listProjects(): Promise<Project[]> {
+  return sortProjects(await db.projects.toArray())
+}
+
+export async function getProject(id: string): Promise<Project | undefined> {
+  return db.projects.get(id)
+}
+
+export async function createProject(name: string): Promise<Project> {
+  const stamp = now()
+  const project: Project = {
+    id: newId(), name: name.trim(), notes: '', status: 'active', deadline: null, subject_id: null, exam_id: null, tactic_id: null,
+    manual_progress: null, sort_order: await db.projects.count(), created_at: stamp, updated_at: stamp,
+  }
+  await db.projects.add(project)
+  return project
+}
+
+/** Saves changes. New links (tactic, subject, exam) also apply to all its steps. */
+export async function updateProject(id: string, changes: Partial<Omit<Project, 'id' | 'created_at'>>): Promise<void> {
+  await db.transaction('rw', db.projects, db.tasks, async () => {
+    await db.projects.update(id, { ...changes, updated_at: now() })
+    const links: Partial<Task> = {}
+    if ('tactic_id' in changes) links.tactic_id = changes.tactic_id ?? null
+    if ('subject_id' in changes) Object.assign(links, { subject_id: changes.subject_id ?? null, topic_id: null, exam_id: null })
+    if ('exam_id' in changes) links.exam_id = changes.exam_id ?? null
+    if (Object.keys(links).length) await db.tasks.where('project_id').equals(id).modify({ ...links, updated_at: now() })
+  })
+}
+
+/** Deletes the project; its steps stay as normal tasks. */
+export async function deleteProject(id: string): Promise<void> {
+  await db.transaction('rw', db.projects, db.tasks, async () => {
+    await db.tasks.where('project_id').equals(id).modify({ project_id: null })
+    await db.projects.delete(id)
+  })
+}
+
+/** A project's steps (in every cycle), by date then creation. */
+export async function listProjectSteps(projectId: string): Promise<Task[]> {
+  const steps = await db.tasks.where('project_id').equals(projectId).toArray()
+  return steps.sort((a, b) => (a.planned_date ?? '9999').localeCompare(b.planned_date ?? '9999') || a.created_at.localeCompare(b.created_at))
+}
+
+/** All steps of all projects (for progress on the list). */
+export async function listAllProjectSteps(): Promise<Task[]> {
+  return db.tasks.filter((t) => Boolean(t.project_id)).toArray()
+}
+
+/**
+ * Adds a step: a normal task in the active cycle (the week of its date, or
+ * this week), with the project's links. Fails if there is no active cycle or
+ * the date is outside it.
+ */
+export async function addProjectStep(
+  projectId: string,
+  step: { title: string; date: ISODate | null; time: string | null; hours: number | null },
+  today: ISODate,
+): Promise<Task> {
+  const [cycle, project] = await Promise.all([getActiveCycle(), db.projects.get(projectId)])
+  if (!cycle) throw new Error('noCycle')
+  if (!project) throw new Error('noProject')
+  const week = stepWeek(cycle, step.date, today)
+  if (week === null) throw new Error('outsideCycle')
+  return createTask({
+    cycle_id: cycle.id,
+    week_number: week,
+    title: step.title.trim(),
+    planned_date: step.date,
+    start_time: step.date ? step.time : null,
+    planned_hours: step.hours,
+    tactic_id: project.tactic_id,
+    subject_id: project.subject_id,
+    exam_id: project.exam_id,
+    project_id: project.id,
+  })
+}
+
 // ---------- tasks that repeat every week ----------
 
 export async function listRoutines(): Promise<Routine[]> {
@@ -860,7 +943,7 @@ export async function listAllFocusSessions(): Promise<FocusSession[]> {
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox', 'routines'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox', 'routines', 'projects'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */

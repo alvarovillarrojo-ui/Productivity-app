@@ -731,7 +731,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'color' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind' | 'eventKindOptional' | 'taskKindOptional' | 'boolOptional' | 'deliverablesOptional'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'color' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind' | 'eventKindOptional' | 'taskKindOptional' | 'boolOptional' | 'deliverablesOptional' | 'projectStatus'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -751,7 +751,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   tasks: {
     id: 'id', cycle_id: 'id', week_number: 'int', title: 'text', tactic_id: 'textNull',
     planned_date: 'dateNull', planned_hours: 'numNull', actual_hours: 'numNull', status: 'status',
-    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', subject_id: 'textOptional', topic_id: 'textOptional', exam_id: 'textOptional', kind: 'taskKindOptional', block_id: 'textOptional', created_at: 'text', updated_at: 'text',
+    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', subject_id: 'textOptional', topic_id: 'textOptional', exam_id: 'textOptional', kind: 'taskKindOptional', block_id: 'textOptional', project_id: 'textOptional', created_at: 'text', updated_at: 'text',
   },
   // Added in v0.2. Backups from v0.1 don't have these lists (= no habits).
   habits: {
@@ -778,6 +778,10 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   study_logs: { id: 'id', subject_id: 'id', topic_id: 'textNull', exam_id: 'textNull', date: 'date', hours: 'num', note: 'text', created_at: 'text' },
   categories: { id: 'id', name: 'text', color: 'color', sort_order: 'num', fixed: 'textOptional' },
   inbox: { id: 'id', text: 'text', created_at: 'text' },
+  projects: {
+    id: 'id', name: 'text', notes: 'text', status: 'projectStatus', deadline: 'dateNull', subject_id: 'textNull', exam_id: 'textNull', tactic_id: 'textNull',
+    manual_progress: 'numNull', sort_order: 'num', created_at: 'text', updated_at: 'text',
+  },
   routines: { id: 'id', title: 'text', tactic_id: 'textNull', weekday: 'numNull', start_time: 'timeNull', planned_hours: 'numNull', active: 'bool', created_at: 'text' },
   events: {
     id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',
@@ -786,7 +790,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
 }
 
 /** Lists that older backups may not have yet. */
-const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox', 'routines']
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox', 'routines', 'projects']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -813,6 +817,7 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'eventKindOptional': return v === undefined || v === null || v === 'class' || v === 'deadline' || v === 'other'
     case 'taskKindOptional': return v === undefined || v === null || v === 'block' || v === 'todo'
     case 'topicStatus': return v === 'todo' || v === 'progress' || v === 'mastered'
+    case 'projectStatus': return v === 'active' || v === 'done'
     case 'deliverablesOptional':
       return (
         v === undefined ||
@@ -922,6 +927,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       study_logs: data.study_logs.map((x) => pick(x, 'study_logs')),
       inbox: data.inbox.map((x) => pick(x, 'inbox')),
       routines: data.routines.map((x) => pick(x, 'routines')),
+      projects: data.projects.map((x) => pick(x, 'projects')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }

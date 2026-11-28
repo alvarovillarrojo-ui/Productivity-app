@@ -24,6 +24,7 @@ import CausePicker from '../components/CausePicker'
 import { EVENT_COLOR, eventColorOf, goalColorOf, PICKER_COLORS } from '../components/colors'
 import { areaColors, groupOfItem, isPickableArea, type CalendarGroup } from '../logic/areas'
 import { useLive } from '../data/useLive'
+import { projectIdOfEvent } from '../logic/projects'
 import ColorPicker from '../components/ColorPicker'
 import TextField from '../components/TextField'
 import BlockTasks, { blockBadge } from '../components/BlockTasks'
@@ -91,7 +92,9 @@ export default function CalendarScreen() {
   const groupOf = (item: CalendarItem) => groupOfItem(item, tacticGoal, categories)
   const visible = (items: CalendarItem[]) => (hidden.size ? items.filter((i) => !hidden.has(groupOf(i))) : items)
   const openItem = (item: CalendarItem) => {
-    // An exam opens its subject (exams are edited in Studies).
+    // An exam opens its subject (exams are edited in Studies); a project's deadline opens the project.
+    const projectId = item.kind === 'event' ? projectIdOfEvent(item.event!.id) : null
+    if (projectId) return navigate(`/projects/${projectId}`)
     const subjectId = item.kind === 'event' ? subjectOfEvent(item.event!.id) : null
     if (subjectId) return navigate(`/students/${subjectId}`)
     return item.kind === 'event'

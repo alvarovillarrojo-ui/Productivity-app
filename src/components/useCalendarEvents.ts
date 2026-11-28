@@ -3,7 +3,8 @@
 // event belongs to, so clicking it can open the subject.
 import * as repo from '../data/repo'
 import { useLive } from '../data/useLive'
-import type { CalendarEvent, EventCategory, Exam, Subject } from '../data/types'
+import type { CalendarEvent, EventCategory, Exam, Project, Subject } from '../data/types'
+import { projectDeadlineEvents } from '../logic/projects'
 import { useI18n } from '../i18n'
 import { examEvents, examIdOfEvent } from '../logic/study'
 import { goalColor } from './colors'
@@ -34,5 +35,8 @@ export function useCalendarEvents(): {
     const examId = examIdOfEvent(id)
     return examId ? (exams.find((e) => e.id === examId)?.subject_id ?? null) : null
   }
-  return { events: [...events, ...asEvents], categories, subjectOfEvent }
+  // Each open project's deadline (Projects tab).
+  const projects = useLive(repo.listProjects, [], [] as Project[])
+  const projectEvents = projectDeadlineEvents(projects).map((e) => ({ ...e, color: areas.deadline }))
+  return { events: [...events, ...asEvents, ...projectEvents], categories, subjectOfEvent }
 }

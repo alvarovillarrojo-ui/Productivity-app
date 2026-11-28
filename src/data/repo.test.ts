@@ -87,7 +87,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [], projects: [] })
   })
 })
 
@@ -180,7 +180,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [], projects: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -203,6 +203,7 @@ describe('backup data', () => {
       study_logs: [],
       inbox: [],
       routines: [],
+      projects: [],
       tasks: [
         {
           id: repo.newId(),
@@ -292,6 +293,27 @@ describe('applyImport', () => {
     const { plan } = parseImport(file, null) // planned as if nothing were active
     await expect(repo.applyImport(plan!)).rejects.toThrow()
     expect(await repo.listCycles()).toHaveLength(1)
+  })
+})
+
+describe('projects', () => {
+  it('steps are tasks with the project links, and progress follows them', async () => {
+    const { cycle, tactic } = await seed() // cycle starts Monday 5 Jan 2026
+    const s = await repo.createSubject('Corporate Finance')
+    const p = await repo.createProject('Valuation project')
+    await repo.updateProject(p.id, { tactic_id: tactic.id, subject_id: s.id, deadline: '2026-02-20' })
+    const a = await repo.addProjectStep(p.id, { title: 'Choose company', date: '2026-01-14', time: '10:00', hours: 2 }, '2026-01-07')
+    const b = await repo.addProjectStep(p.id, { title: 'Write draft', date: null, time: '10:00', hours: null }, '2026-01-07')
+    expect([a.week_number, a.start_time, a.tactic_id, a.subject_id, a.project_id, a.kind]).toEqual([2, '10:00', tactic.id, s.id, p.id, 'todo'])
+    expect([b.week_number, b.start_time]).toEqual([1, null])
+    await expect(repo.addProjectStep(p.id, { title: 'Late', date: '2027-01-01', time: null, hours: null }, '2026-01-07')).rejects.toThrow('outsideCycle')
+    // A new link reaches the steps too.
+    await repo.updateProject(p.id, { tactic_id: null })
+    expect((await repo.listProjectSteps(p.id)).map((x) => [x.title, x.tactic_id])).toEqual([['Choose company', null], ['Write draft', null]])
+    // Deleting the project keeps its steps as normal tasks.
+    await repo.deleteProject(p.id)
+    expect((await db.tasks.get(a.id))?.project_id).toBeNull()
+    expect((await repo.listTasksForWeek(cycle.id, 2)).map((x) => x.title)).toContain('Choose company')
   })
 })
 
@@ -549,7 +571,7 @@ describe('day journal', () => {
     expect(await repo.getDay('2026-11-23')).toMatchObject({ must_do: 'task1', mode: 'planned', reflection: 'Good focus' })
     const all = await repo.exportAll()
     expect(all.days).toHaveLength(1)
-    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [] })
+    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [], projects: [] })
     expect(await repo.getDay('2026-11-23')).toBeNull()
   })
 })
