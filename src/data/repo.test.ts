@@ -624,6 +624,15 @@ describe('colour areas', () => {
   })
 })
 
+describe('calendar groups', () => {
+  it('remembers hidden groups, even when two are tapped at once', async () => {
+    await Promise.all([repo.toggleCalendarGroup('uni'), repo.toggleCalendarGroup('rest')])
+    expect((await repo.getSetting('calendarHidden'))?.sort()).toEqual(['rest', 'uni'])
+    await repo.toggleCalendarGroup('uni')
+    expect(await repo.getSetting('calendarHidden')).toEqual(['rest'])
+  })
+})
+
 describe('inbox', () => {
   it('keeps notes in order and turns one into a task in one step', async () => {
     const cycle = await repo.createCycle({ name: 'Inbox cycle', start_date: '2026-11-23', length_weeks: 12, vision: null, notes: '', status: 'active' })

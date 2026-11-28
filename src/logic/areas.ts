@@ -54,3 +54,30 @@ export function examArea(exam: Pick<Exam, 'kind'>, isDeliverable: boolean): 'exa
 /** The fixed areas that are missing (to be created, e.g. on first start). */
 export const missingFixedAreas = (categories: EventCategory[]): FixedArea[] =>
   FIXED_AREAS.filter((a) => !categories.some((c) => c.fixed === a))
+
+// ---------- show / hide groups in the calendar ----------
+// Groups (decided with the owner): one per goal (its tasks and blocks),
+// Uni (classes and Uni events), Exams (exams and deadlines) and the Rest
+// (tasks with no goal, Day to day, Travel, your own areas, plain events).
+
+/** "goal:<id>", "uni", "exams" or "rest". */
+export type CalendarGroup = `goal:${string}` | 'uni' | 'exams' | 'rest'
+
+/** The group a calendar item belongs to. `goalOfTactic`: tactic id → goal id. */
+export function groupOfItem(
+  item: { kind: 'task' | 'event'; task?: { tactic_id: string | null }; event?: CalendarEvent },
+  goalOfTactic: Map<string, string>,
+  categories: EventCategory[],
+): CalendarGroup {
+  if (item.kind === 'task') {
+    const goal = item.task?.tactic_id ? goalOfTactic.get(item.task.tactic_id) : undefined
+    return goal ? `goal:${goal}` : 'rest'
+  }
+  const e = item.event!
+  if (e.id.startsWith('exam:')) return 'exams'
+  const category = e.category_id ? categories.find((c) => c.id === e.category_id) : undefined
+  if (category) return category.fixed === 'uni' ? 'uni' : category.fixed === 'exam' || category.fixed === 'deadline' ? 'exams' : 'rest'
+  if (e.kind === 'deadline') return 'exams'
+  if (e.kind === 'class') return 'uni'
+  return 'rest'
+}

@@ -22,7 +22,8 @@ import SubjectSelect from '../components/SubjectSelect'
 import StudyTargetSelect from '../components/StudyTargetSelect'
 import CausePicker from '../components/CausePicker'
 import { EVENT_COLOR, eventColorOf, goalColorOf, PICKER_COLORS } from '../components/colors'
-import { isPickableArea } from '../logic/areas'
+import { areaColors, groupOfItem, isPickableArea, type CalendarGroup } from '../logic/areas'
+import { useLive } from '../data/useLive'
 import ColorPicker from '../components/ColorPicker'
 import TextField from '../components/TextField'
 import BlockTasks, { blockBadge } from '../components/BlockTasks'
@@ -83,6 +84,12 @@ export default function CalendarScreen() {
     const goalId = item.task?.tactic_id ? tacticGoal.get(item.task.tactic_id) : undefined
     return (goalId !== undefined && goalColorById.get(goalId)) || OTHER_COLOR
   }
+  // Groups you hid (one per goal, Uni, Exams, Rest), remembered on this device.
+  const hiddenList = useLive(async () => (await repo.getSetting('calendarHidden')) ?? [], [], [] as string[])
+  const hidden = new Set(hiddenList)
+  const toggleGroup = (g: CalendarGroup) => repo.toggleCalendarGroup(g)
+  const groupOf = (item: CalendarItem) => groupOfItem(item, tacticGoal, categories)
+  const visible = (items: CalendarItem[]) => (hidden.size ? items.filter((i) => !hidden.has(groupOf(i))) : items)
   const openItem = (item: CalendarItem) => {
     // An exam opens its subject (exams are edited in Studies).
     const subjectId = item.kind === 'event' ? subjectOfEvent(item.event!.id) : null
@@ -147,6 +154,17 @@ export default function CalendarScreen() {
         </button>
         <strong className="cal-label">{label}</strong>
       </div>
+      <GroupSwitches
+        groups={[
+          ...goals.map((g, i) => ({ key: `goal:${g.id}` as CalendarGroup, name: g.name, color: goalColorOf(g, i) })),
+          { key: 'uni', name: c.groupUni, color: areaColors(categories).uni },
+          { key: 'exams', name: c.groupExams, color: areaColors(categories).exam },
+          { key: 'rest', name: c.groupRest, color: OTHER_COLOR },
+        ]}
+        hidden={hidden}
+        onToggle={toggleGroup}
+        onShowAll={() => repo.setSetting('calendarHidden', [])}
+      />
 
       {view === 'week' ? (
         <>
@@ -154,7 +172,7 @@ export default function CalendarScreen() {
           <WeekView
             days={days}
             today={today}
-            items={calendarItems(events, shown, days[0], days[6])}
+            items={visible(calendarItems(events, shown, days[0], days[6]))}
             colorOf={colorOf}
             badgeOf={(i) => (i.task ? blockBadge(i.task.id, tasks) : '')}
             onItem={openItem}
@@ -204,7 +222,7 @@ export default function CalendarScreen() {
           grid={grid}
           month={date.slice(0, 7)}
           today={today}
-          items={calendarItems(events, shown, grid[0], grid[41])}
+          items={visible(calendarItems(events, shown, grid[0], grid[41]))}
           colorOf={colorOf}
           onDay={(d) => go('week', d)}
         />
@@ -273,6 +291,44 @@ export default function CalendarScreen() {
         />
       )}
     </section>
+  )
+}
+
+// ---------- show / hide groups ----------
+
+/** One switch per group: on = shown. Tap to hide or show. */
+function GroupSwitches({
+  groups,
+  hidden,
+  onToggle,
+  onShowAll,
+}: {
+  groups: { key: CalendarGroup; name: string; color: string }[]
+  hidden: Set<string>
+  onToggle: (g: CalendarGroup) => void
+  onShowAll: () => void
+}) {
+  const { t } = useI18n()
+  const c = t.calendar
+  const anyHidden = groups.some((g) => hidden.has(g.key))
+  return (
+    <div className="row group-switches" title={c.groupHint}>
+      <span className="muted small-text">{c.showLabel}</span>
+      {groups.map((g) => {
+        const on = !hidden.has(g.key)
+        return (
+          <button key={g.key} type="button" className={on ? 'chip group-chip on' : 'chip group-chip'} aria-pressed={on} onClick={() => onToggle(g.key)}>
+            <span className="dot-color" style={{ background: on ? g.color : 'transparent', borderColor: g.color }} />
+            {g.name}
+          </button>
+        )
+      })}
+      {anyHidden && (
+        <button type="button" className="link small-text" onClick={onShowAll}>
+          {c.showAll}
+        </button>
+      )}
+    </div>
   )
 }
 

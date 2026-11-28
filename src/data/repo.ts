@@ -367,6 +367,15 @@ export async function setSetting<K extends SettingKey>(
   await db.settings.put({ key, value })
 }
 
+/** Hides a calendar group, or shows it again (one locked step, so quick taps all count). */
+export async function toggleCalendarGroup(group: string): Promise<void> {
+  await db.transaction('rw', db.settings, async () => {
+    const row = await db.settings.get('calendarHidden')
+    const current = (row?.value as string[] | undefined) ?? []
+    await db.settings.put({ key: 'calendarHidden', value: current.includes(group) ? current.filter((x) => x !== group) : [...current, group] })
+  })
+}
+
 export async function deleteSetting(key: SettingKey): Promise<void> {
   await db.settings.delete(key)
 }

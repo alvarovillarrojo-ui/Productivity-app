@@ -383,6 +383,8 @@ export interface SettingValues {
   dayWindow: { start: string; end: string }
   /** Average grade you aim for (Students tab), e.g. 9. */
   gradeGoal: number
+  /** Calendar groups hidden on this device (logic/areas.ts CalendarGroup). */
+  calendarHidden: string[]
 }
 export type SettingKey = keyof SettingValues
 
