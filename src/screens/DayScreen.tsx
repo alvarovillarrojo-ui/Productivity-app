@@ -26,6 +26,7 @@ import { StatusBadge } from '../components/StatusButtons'
 import { calendarItems, fromMinutes, isValidTime, toMinutes } from '../logic/calendar'
 import { busyOn, formatMinutes, freeSlots, lagging } from '../logic/day'
 import DeadlinesCard from '../components/DeadlinesCard'
+import { InboxReview } from '../components/Inbox'
 import { checkSet, isPlanned, missedLastTime } from '../logic/habits'
 import { executionPoints, formatHours, formatPct, isDue, weekExecution } from '../logic/metrics'
 import { addDays, cycleEnd, cyclePosition, daysBetween, defaultWeek, todayISO, weekEnd } from '../logic/weeks'
@@ -209,6 +210,7 @@ function Opening({ cycle, today, entry, nowMin }: { cycle: Cycle; today: string;
       </div>
 
       <DeadlinesCard />
+      <InboxReview cycle={cycle} />
 
       <div className="card stack">
         <h2>⚠️ {d.laggingTitle}</h2>
@@ -288,6 +290,7 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
 
   return (
     <>
+      <InboxReview cycle={cycle} />
       <div className="card">
         <h2>🗓 {t.blocks.closingTitle}</h2>
         <p className="muted small-text">{t.blocks.closingHint}</p>

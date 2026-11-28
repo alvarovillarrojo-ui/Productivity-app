@@ -702,6 +702,19 @@ export const es: Dict = {
     notFound: 'Esta asignatura ya no existe.',
   },
 
+  inbox: {
+    title: 'Bandeja',
+    placeholder: 'Apunta algo para hacer luego…',
+    add: 'Guardar',
+    remove: 'Quitar',
+    waiting: (n: number) => `${n} pendiente(s). Las verás en Día → Apertura y Cierre.`,
+    reviewTitle: (n: number) => `Bandeja (${n})`,
+    reviewHint: 'Cosas que apuntaste. Conviértelas en tarea, o márcalas si ya están hechas o ya no hacen falta.',
+    today: '→ Hoy',
+    week: '→ Esta semana',
+    done: 'Hecho',
+    doneHint: 'Hecho o ya no hace falta: sale de la bandeja',
+  },
   blocks: {
     todayLine: (n: number, marked: number) => `Plan de hoy: ${n} bloque(s) en el calendario, ${marked} marcado(s).`,
     toClosing: 'Se marcan en el cierre →',

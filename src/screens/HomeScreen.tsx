@@ -19,6 +19,7 @@ import { MustDoBanner } from './DayScreen'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import { isBlock } from '../logic/taskActions'
 import DeadlinesCard from '../components/DeadlinesCard'
+import { InboxCapture } from '../components/Inbox'
 import { useCalendarEvents } from '../components/useCalendarEvents'
 import { eventColorOf } from '../components/colors'
 import { calendarItems, fromMinutes, toMinutes, type CalendarItem } from '../logic/calendar'
@@ -114,6 +115,7 @@ function HomeForCycle({ cycle }: { cycle: Cycle }) {
       <div className="home-grid">
         <div className="stack">
           <QuickAdd cycle={cycle} week={week} goals={goals} tactics={tactics} minDate={first} maxDate={last} />
+          <InboxCapture />
 
           <div>
             <h2>{t.home.today}</h2>

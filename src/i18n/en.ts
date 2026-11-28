@@ -706,6 +706,19 @@ export const en = {
     notFound: 'This subject doesn’t exist any more.',
   },
 
+  inbox: {
+    title: 'Inbox',
+    placeholder: 'Jot something down to do later…',
+    add: 'Save',
+    remove: 'Remove',
+    waiting: (n: number) => `${n} waiting. You will see them in Day → Opening and Closing.`,
+    reviewTitle: (n: number) => `Inbox (${n})`,
+    reviewHint: 'Things you jotted down. Turn each into a task, or tick it off if it is done or no longer needed.',
+    today: '→ Today',
+    week: '→ This week',
+    done: 'Done',
+    doneHint: 'Done or not needed: take it out of the inbox',
+  },
   blocks: {
     todayLine: (n: number, marked: number) => `Today’s plan: ${n} block(s) in the calendar, ${marked} marked.`,
     toClosing: 'Mark them in the closing →',

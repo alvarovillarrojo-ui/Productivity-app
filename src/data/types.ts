@@ -328,6 +328,13 @@ export interface Exam {
   updated_at: string
 }
 
+/** Something jotted down on Home to deal with later (in Day → Opening / Closing). */
+export interface InboxItem {
+  id: string
+  text: string
+  created_at: string
+}
+
 /** All user data in one object: what a backup contains. */
 export interface AllData {
   cycles: Cycle[]
@@ -346,6 +353,8 @@ export interface AllData {
   categories: EventCategory[]
   /** Added in v0.6 (older backups: none). */
   study_logs: StudyLog[]
+  /** Added in v0.7 (older backups: none). */
+  inbox: InboxItem[]
 }
 
 /**

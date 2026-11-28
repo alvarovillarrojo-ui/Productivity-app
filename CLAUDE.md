@@ -50,11 +50,11 @@ TypeScript + Vite PWA. Live at https://alvarovillarrojo-ui.github.io/Productivit
 - **Storage:**
   - All storage access goes through `src/data/repo.ts`.
   - Schema changes add a new `this.version(n)` in `src/data/db.ts`
-    (currently v8). New record fields are optional, so old data and backups
+    (currently v9). New record fields are optional, so old data and backups
     still load.
   - Add every new field and table to the backup checks: `FIELDS` and
     `OPTIONAL_TABLES` in `src/logic/exchange.ts`.
-- **Logic:** pure logic lives in `src/logic/*.ts` with Vitest tests (~174).
+- **Logic:** pure logic lives in `src/logic/*.ts` with Vitest tests (~189).
   Keep calculations there, not in screens.
 - **Editing files by script:** in Node, use `s.replace(a, () => b)`, because a
   string replacement treats `$&` and `$'` as special. Prefer the Edit tool
@@ -109,6 +109,10 @@ font bundled, indigo accent, CSS variables at the top.
     dates (`deliverables`); each date is a calendar event `exam:<id>:<dId>`.
   - Tasks, free pomodoros and logs can name a `topic_id` or `exam_id`; the
     subject page shows hours by topic and exam (`studyBreakdown`).
+- **Inbox** (`inbox` table): notes jotted down on Home; dealt with in Day →
+  Opening/Closing (→ task today, → this week, or done).
+- **Form fields:** use `NumberField` (accepts "3,5") and `DateInput` /
+  `TimeInput` (components/DateTimeInput) instead of raw number/date/time inputs.
 - **Plan with Claude:** a copy/paste prompt (Data). The app never calls an AI
   itself.
 

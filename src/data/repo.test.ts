@@ -87,7 +87,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [] })
   })
 })
 
@@ -180,7 +180,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -201,6 +201,7 @@ describe('backup data', () => {
       exams: [],
       categories: [],
       study_logs: [],
+      inbox: [],
       tasks: [
         {
           id: repo.newId(),
@@ -520,7 +521,7 @@ describe('day journal', () => {
     expect(await repo.getDay('2026-11-23')).toMatchObject({ must_do: 'task1', mode: 'planned', reflection: 'Good focus' })
     const all = await repo.exportAll()
     expect(all.days).toHaveLength(1)
-    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] })
+    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [] })
     expect(await repo.getDay('2026-11-23')).toBeNull()
   })
 })
@@ -603,6 +604,19 @@ describe('tasks inside a block', () => {
     await repo.updateTask(inside.id, { block_id: block.id })
     await repo.deleteTask(block.id)
     expect(await db.tasks.get(inside.id)).toMatchObject({ title: 'DCF exercise', block_id: null })
+  })
+})
+
+describe('inbox', () => {
+  it('keeps notes in order and turns one into a task in one step', async () => {
+    const cycle = await repo.createCycle({ name: 'Inbox cycle', start_date: '2026-11-23', length_weeks: 12, vision: null, notes: '', status: 'active' })
+    const a = await repo.addToInbox('  Call the bank ')
+    await repo.addToInbox('Buy a gift')
+    expect((await repo.listInbox()).map((x) => x.text)).toEqual(['Call the bank', 'Buy a gift'])
+    const task = await repo.inboxToTask(a.id, { cycle_id: cycle.id, week_number: 1, title: a.text, planned_date: '2026-11-24' })
+    expect(await db.tasks.get(task.id)).toMatchObject({ title: 'Call the bank', planned_date: '2026-11-24', status: 'todo', kind: 'todo' })
+    expect((await repo.listInbox()).map((x) => x.text)).toEqual(['Buy a gift'])
+    expect((await repo.exportAll()).inbox).toHaveLength(1)
   })
 })
 

@@ -25,6 +25,7 @@ import type {
   Goal,
   Habit,
   HabitCheck,
+  InboxItem,
   ISODate,
   MissCause,
   PersistStatus,
@@ -764,6 +765,33 @@ export async function deleteStudyLog(id: string): Promise<void> {
   await db.study_logs.delete(id)
 }
 
+// ---------- inbox (jotted down on Home, dealt with in Day) ----------
+
+/** Everything in the inbox, oldest first. */
+export async function listInbox(): Promise<InboxItem[]> {
+  return db.inbox.orderBy('created_at').toArray()
+}
+
+export async function addToInbox(text: string): Promise<InboxItem> {
+  const item: InboxItem = { id: newId(), text: text.trim(), created_at: now() }
+  await db.inbox.add(item)
+  return item
+}
+
+export async function deleteFromInbox(id: string): Promise<void> {
+  await db.inbox.delete(id)
+}
+
+/** Turns an inbox item into a task (and takes it out of the inbox), in one step. */
+export async function inboxToTask(id: string, task: NewTask): Promise<Task> {
+  return db.transaction('rw', [db.inbox, db.tasks], async () => {
+    const created = buildTask(task)
+    await db.tasks.add(created)
+    await db.inbox.delete(id)
+    return created
+  })
+}
+
 /** All focus sessions (used for study hours of free focus). */
 export async function listAllFocusSessions(): Promise<FocusSession[]> {
   return db.focus_sessions.toArray()
@@ -772,7 +800,7 @@ export async function listAllFocusSessions(): Promise<FocusSession[]> {
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */
