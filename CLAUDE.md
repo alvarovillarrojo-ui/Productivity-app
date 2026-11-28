@@ -50,11 +50,11 @@ TypeScript + Vite PWA. Live at https://alvarovillarrojo-ui.github.io/Productivit
 - **Storage:**
   - All storage access goes through `src/data/repo.ts`.
   - Schema changes add a new `this.version(n)` in `src/data/db.ts`
-    (currently v6). New record fields are optional, so old data and backups
+    (currently v8). New record fields are optional, so old data and backups
     still load.
   - Add every new field and table to the backup checks: `FIELDS` and
     `OPTIONAL_TABLES` in `src/logic/exchange.ts`.
-- **Logic:** pure logic lives in `src/logic/*.ts` with Vitest tests (~163).
+- **Logic:** pure logic lives in `src/logic/*.ts` with Vitest tests (~174).
   Keep calculations there, not in screens.
 - **Editing files by script:** in Node, use `s.replace(a, () => b)`, because a
   string replacement treats `$&` and `$'` as special. Prefer the Edit tool
@@ -90,6 +90,12 @@ font bundled, indigo accent, CSS variables at the top.
 - **Execution %** = (done + ½·partial) ÷ (done + partial + missed + overdue).
   Target 85%. Tasks with no tactic ("Other") don't count.
 - **Fail causes** on ✗: Planificación · Imprevisto · Energía · Sentido.
+- **Tasks inside a block:** a task can have `block_id` (what you will do in
+  that session). Added/ticked from the block in the calendar, shown under it
+  in Day → Closing; the block shows "☑ done/total" and its tasks are not
+  repeated on their own in the calendar.
+- **Event categories** (`categories` table): named colours (Uni, Gym…). An
+  event with `category_id` takes the category colour; the legend names them.
 - **Calendar events** have a type (`class` / `deadline` / `other`).
   - Only deadlines and subject exams reach the **deadlines radar** (3 weeks;
     shown on Home and in Day → Opening).
@@ -97,8 +103,12 @@ font bundled, indigo accent, CSS variables at the top.
 - **Habits** (Atomic Habits + the 7 Habits categories) and **Focus**
   (pomodoros) have their own numbers and don't change execution %.
 - **Studies:** subjects with exams (weight %, grade → weighted average), topics
-  (status, difficult, notes) and study hours from subject-linked tasks plus
-  free pomodoros.
+  (status, difficult, notes) and study hours from subject-linked tasks, free
+  pomodoros and time logged by hand (`study_logs`).
+  - Exam types include **Project** and **Group work**, which can have extra
+    dates (`deliverables`); each date is a calendar event `exam:<id>:<dId>`.
+  - Tasks, free pomodoros and logs can name a `topic_id` or `exam_id`; the
+    subject page shows hours by topic and exam (`studyBreakdown`).
 - **Plan with Claude:** a copy/paste prompt (Data). The app never calls an AI
   itself.
 
