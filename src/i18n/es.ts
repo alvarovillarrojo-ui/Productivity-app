@@ -719,6 +719,22 @@ export const es: Dict = {
     notFound: 'Esta asignatura ya no existe.',
   },
 
+  routines: {
+    title: 'Tareas que se repiten cada semana',
+    hint: 'Cada una se convierte sola en una tarea normal cada semana (las de la semana siguiente aparecen el sábado). Elige un día, o «sin día fijo» para tenerla solo «esta semana». Borrar una de sus tareas, o pausarla, no toca las demás.',
+    name: 'Tarea',
+    placeholder: 'p. ej. Poner la lavadora',
+    day: 'Día',
+    noDay: 'Sin día fijo',
+    time: 'Hora',
+    timeNeedsDay: 'Elige primero un día para ponerle hora',
+    hours: 'Horas previstas',
+    empty: 'Todavía no se repite nada. Añade arriba tu primera tarea semanal.',
+    active: 'Activa',
+    paused: 'Pausada',
+    noCycle: 'Las tareas se crean en las semanas de tu ciclo activo: empieza un ciclo para verlas.',
+    confirmDelete: (name: string) => `¿Dejar de repetir «${name}»? Las tareas que ya creó se quedan.`,
+  },
   inbox: {
     title: 'Bandeja',
     placeholder: 'Apunta algo para hacer luego…',
@@ -820,6 +836,7 @@ export const es: Dict = {
   habits: {
     tabWeek: 'Tareas de la semana',
     tabHabits: 'Hábitos',
+    tabRoutines: 'Cada semana',
     intro:
       'Pequeñas acciones diarias que quieres volver automáticas (Hábitos Atómicos). Tienen su propia puntuación y no cambian tu % de ejecución de las 12 semanas.',
     empty: 'Aún no hay hábitos. Elige una idea de abajo o crea el tuyo.',
@@ -927,7 +944,7 @@ export const es: Dict = {
     confirmDelete: (title: string) => `¿Borrar «${title}»?`,
     newPlaceholder: 'Nueva tarea… (Intro para añadir)',
     newTitle: 'Título de la nueva tarea',
-    dateOptional: 'Fecha (opcional)',
+    dateOptional: 'Fecha (opcional). Sin fecha = para esta semana, sin día fijo',
     hoursOptional: 'Horas previstas (opcional)',
     timeOptional: 'Hora (opcional): la tarea sale en el calendario',
     timeNeedsDate: 'Elige primero una fecha para ponerle hora',

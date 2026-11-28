@@ -723,6 +723,22 @@ export const en = {
     notFound: 'This subject doesn’t exist any more.',
   },
 
+  routines: {
+    title: 'Tasks that repeat every week',
+    hint: 'Each one becomes a normal task every week by itself (next week’s appear on Saturday). Choose a day, or no fixed day to just have it “this week”. Deleting one of its tasks, or pausing it, never touches the others.',
+    name: 'Task',
+    placeholder: 'e.g. Do the laundry',
+    day: 'Day',
+    noDay: 'No fixed day',
+    time: 'Time',
+    timeNeedsDay: 'Choose a day first to give it a time',
+    hours: 'Planned hours',
+    empty: 'Nothing repeats yet. Add your first weekly task above.',
+    active: 'On',
+    paused: 'Paused',
+    noCycle: 'The tasks are created in the weeks of your active cycle: start a cycle to see them.',
+    confirmDelete: (name: string) => `Stop repeating “${name}”? The tasks it already created stay.`,
+  },
   inbox: {
     title: 'Inbox',
     placeholder: 'Jot something down to do later…',
@@ -827,6 +843,7 @@ export const en = {
   habits: {
     tabWeek: 'This week’s tasks',
     tabHabits: 'Habits',
+    tabRoutines: 'Every week',
     intro:
       'Small daily actions you want to become automatic (Atomic Habits). They have their own score and don’t change your 12-week execution %.',
     empty: 'No habits yet. Pick a suggestion below or create your own.',
@@ -936,7 +953,7 @@ export const en = {
     confirmDelete: (title: string) => `Delete "${title}"?`,
     newPlaceholder: 'New task… (Enter to add)',
     newTitle: 'New task title',
-    dateOptional: 'Date (optional)',
+    dateOptional: 'Date (optional). No date = for this week, no fixed day',
     hoursOptional: 'Planned hours (optional)',
     timeOptional: 'Time (optional): the task shows in the calendar',
     timeNeedsDate: 'Choose a date first to give it a time',

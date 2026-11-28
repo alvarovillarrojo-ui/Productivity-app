@@ -675,3 +675,13 @@ li.block-inside { list-style: none; margin: -0.2rem 0 0.4rem 2.2rem; }
 .chip.group-chip.on { background: var(--bg); color: var(--text); border-color: var(--muted); }
 .chip.group-chip:not(.on) { opacity: 0.55; text-decoration: line-through; }
 .chip.group-chip .dot-color { border: 2px solid; box-sizing: border-box; }
+
+/* Tasks → Every week */
+.routine-form { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.routine-form input.grow { flex: 1 1 100%; }
+.routine-form select { max-width: 14rem; }
+.routine-list { list-style: none; margin: 0; padding: 0; }
+.routine-list li { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.routine-list li:last-child { border-bottom: none; }
+.routine-list li .grow { display: flex; flex-direction: column; gap: 0.15rem; min-width: 12rem; }
+.routine-list li.paused .grow { opacity: 0.55; }

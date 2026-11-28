@@ -4,7 +4,7 @@
 // `repo.ts`, so storage can later be swapped (e.g. for a cloud database)
 // without touching the screens.
 import Dexie, { type EntityTable } from 'dexie'
-import type { CalendarEvent, Cycle, EventCategory, InboxItem, StudyLog, DayEntry, Exam, FocusSession, Subject, Topic, Goal, Habit, HabitCheck, Tactic, Task } from './types'
+import type { CalendarEvent, Cycle, EventCategory, InboxItem, Routine, StudyLog, DayEntry, Exam, FocusSession, Subject, Topic, Goal, Habit, HabitCheck, Tactic, Task } from './types'
 
 /** One row of the settings table: a key and its value. */
 export interface SettingRow {
@@ -31,6 +31,7 @@ export class TrackerDB extends Dexie {
   categories!: EntityTable<EventCategory, 'id'>
   study_logs!: EntityTable<StudyLog, 'id'>
   inbox!: EntityTable<InboxItem, 'id'>
+  routines!: EntityTable<Routine, 'id'>
 
   constructor(name = DB_NAME) {
     super(name)
@@ -79,6 +80,10 @@ export class TrackerDB extends Dexie {
     // v9: the inbox (things jotted down to deal with later).
     this.version(9).stores({
       inbox: 'id, created_at',
+    })
+    // v10: tasks that repeat every week.
+    this.version(10).stores({
+      routines: 'id',
     })
   }
 }

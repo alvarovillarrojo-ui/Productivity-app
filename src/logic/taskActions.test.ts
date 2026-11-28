@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Tactic, Task, TaskStatus } from '../data/types'
-import { attachableTasks, isBlock, planRecurring, tasksInBlock, unfinishedCopies, weeksToPrepare } from './taskActions'
+import type { Routine, Tactic, Task, TaskStatus } from '../data/types'
+import { attachableTasks, isBlock, planRecurring, planRoutines, routineKey, tasksInBlock, unfinishedCopies, weeksToPrepare } from './taskActions'
 
 const tactic = (id: string, name: string, freq: number | null, active = true): Tactic => ({
   id,
@@ -184,5 +184,20 @@ describe('tasks inside a block', () => {
     const all = [block, other, free, mine, inOther, orphan, done, nextWeek]
     expect(attachableTasks(block, all, [study]).map((t) => t.id)).toEqual(['free', 'orphan'])
     expect(tasksInBlock('b1', all).map((t) => t.id)).toEqual(['mine'])
+  })
+})
+
+describe('tasks that repeat every week (plan)', () => {
+  const routine = (over: Partial<Routine>): Routine => ({ id: 'r', title: 'Laundry', tactic_id: null, weekday: 7, start_time: '10:00', planned_hours: 1, active: true, created_at: '', ...over })
+  const dates = { weekStart: '2026-11-23', today: '2026-11-25' } // Wednesday
+  it('places it on its day, or leaves it without a day', () => {
+    const r = planRoutines('c', 1, [routine({}), routine({ id: 'r2', title: 'Plan', weekday: null })], {}, dates)
+    expect(r.tasks.map((x) => [x.title, x.planned_date, x.start_time])).toEqual([['Laundry', '2026-11-29', '10:00'], ['Plan', null, null]])
+    expect(r.generated).toEqual({ [routineKey(1, 'r')]: 1, [routineKey(1, 'r2')]: 1 })
+  })
+  it('skips a day that has passed, paused routines and weeks already done', () => {
+    const r = planRoutines('c', 1, [routine({ weekday: 1 }), routine({ id: 'p', active: false }), routine({ id: 'd' })], { [routineKey(1, 'd')]: 1 }, dates)
+    expect(r.tasks).toEqual([])
+    expect(r.generated[routineKey(1, 'r')]).toBe(0)
   })
 })

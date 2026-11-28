@@ -778,6 +778,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   study_logs: { id: 'id', subject_id: 'id', topic_id: 'textNull', exam_id: 'textNull', date: 'date', hours: 'num', note: 'text', created_at: 'text' },
   categories: { id: 'id', name: 'text', color: 'color', sort_order: 'num', fixed: 'textOptional' },
   inbox: { id: 'id', text: 'text', created_at: 'text' },
+  routines: { id: 'id', title: 'text', tactic_id: 'textNull', weekday: 'numNull', start_time: 'timeNull', planned_hours: 'numNull', active: 'bool', created_at: 'text' },
   events: {
     id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',
     repeat_weekly: 'bool', repeat_until: 'dateNull', notes: 'text', ics_uid: 'textOptional', color: 'colorOptional', kind: 'eventKindOptional', category_id: 'textOptional', created_at: 'text', updated_at: 'text',
@@ -785,7 +786,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
 }
 
 /** Lists that older backups may not have yet. */
-const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox']
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox', 'routines']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -920,6 +921,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       categories: data.categories.map((x) => pick(x, 'categories')),
       study_logs: data.study_logs.map((x) => pick(x, 'study_logs')),
       inbox: data.inbox.map((x) => pick(x, 'inbox')),
+      routines: data.routines.map((x) => pick(x, 'routines')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }

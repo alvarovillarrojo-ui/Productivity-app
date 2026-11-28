@@ -17,6 +17,7 @@ import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import TaskEditForm from '../components/TaskEditForm'
 import TaskRow from '../components/TaskRow'
 import HabitsPanel from './HabitsPanel'
+import RoutinesPanel from './RoutinesPanel'
 import { pctClass } from '../components/pctClass'
 import { execution, formatPct, isDue, taskCounts } from '../logic/metrics'
 import { isBlock, unfinishedCopies } from '../logic/taskActions'
@@ -25,15 +26,17 @@ import { defaultWeek, todayISO, weekEnd, weekStart } from '../logic/weeks'
 export default function TasksScreen() {
   const { t } = useI18n()
   const cycle = useActiveCycle()
-  // Two tabs: this week's tasks (default) and habits (#/tasks?view=habits).
+  // Three tabs: this week's tasks (default), tasks that repeat every week
+  // (#/tasks?view=repeat) and habits (#/tasks?view=habits).
   const [params, setParams] = useSearchParams()
-  const view = params.get('view') === 'habits' ? 'habits' : 'week'
-  const tab = (id: 'week' | 'habits', label: string) => (
+  const asked = params.get('view')
+  const view = asked === 'habits' || asked === 'repeat' ? asked : 'week'
+  const tab = (id: 'week' | 'repeat' | 'habits', label: string) => (
     <button
       role="tab"
       aria-selected={view === id}
       className={view === id ? 'tab on' : 'tab'}
-      onClick={() => setParams(id === 'habits' ? { view: 'habits' } : {}, { replace: true })}
+      onClick={() => setParams(id === 'week' ? {} : { view: id }, { replace: true })}
     >
       {label}
     </button>
@@ -42,10 +45,13 @@ export default function TasksScreen() {
     <>
       <div className="tabs" role="tablist">
         {tab('week', t.habits.tabWeek)}
+        {tab('repeat', t.habits.tabRoutines)}
         {tab('habits', t.habits.tabHabits)}
       </div>
       {view === 'habits' ? (
         <HabitsPanel />
+      ) : view === 'repeat' ? (
+        <RoutinesPanel />
       ) : cycle === undefined ? null : cycle === null ? (
         <NoActiveCycle />
       ) : (

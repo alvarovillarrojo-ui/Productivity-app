@@ -87,7 +87,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [] })
   })
 })
 
@@ -180,7 +180,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -202,6 +202,7 @@ describe('backup data', () => {
       categories: [],
       study_logs: [],
       inbox: [],
+      routines: [],
       tasks: [
         {
           id: repo.newId(),
@@ -291,6 +292,33 @@ describe('applyImport', () => {
     const { plan } = parseImport(file, null) // planned as if nothing were active
     await expect(repo.applyImport(plan!)).rejects.toThrow()
     expect(await repo.listCycles()).toHaveLength(1)
+  })
+})
+
+describe('tasks that repeat every week', () => {
+  // seed(): cycle starts Monday 5 Jan 2026 (+ a tactic 3x/week, which also gets its blocks).
+  it('creates one task a week, never twice, and a deleted one does not come back', async () => {
+    const { cycle } = await seed()
+    await repo.createRoutine({ title: 'Laundry', tactic_id: null, weekday: 7, start_time: '10:00', planned_hours: 1 })
+    await repo.createRoutine({ title: 'Plan the week', tactic_id: null, weekday: null, start_time: '18:00', planned_hours: null })
+    await repo.ensureRecurringTasks('2026-01-07')
+    const week1 = (await repo.listTasksForWeek(cycle.id, 1)).filter((x) => x.tactic_id === null)
+    expect(week1.map((x) => [x.title, x.planned_date, x.start_time, x.kind]).sort()).toEqual([
+      ['Laundry', '2026-01-11', '10:00', 'todo'],
+      ['Plan the week', null, null, 'todo'],
+    ])
+    await repo.deleteTask(week1[0].id)
+    expect(await repo.ensureRecurringTasks('2026-01-07')).toBe(0)
+    // Saturday: next week is prepared too.
+    await repo.ensureRecurringTasks('2026-01-10')
+    expect((await repo.listTasksForWeek(cycle.id, 2)).filter((x) => x.tactic_id === null)).toHaveLength(2)
+  })
+  it('a paused routine creates nothing', async () => {
+    const { cycle } = await seed()
+    const r = await repo.createRoutine({ title: 'Laundry', tactic_id: null, weekday: 7, start_time: null, planned_hours: null })
+    await repo.updateRoutine(r.id, { active: false })
+    await repo.ensureRecurringTasks('2026-01-07')
+    expect((await repo.listTasksForWeek(cycle.id, 1)).filter((x) => x.title === 'Laundry')).toEqual([])
   })
 })
 
@@ -521,7 +549,7 @@ describe('day journal', () => {
     expect(await repo.getDay('2026-11-23')).toMatchObject({ must_do: 'task1', mode: 'planned', reflection: 'Good focus' })
     const all = await repo.exportAll()
     expect(all.days).toHaveLength(1)
-    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [] })
+    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [], inbox: [], routines: [] })
     expect(await repo.getDay('2026-11-23')).toBeNull()
   })
 })

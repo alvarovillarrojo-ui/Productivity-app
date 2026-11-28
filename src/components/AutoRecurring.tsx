@@ -2,7 +2,8 @@
 // week (and next week, from Saturday) in place. It runs when the app opens,
 // when the date changes (checked every minute, so an app left open overnight
 // still prepares the new week) and whenever the cycle's tactics change
-// (e.g. a new tactic, or a higher "times per week").
+// (e.g. a new tactic, or a higher "times per week") or the tasks that repeat
+// every week (Tasks → Every week).
 import { useEffect, useState } from 'react'
 import * as repo from '../data/repo'
 import { useLive } from '../data/useLive'
@@ -22,7 +23,14 @@ export default function AutoRecurring() {
       const cycle = await repo.getActiveCycle()
       if (!cycle) return ''
       const tactics = await repo.listTacticsForCycle(cycle.id)
-      return [cycle.id, cycle.start_date, cycle.length_weeks, ...tactics.map((t) => `${t.id}:${t.active}:${t.weekly_frequency}`)].join(',')
+      const routines = await repo.listRoutines()
+      return [
+        cycle.id,
+        cycle.start_date,
+        cycle.length_weeks,
+        ...tactics.map((t) => `${t.id}:${t.active}:${t.weekly_frequency}`),
+        ...routines.map((r) => `${r.id}:${r.active}`),
+      ].join(',')
     },
     [],
     '',

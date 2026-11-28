@@ -69,6 +69,7 @@ export default function QuickAdd({ cycle, week, goals, tactics, minDate, maxDate
       <TacticSelect goals={goals} tactics={tactics} value={chosen} onChange={setTacticId} />
       <DateInput
         aria-label={t.tasks.dateOptional}
+        title={t.tasks.dateOptional}
         min={minDate}
         max={maxDate}
         value={date}

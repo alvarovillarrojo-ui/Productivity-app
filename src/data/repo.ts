@@ -6,7 +6,7 @@
 import { AREA_DEFAULT_COLORS, missingFixedAreas } from '../logic/areas'
 import { db } from './db'
 import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
-import { planRecurring, scheduleOf, weeksToPrepare } from '../logic/taskActions'
+import { planRecurring, planRoutines, scheduleOf, weeksToPrepare } from '../logic/taskActions'
 import type { IcsEvent } from '../logic/ics'
 import type { FileExam, FileTopic, SubjectsPlan } from '../logic/subjectsImport'
 import { DEFAULT_FOCUS_SETTINGS, finishPhase, focusMinutesDone, type FocusSettings, type FocusState } from '../logic/focus'
@@ -28,6 +28,7 @@ import type {
   Habit,
   HabitCheck,
   InboxItem,
+  Routine,
   ISODate,
   MissCause,
   PersistStatus,
@@ -798,6 +799,28 @@ export async function deleteStudyLog(id: string): Promise<void> {
   await db.study_logs.delete(id)
 }
 
+// ---------- tasks that repeat every week ----------
+
+export async function listRoutines(): Promise<Routine[]> {
+  return (await db.routines.toArray()).sort((a, b) => (a.weekday ?? 8) - (b.weekday ?? 8) || (a.start_time ?? '').localeCompare(b.start_time ?? '') || a.title.localeCompare(b.title))
+}
+
+export async function createRoutine(data: Omit<Routine, 'id' | 'created_at' | 'active'>): Promise<Routine> {
+  const routine: Routine = { ...data, title: data.title.trim(), active: true, id: newId(), created_at: now() }
+  await db.routines.add(routine)
+  return routine
+}
+
+/** Changes apply from the next task it creates; tasks already created stay as they are. */
+export async function updateRoutine(id: string, changes: Partial<Omit<Routine, 'id' | 'created_at'>>): Promise<void> {
+  await db.routines.update(id, changes)
+}
+
+/** Deletes the routine; the tasks it already created stay. */
+export async function deleteRoutine(id: string): Promise<void> {
+  await db.routines.delete(id)
+}
+
 // ---------- inbox (jotted down on Home, dealt with in Day) ----------
 
 /** Everything in the inbox, oldest first. */
@@ -837,7 +860,7 @@ export async function listAllFocusSessions(): Promise<FocusSession[]> {
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs', 'inbox', 'routines'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */
@@ -877,12 +900,13 @@ export async function addAll(data: AllData): Promise<void> {
  * were created.
  */
 export async function ensureRecurringTasks(today: ISODate): Promise<number> {
-  return db.transaction('rw', db.cycles, db.goals, db.tactics, db.tasks, async () => {
+  return db.transaction('rw', [db.cycles, db.goals, db.tactics, db.tasks, db.routines], async () => {
     const cycle = await getActiveCycle()
     if (!cycle) return 0
     const weeks = weeksToPrepare(cycle, today)
     if (weeks.length === 0) return 0
     const tactics = await listTacticsForCycle(cycle.id)
+    const routines = await db.routines.toArray()
     let generated = cycle.recurring_generated ?? {}
     const toCreate: NewTask[] = []
     for (const week of weeks) {
@@ -890,6 +914,10 @@ export async function ensureRecurringTasks(today: ISODate): Promise<number> {
       const plan = planRecurring(cycle.id, week, tactics, weekTasks, generated, { weekStart: weekStart(cycle, week), today })
       toCreate.push(...plan.tasks)
       generated = plan.generated
+      // Tasks that repeat every week (Tasks → Every week).
+      const weekly = planRoutines(cycle.id, week, routines, generated, { weekStart: weekStart(cycle, week), today })
+      toCreate.push(...weekly.tasks)
+      generated = weekly.generated
     }
     if (JSON.stringify(generated) === JSON.stringify(cycle.recurring_generated ?? {})) return 0
     await db.cycles.update(cycle.id, { recurring_generated: generated })

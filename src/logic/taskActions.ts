@@ -1,7 +1,7 @@
 // Task actions. These functions only CALCULATE which tasks to create; the
 // caller saves them with repo.createTasks() (or inside repo.ts).
 import type { NewTask } from '../data/repo'
-import type { Cycle, ISODate, Tactic, Task } from '../data/types'
+import type { Cycle, ISODate, Routine, Tactic, Task } from '../data/types'
 import { addDays, cyclePosition } from './weeks'
 
 /** A tactic's schedule, or null when it has none (no days chosen). */
@@ -26,6 +26,48 @@ export function weeksToPrepare(cycle: Pick<Cycle, 'start_date' | 'length_weeks'>
   const weeks = [pos.week]
   if (pos.daysLeftInWeek <= PREPARE_NEXT_WEEK_DAYS && pos.week < cycle.length_weeks) weeks.push(pos.week + 1)
   return weeks
+}
+
+/** Key under which the cycle remembers a weekly routine's task: "week|r:routineId". */
+export const routineKey = (week: number, routineId: string) => `${week}|r:${routineId}`
+
+/**
+ * TASKS THAT REPEAT EVERY WEEK: one task per active routine and week.
+ * Like the tactics' blocks, what was created is remembered (`generated`), so a
+ * task you delete doesn't come back and nothing is duplicated. A routine whose
+ * day has already passed in a week (e.g. created on Wednesday for Monday)
+ * starts the next week.
+ */
+export function planRoutines(
+  cycleId: string,
+  week: number,
+  routines: Routine[],
+  generated: Record<string, number>,
+  dates: { weekStart: ISODate; today: ISODate },
+): { tasks: NewTask[]; generated: Record<string, number> } {
+  const next = { ...generated }
+  const tasks: NewTask[] = []
+  for (const r of routines) {
+    const key = routineKey(week, r.id)
+    if (!r.active || key in next) continue
+    const date = r.weekday ? addDays(dates.weekStart, r.weekday - 1) : null
+    if (date && date < dates.today) {
+      next[key] = 0 // its day is gone this week
+      continue
+    }
+    tasks.push({
+      cycle_id: cycleId,
+      week_number: week,
+      title: r.title,
+      tactic_id: r.tactic_id,
+      planned_date: date,
+      start_time: date ? r.start_time : null,
+      planned_hours: r.planned_hours,
+      kind: 'todo',
+    })
+    next[key] = 1
+  }
+  return { tasks, generated: next }
 }
 
 /** Key under which the cycle remembers what it created: "week|tacticId". */

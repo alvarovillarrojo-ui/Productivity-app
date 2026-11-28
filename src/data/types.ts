@@ -333,6 +333,24 @@ export interface Exam {
   updated_at: string
 }
 
+/**
+ * A task that repeats every week (e.g. "Do the laundry", Sunday 10:00).
+ * Each week of the active cycle it creates one normal task by itself.
+ */
+export interface Routine {
+  id: string
+  title: string
+  /** null = "Other" (doesn't count in execution %). */
+  tactic_id: string | null
+  /** 1 = Monday … 7 = Sunday; null = no fixed day (just "this week"). */
+  weekday: number | null
+  start_time: string | null
+  planned_hours: number | null
+  /** Paused routines create nothing. */
+  active: boolean
+  created_at: string
+}
+
 /** Something jotted down on Home to deal with later (in Day → Opening / Closing). */
 export interface InboxItem {
   id: string
@@ -360,6 +378,8 @@ export interface AllData {
   study_logs: StudyLog[]
   /** Added in v0.7 (older backups: none). */
   inbox: InboxItem[]
+  /** Added in v0.7 (older backups: none). */
+  routines: Routine[]
 }
 
 /**
