@@ -68,6 +68,8 @@ export type DataIssueCode =
   | 'link' // restore: a record points to something that isn't there
   | 'duplicateId' // restore: two records share an id
   | 'manyActive' // restore: more than one active cycle
+  | 'notSubjects' // subjects import: not a subjects file, or no subjects
+  | 'examKind' // subjects import: unknown exam type
 
 export interface DataIssue {
   code: DataIssueCode

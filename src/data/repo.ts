@@ -7,6 +7,7 @@ import { db } from './db'
 import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
 import { planRecurring, scheduleOf, weeksToPrepare } from '../logic/taskActions'
 import type { IcsEvent } from '../logic/ics'
+import type { FileExam, FileTopic, SubjectsPlan } from '../logic/subjectsImport'
 import { DEFAULT_FOCUS_SETTINGS, finishPhase, focusMinutesDone, type FocusSettings, type FocusState } from '../logic/focus'
 import { addDays, todayISO, weekStart } from '../logic/weeks'
 import type {
@@ -692,6 +693,57 @@ export async function listSubjectTasks(subjectId: string): Promise<Task[]> {
 /** All tasks that have a subject (for study hours). */
 export async function listStudyTasks(): Promise<Task[]> {
   return db.tasks.filter((t) => !!t.subject_id).toArray()
+}
+
+// ---------- import subjects (from a subjects file) ----------
+
+/**
+ * Adds what `planSubjectsImport` found: new subjects with their topics and
+ * exams, and new topics/exams for subjects that already exist. Nothing is
+ * changed or deleted. One transaction: all or nothing.
+ */
+export async function importSubjects(plan: SubjectsPlan): Promise<void> {
+  await db.transaction('rw', db.subjects, db.topics, db.exams, async () => {
+    const addTo = async (subjectId: string, topics: FileTopic[], exams: FileExam[]) => {
+      let order = await db.topics.where('subject_id').equals(subjectId).count()
+      for (const tp of topics) {
+        await db.topics.add({ id: newId(), subject_id: subjectId, name: tp.name, status: 'todo', difficult: false, notes: tp.notes, sort_order: order++ })
+      }
+      for (const e of exams) {
+        await db.exams.add({
+          id: newId(),
+          subject_id: subjectId,
+          kind: e.kind,
+          title: e.title,
+          date: e.date,
+          start_time: e.time,
+          weight: e.weight,
+          grade: null,
+          notes: e.notes,
+          ...(e.deliverables.length ? { deliverables: e.deliverables.map((d) => ({ id: newId(), title: d.title, date: d.date, start_time: d.time })) } : {}),
+          created_at: now(),
+          updated_at: now(),
+        })
+      }
+    }
+    let order = await db.subjects.count()
+    for (const fs of plan.newSubjects) {
+      const id = newId()
+      await db.subjects.add({
+        id,
+        name: fs.name,
+        color: null,
+        info: fs.info,
+        weekly_hours_target: fs.weekly_hours_target,
+        archived: false,
+        sort_order: order++,
+        created_at: now(),
+        updated_at: now(),
+      })
+      await addTo(id, fs.topics, fs.exams)
+    }
+    for (const a of plan.additions) await addTo(a.subject.id, a.topics, a.exams)
+  })
 }
 
 // ---------- study time logged by hand ----------

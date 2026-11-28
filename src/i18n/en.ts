@@ -333,6 +333,25 @@ export const en = {
       copyByHand: 'Your browser blocked copying: select the text below and copy it by hand.',
       privacy: 'The app never contacts Claude or anyone else: only what you copy and paste goes there.',
     },
+    subjects: {
+      title: 'Import your subjects with Claude',
+      step1: 'Press “Copy instructions”, open Claude (claude.ai) in a new chat and paste them.',
+      step2: 'Attach or paste your course guides (syllabi, exam calendar, Campus info) and answer Claude’s questions. Claude ends with a JSON block.',
+      step3: 'Save that JSON as a file and choose it below, or copy Claude’s whole answer and paste it. You see a preview before anything is saved.',
+      copy: 'Copy instructions',
+      copied: 'Copied! Now paste them in a new Claude chat.',
+      show: 'See the instructions',
+      importTitle: 'Import the answer',
+      paste: '…or paste Claude’s answer (or the JSON) here',
+      newSubjects: (names: string) => `New subjects: ${names}`,
+      addTo: (name: string, topics: number, exams: number) => `${name} (already in the app): +${topics} topic(s), +${exams} exam(s)`,
+      totals: (topics: number, exams: number) => `In total: ${topics} topic(s) and ${exams} exam(s)/project(s) to add.`,
+      skipped: (n: number) => `${n} topic(s)/exam(s) already exist and are left as they are.`,
+      nothingNew: 'Everything in this file is already in the app.',
+      button: 'Import subjects',
+      done: 'Subjects imported.',
+      goStudies: 'Go to Studies →',
+    },
     ics: {
       title: 'Import a calendar (.ics)',
       hint: 'Add your classes, exams or meetings from Google Calendar, Outlook or your university timetable: export the calendar as an .ics file and choose it here. Weekly repeats are kept. Importing the same file again updates instead of duplicating. Nothing leaves this device.',
@@ -407,6 +426,8 @@ export const en = {
         case 'link': return `${at}points to something that isn’t in the backup.`
         case 'duplicateId': return `${at}uses an id that appears twice.`
         case 'manyActive': return 'The backup has more than one active cycle.'
+        case 'notSubjects': return 'This is not a subjects file (it needs "format": "12wt-subjects" and a list of "subjects").'
+        case 'examKind': return `${at}unknown type “${i.detail}”. Use quiz, midterm, final, assignment, project, group or other.`
       }
     },
   },

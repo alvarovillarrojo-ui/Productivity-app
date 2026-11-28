@@ -28,9 +28,11 @@ import {
 import { addDays, defaultWeek, isMonday, lastCompletedWeek, nextMonday, todayISO, weekStart } from '../logic/weeks'
 import { parseIcs } from '../logic/ics'
 import { buildClaudePrompt } from '../logic/claudePrompt'
+import { buildSubjectsPrompt } from '../logic/subjectsPrompt'
+import { parseSubjectsFile, planCounts, planSubjectsImport, type SubjectsPlan } from '../logic/subjectsImport'
 import NumberField from '../components/NumberField'
 
-const SECTIONS = ['backup', 'restore', 'export', 'claude', 'import', 'ics'] as const
+const SECTIONS = ['backup', 'restore', 'export', 'claude', 'import', 'subjects', 'ics'] as const
 
 export default function DataScreen() {
   const { t } = useI18n()
@@ -68,6 +70,9 @@ export default function DataScreen() {
       </div>
       <div id="import" className={highlight('import')}>
         <ImportSection />
+      </div>
+      <div id="subjects" className={highlight('subjects')}>
+        <SubjectsSection />
       </div>
       <div id="ics" className={highlight('ics')}>
         <IcsSection />
@@ -468,6 +473,151 @@ function PlanWithClaude() {
         <textarea className="textarea mono" rows={10} readOnly value={prompt} onFocus={(e) => e.target.select()} />
       </details>
       <p className="muted small-text">🔒 {m.privacy}</p>
+    </>
+  )
+}
+
+// ---------- 3c. import subjects (with Claude) ----------
+
+async function checkSubjects(text: string): Promise<{ issues: DataIssue[]; plan: SubjectsPlan | null }> {
+  const json = parseJson(text)
+  if (json.issues.length > 0) return { issues: json.issues, plan: null }
+  const parsed = parseSubjectsFile(json.value)
+  if (!parsed.subjects) return { issues: parsed.issues, plan: null }
+  const existing = { subjects: await repo.listSubjects(), topics: await repo.listTopics(), exams: await repo.listExams() }
+  return { issues: [], plan: planSubjectsImport(parsed.subjects, existing) }
+}
+
+function SubjectsSection() {
+  const { t, lang } = useI18n()
+  const m = t.data.subjects
+  const prompt = buildSubjectsPrompt(lang, todayISO())
+  const [copied, setCopied] = useState<'yes' | 'no' | null>(null)
+  const [text, setText] = useState('')
+  const [result, setResult] = useState<{ issues: DataIssue[]; plan: SubjectsPlan | null } | null>(null)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt)
+      setCopied('yes')
+    } catch {
+      setCopied('no') // clipboard blocked: the text is shown below to copy by hand
+    }
+  }
+  const check = async (value: string) => {
+    setDone(false)
+    setError('')
+    setResult(await checkSubjects(value))
+  }
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = await readChosenFile(e)
+    if (!file) return
+    setText(file.text)
+    await check(file.text)
+  }
+  const apply = async () => {
+    // Check again right before importing, in case the data changed meanwhile.
+    const fresh = await checkSubjects(text)
+    setResult(fresh)
+    if (!fresh.plan) return
+    try {
+      await repo.importSubjects(fresh.plan)
+      setDone(true)
+      setResult(null)
+      setText('')
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
+  const plan = result?.plan
+  const counts = plan ? planCounts(plan) : null
+  const nothingNew = counts && counts.subjects + counts.topics + counts.exams === 0
+
+  return (
+    <>
+      <h2>{m.title}</h2>
+      <ol className="small-text steps">
+        <li>{m.step1}</li>
+        <li>{m.step2}</li>
+        <li>{m.step3}</li>
+      </ol>
+      <div className="row">
+        <button className="btn primary" onClick={copy}>
+          📋 {m.copy}
+        </button>
+        <a className="btn" href={CLAUDE_URL} target="_blank" rel="noopener noreferrer">
+          {t.data.claude.open} ↗
+        </a>
+        {copied === 'yes' && <span className="flash">{m.copied}</span>}
+      </div>
+      <details open={copied === 'no'}>
+        <summary className="small-text">{copied === 'no' ? t.data.claude.copyByHand : m.show}</summary>
+        <textarea className="textarea mono" rows={10} readOnly value={prompt} onFocus={(e) => e.target.select()} />
+      </details>
+
+      <h3>{m.importTitle}</h3>
+      <label className="btn file-btn">
+        {t.data.import.chooseFile}
+        <input type="file" accept=".json,application/json" onChange={onFile} />
+      </label>
+      <textarea
+        className="textarea mono"
+        rows={4}
+        placeholder={m.paste}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value)
+          setResult(null)
+        }}
+      />
+      <div className="row">
+        <button className="btn" disabled={!text.trim()} onClick={() => check(text)}>
+          {t.data.import.check}
+        </button>
+        {text && (
+          <button
+            className="link"
+            onClick={() => {
+              setText('')
+              setResult(null)
+            }}
+          >
+            {t.data.import.clear}
+          </button>
+        )}
+      </div>
+
+      {result && result.issues.length > 0 && <Issues title={t.data.import.problems} issues={result.issues} />}
+
+      {plan && counts && (
+        <div className="preview">
+          <ul>
+            {plan.newSubjects.length > 0 && <li>{m.newSubjects(plan.newSubjects.map((s) => s.name).join(', '))}</li>}
+            {plan.additions.map((a) => (
+              <li key={a.subject.id}>{m.addTo(a.subject.name, a.topics.length, a.exams.length)}</li>
+            ))}
+            <li>{m.totals(counts.topics, counts.exams)}</li>
+            {plan.skipped > 0 && <li className="muted">{m.skipped(plan.skipped)}</li>}
+          </ul>
+          {nothingNew ? (
+            <p className="muted">{m.nothingNew}</p>
+          ) : (
+            <button className="btn primary" onClick={apply}>
+              {m.button}
+            </button>
+          )}
+        </div>
+      )}
+      {error && <p className="bad">{error}</p>}
+      {done && (
+        <p className="flash">
+          {m.done} <Link to="/students">{m.goStudies}</Link>
+        </p>
+      )}
+      <p className="muted small-text">🔒 {t.data.claude.privacy}</p>
     </>
   )
 }

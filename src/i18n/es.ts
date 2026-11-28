@@ -332,6 +332,25 @@ export const es: Dict = {
       copyByHand: 'Tu navegador ha bloqueado la copia: selecciona el texto de abajo y cópialo a mano.',
       privacy: 'La app nunca contacta con Claude ni con nadie: solo llega allí lo que tú copias y pegas.',
     },
+    subjects: {
+      title: 'Importa tus asignaturas con Claude',
+      step1: 'Pulsa «Copiar instrucciones», abre Claude (claude.ai) en un chat nuevo y pégalas.',
+      step2: 'Adjunta o pega tus guías docentes (programa, calendario de exámenes, info del Campus) y responde a las preguntas de Claude. Claude termina con un bloque JSON.',
+      step3: 'Guarda ese JSON como archivo y elígelo abajo, o copia la respuesta entera de Claude y pégala. Verás una vista previa antes de guardar nada.',
+      copy: 'Copiar instrucciones',
+      copied: '¡Copiado! Ahora pégalas en un chat nuevo de Claude.',
+      show: 'Ver las instrucciones',
+      importTitle: 'Importar la respuesta',
+      paste: '…o pega aquí la respuesta de Claude (o el JSON)',
+      newSubjects: (names: string) => `Asignaturas nuevas: ${names}`,
+      addTo: (name: string, topics: number, exams: number) => `${name} (ya está en la app): +${topics} tema(s), +${exams} examen(es)`,
+      totals: (topics: number, exams: number) => `En total: ${topics} tema(s) y ${exams} examen(es)/proyecto(s) para añadir.`,
+      skipped: (n: number) => `${n} tema(s)/examen(es) ya existen y se quedan como están.`,
+      nothingNew: 'Todo lo de este archivo ya está en la app.',
+      button: 'Importar asignaturas',
+      done: 'Asignaturas importadas.',
+      goStudies: 'Ir a Estudios →',
+    },
     ics: {
       title: 'Importar un calendario (.ics)',
       hint: 'Añade tus clases, exámenes o reuniones desde Google Calendar, Outlook o el horario de tu universidad: exporta el calendario como archivo .ics y elígelo aquí. Las repeticiones semanales se mantienen. Importar el mismo archivo otra vez actualiza en vez de duplicar. Nada sale de este dispositivo.',
@@ -406,6 +425,8 @@ export const es: Dict = {
         case 'link': return `${at}apunta a algo que no está en la copia.`
         case 'duplicateId': return `${at}usa un id que aparece dos veces.`
         case 'manyActive': return 'La copia tiene más de un ciclo activo.'
+        case 'notSubjects': return 'Esto no es un archivo de asignaturas (necesita "format": "12wt-subjects" y una lista "subjects").'
+        case 'examKind': return `${at}tipo desconocido «${i.detail}». Usa quiz, midterm, final, assignment, project, group u other.`
       }
     },
   },

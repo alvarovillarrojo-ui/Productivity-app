@@ -626,3 +626,31 @@ describe('study time logged by hand', () => {
     expect(session).toMatchObject({ subject_id: s.id, topic_id: 'tp', exam_id: null })
   })
 })
+
+describe('import subjects', () => {
+  it('adds new subjects with topics, exams and project dates in one go', async () => {
+    const { parseSubjectsFile, planSubjectsImport } = await import('../logic/subjectsImport')
+    const { SUBJECTS_EXAMPLE } = await import('../logic/subjectsPrompt')
+    const existing = { subjects: await repo.listSubjects(), topics: await repo.listTopics(), exams: await repo.listExams() }
+    await repo.importSubjects(planSubjectsImport(parseSubjectsFile(SUBJECTS_EXAMPLE).subjects!, existing))
+    const [s] = await repo.listSubjects()
+    expect(s).toMatchObject({ name: 'Corporate Finance', color: null, archived: false })
+    expect((await repo.listTopics(s.id)).map((t) => [t.name, t.sort_order])).toEqual([
+      ['1. Time value of money', 0],
+      ['2. Cost of capital (WACC)', 1],
+      ['3. Capital structure', 2],
+    ])
+    const exams = await repo.listExams(s.id)
+    expect(exams.map((e) => [e.kind, e.date, e.weight, e.grade])).toEqual([
+      ['midterm', '2027-03-10', 30, null],
+      ['group', '2027-04-28', 30, null],
+      ['final', '2027-06-02', 40, null],
+    ])
+    expect(exams[1].deliverables!.map((d) => [d.title, d.date, d.start_time])).toEqual([
+      ['Company choice', '2027-02-20', null],
+      ['Presentation', '2027-05-05', '09:00'],
+    ])
+    // the result is a valid backup
+    expect(parseBackup(JSON.parse(JSON.stringify(buildBackup(await repo.exportAll(), 'x')))).issues).toEqual([])
+  })
+})
