@@ -54,7 +54,7 @@ TypeScript + Vite PWA. Live at https://alvarovillarrojo-ui.github.io/Productivit
     still load.
   - Add every new field and table to the backup checks: `FIELDS` and
     `OPTIONAL_TABLES` in `src/logic/exchange.ts`.
-- **Logic:** pure logic lives in `src/logic/*.ts` with Vitest tests (~189).
+- **Logic:** pure logic lives in `src/logic/*.ts` with Vitest tests (~194).
   Keep calculations there, not in screens.
 - **Editing files by script:** in Node, use `s.replace(a, () => b)`, because a
   string replacement treats `$&` and `$'` as special. Prefer the Edit tool
@@ -94,8 +94,11 @@ font bundled, indigo accent, CSS variables at the top.
   that session). Added/ticked from the block in the calendar, shown under it
   in Day → Closing; the block shows "☑ done/total" and its tasks are not
   repeated on their own in the calendar.
-- **Event categories** (`categories` table): named colours (Uni, Gym…). An
-  event with `category_id` takes the category colour; the legend names them.
+- **Colours** (logic/areas.ts): tasks and blocks take their goal's colour.
+  Events take their area's colour ( table). The fixed areas are
+  Uni (also  events), Día a día, Viajes, Exámenes (all exams) and
+  Entregas (deliverables, projects, group work,  events). They have
+   set, are created at start, and can't be deleted. The user can add more.
 - **Calendar events** have a type (`class` / `deadline` / `other`).
   - Only deadlines and subject exams reach the **deadlines radar** (3 weeks;
     shown on Home and in Day → Opening).

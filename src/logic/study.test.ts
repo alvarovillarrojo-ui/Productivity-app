@@ -53,7 +53,7 @@ describe('exams and topics', () => {
   })
   it('turns exams into one-off calendar events', () => {
     const subject: Subject = { id: 's', name: 'Corporate Finance', color: '#e34948', info: '', weekly_hours_target: null, archived: false, sort_order: 0, created_at: '', updated_at: '' }
-    const [ev] = examEvents([exam({ id: 'e1', title: '', start_time: '18:30' })], [subject], () => 'Final', (s) => s.color!)
+    const [ev] = examEvents([exam({ id: 'e1', title: '', start_time: '18:30' })], [subject], () => 'Final', () => '#e34948')
     expect(ev).toMatchObject({ id: 'exam:e1', title: 'Corporate Finance · Final', start_time: '18:30', end_time: '19:30', repeat_weekly: false, color: '#e34948' })
   })
 })
@@ -72,12 +72,13 @@ describe('projects with several dates', () => {
     expect([r!.exam.id, r!.deliverable?.title, r!.daysLeft]).toEqual(['g1', 'Presentation', 8])
   })
   it('each deliverable is its own calendar event, linked back to the project', () => {
-    const evs = examEvents([group], [subject], () => 'Group work', (s) => s.color!)
+    const evs = examEvents([group], [subject], () => 'Group work', (_e, d) => (d ? 'deliverable' : 'final'))
     expect(evs.map((e) => [e.id, e.title, e.date])).toEqual([
       ['exam:g1:d1', 'Strategy · Group work — Report', '2026-12-01'],
       ['exam:g1:d2', 'Strategy · Group work — Presentation', '2026-12-10'],
       ['exam:g1', 'Strategy · Group work', '2026-12-15'],
     ])
+    expect(evs.map((e) => e.color)).toEqual(['deliverable', 'deliverable', 'final'])
     expect(evs.every((e) => e.kind === 'deadline')).toBe(true)
     expect(evs.map((e) => examIdOfEvent(e.id))).toEqual(['g1', 'g1', 'g1'])
     expect(examIdOfEvent('abc')).toBeNull()

@@ -776,7 +776,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     id: 'id', task_id: 'textNull', task_title: 'text', date: 'date', started_at: 'text', minutes: 'num', completed: 'bool', subject_id: 'textOptional', topic_id: 'textOptional', exam_id: 'textOptional',
   },
   study_logs: { id: 'id', subject_id: 'id', topic_id: 'textNull', exam_id: 'textNull', date: 'date', hours: 'num', note: 'text', created_at: 'text' },
-  categories: { id: 'id', name: 'text', color: 'color', sort_order: 'num' },
+  categories: { id: 'id', name: 'text', color: 'color', sort_order: 'num', fixed: 'textOptional' },
   inbox: { id: 'id', text: 'text', created_at: 'text' },
   events: {
     id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',

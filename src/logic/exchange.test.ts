@@ -215,7 +215,7 @@ describe('backup', () => {
     topics: [{ id: 'tp1', subject_id: 's1', name: 'WACC', status: 'progress', difficult: true, notes: 'Review betas', sort_order: 0 }],
     exams: [{ id: 'ex1', subject_id: 's1', kind: 'final', title: 'Final', date: '2027-01-14', start_time: '18:30', weight: 60, grade: null, notes: '', created_at: 'x', updated_at: 'x' },
       { id: 'ex2', subject_id: 's1', kind: 'group', title: 'Case', date: '2027-01-20', start_time: null, weight: 30, grade: null, notes: '', deliverables: [{ id: 'dl1', title: 'Presentation', date: '2027-01-10', start_time: '10:00' }], created_at: 'x', updated_at: 'x' }],
-    categories: [{ id: 'cat1', name: 'Uni', color: '#2a78d6', sort_order: 0 }],
+    categories: [{ id: 'cat1', name: 'Uni', color: '#2a78d6', sort_order: 0, fixed: 'uni' }, { id: 'cat2', name: 'Gym', color: '#008300', sort_order: 1 }],
     study_logs: [{ id: 'sl1', subject_id: 's1', topic_id: 'tp1', exam_id: null, date: '2026-11-20', hours: 1.5, note: 'Library', created_at: 'x' }],
     inbox: [{ id: 'in1', text: 'Call the bank', created_at: 'x' }],
   }

@@ -209,12 +209,17 @@ export interface CalendarEvent {
   updated_at: string
 }
 
-/** A named colour for calendar events, e.g. "Uni" = blue, "Gym" = green. */
+/** A fixed colour area (see logic/areas.ts). */
+export type FixedArea = 'uni' | 'daily' | 'travel' | 'exam' | 'deadline'
+
+/** A named colour area for calendar events, e.g. "Uni" = violet, "Gym" = green. */
 export interface EventCategory {
   id: string
   name: string
   color: string
   sort_order: number
+  /** Set on the fixed areas (Uni, Day to day, Travel, Exams, Deadlines): they can't be deleted. */
+  fixed?: FixedArea | null
 }
 
 /** One focus (pomodoro) session, finished or stopped early. */

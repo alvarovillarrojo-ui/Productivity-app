@@ -607,6 +607,23 @@ describe('tasks inside a block', () => {
   })
 })
 
+describe('colour areas', () => {
+  const names = { uni: 'Uni', daily: 'Día a día', travel: 'Viajes', exam: 'Exámenes', deadline: 'Entregas' }
+  it('creates the fixed areas once, adopting one you already had, and never deletes them', async () => {
+    await db.categories.clear()
+    const mine = await repo.createCategory('uni', '#123456')
+    await repo.ensureFixedAreas(names)
+    await repo.ensureFixedAreas(names) // a second time adds nothing
+    const all = await repo.listCategories()
+    expect(all.map((c) => [c.name, c.fixed])).toEqual([
+      ['uni', 'uni'], ['Día a día', 'daily'], ['Viajes', 'travel'], ['Exámenes', 'exam'], ['Entregas', 'deadline'],
+    ])
+    expect(all[0]).toMatchObject({ id: mine.id, color: '#123456' })
+    await repo.deleteCategory(mine.id)
+    expect(await repo.listCategories()).toHaveLength(5)
+  })
+})
+
 describe('inbox', () => {
   it('keeps notes in order and turns one into a task in one step', async () => {
     const cycle = await repo.createCycle({ name: 'Inbox cycle', start_date: '2026-11-23', length_weeks: 12, vision: null, notes: '', status: 'active' })

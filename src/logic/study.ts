@@ -179,7 +179,8 @@ export const examIdOfEvent = (eventId: string): string | null =>
  * default, so the calendar and the deadlines radar show them. Titles:
  * "Corporate Finance · Final", "Strategy · Group work — Presentation".
  */
-export function examEvents(exams: Exam[], subjects: Subject[], kindLabel: (k: Exam['kind']) => string, color: (s: Subject) => string): CalendarEvent[] {
+/** `color(exam, isDeliverable)`: e.g. the Exams or Deadlines colour (logic/areas.ts). */
+export function examEvents(exams: Exam[], subjects: Subject[], kindLabel: (k: Exam['kind']) => string, color: (exam: Exam, isDeliverable: boolean) => string): CalendarEvent[] {
   const byId = new Map(subjects.map((s) => [s.id, s]))
   const endOf = (start: string | null) => (start ? `${String(Math.min(23, Number(start.slice(0, 2)) + 1)).padStart(2, '0')}${start.slice(2)}` : null)
   return examDates(exams).flatMap(({ exam: e, date, start_time, deliverable }) => {
@@ -197,7 +198,7 @@ export function examEvents(exams: Exam[], subjects: Subject[], kindLabel: (k: Ex
         kind: 'deadline' as const,
         repeat_until: null,
         notes: '',
-        color: color(subject),
+        color: color(e, Boolean(deliverable)),
         created_at: e.created_at,
         updated_at: e.updated_at,
       },

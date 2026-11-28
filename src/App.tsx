@@ -1,7 +1,8 @@
 // App layout.
 //   Computer: a sidebar on the left (all sections) + the current screen.
 //   Phone: a top bar + a bottom bar with the main sections and "More".
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import * as repo from './data/repo'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import {
   BarChart3,
@@ -43,6 +44,11 @@ interface NavItem {
 
 export default function App() {
   const { t } = useI18n()
+  // The fixed colour areas (Uni, Day to day, Travel, Exams, Deadlines) always exist.
+  useEffect(() => {
+    void repo.ensureFixedAreas(t.calendar.areaNames)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [moreOpen, setMoreOpen] = useState(false)
   const { pathname } = useLocation()
 

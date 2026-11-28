@@ -3,6 +3,7 @@
 // Screens call these functions and never touch the database directly. To move
 // to a cloud database later, rewrite this file (and `useLive.ts`) and keep the
 // same function names; the UI does not need to change.
+import { AREA_DEFAULT_COLORS, missingFixedAreas } from '../logic/areas'
 import { db } from './db'
 import { nameKey, type ImportPlan, type PlanTactic } from '../logic/exchange'
 import { planRecurring, scheduleOf, weeksToPrepare } from '../logic/taskActions'
@@ -18,6 +19,7 @@ import type {
   EventCategory,
   StudyLog,
   Exam,
+  FixedArea,
   FocusSession,
   Subject,
   Topic,
@@ -486,11 +488,33 @@ export async function updateCategory(id: string, changes: Partial<Omit<EventCate
   await db.categories.update(id, changes)
 }
 
-/** Deletes a category. Its events keep the colour they had, without a category. */
+/**
+ * Makes sure the fixed areas exist (Uni, Day to day, Travel, Exams, Deadlines).
+ * A category you already called e.g. "Uni" becomes the fixed one (it keeps its colour).
+ * `names`: their names in your language, used only when one is created.
+ */
+export async function ensureFixedAreas(names: Record<FixedArea, string>): Promise<void> {
+  await db.transaction('rw', db.categories, async () => {
+    const all = await db.categories.toArray()
+    for (const area of missingFixedAreas(all)) {
+      const same = all.find((c) => !c.fixed && nameKey(c.name) === nameKey(names[area]))
+      if (same) {
+        await db.categories.update(same.id, { fixed: area })
+        same.fixed = area
+        continue
+      }
+      const created: EventCategory = { id: newId(), name: names[area], color: AREA_DEFAULT_COLORS[area], sort_order: all.length, fixed: area }
+      await db.categories.add(created)
+      all.push(created)
+    }
+  })
+}
+
+/** Deletes a category (never a fixed area). Its events keep the colour they had, without a category. */
 export async function deleteCategory(id: string): Promise<void> {
   await db.transaction('rw', db.categories, db.events, async () => {
     const category = await db.categories.get(id)
-    if (!category) return
+    if (!category || category.fixed) return
     await db.events.filter((e) => e.category_id === id).modify({ category_id: null, color: category.color })
     await db.categories.delete(id)
   })
@@ -773,7 +797,11 @@ export async function listInbox(): Promise<InboxItem[]> {
 }
 
 export async function addToInbox(text: string): Promise<InboxItem> {
-  const item: InboxItem = { id: newId(), text: text.trim(), created_at: now() }
+  // Notes are listed by created_at: two saved in the same millisecond keep their order.
+  const last = await db.inbox.orderBy('created_at').last()
+  let created = now()
+  if (last && created <= last.created_at) created = new Date(new Date(last.created_at).getTime() + 1).toISOString()
+  const item: InboxItem = { id: newId(), text: text.trim(), created_at: created }
   await db.inbox.add(item)
   return item
 }

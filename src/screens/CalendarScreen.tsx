@@ -22,6 +22,7 @@ import SubjectSelect from '../components/SubjectSelect'
 import StudyTargetSelect from '../components/StudyTargetSelect'
 import CausePicker from '../components/CausePicker'
 import { EVENT_COLOR, eventColorOf, goalColorOf, PICKER_COLORS } from '../components/colors'
+import { isPickableArea } from '../logic/areas'
 import ColorPicker from '../components/ColorPicker'
 import TextField from '../components/TextField'
 import BlockTasks, { blockBadge } from '../components/BlockTasks'
@@ -257,7 +258,7 @@ export default function CalendarScreen() {
       {dialog?.kind === 'event' && (
         <EventDialog event={dialog.event} date={dialog.date} time={dialog.time} categories={categories} onClose={() => setDialog(null)} />
       )}
-      {dialog?.kind === 'categories' && <CategoriesDialog categories={categories} onClose={() => setDialog(null)} />}
+      {dialog?.kind === 'categories' && <CategoriesDialog categories={categories} goals={goals} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'task' && cycle && (
         <TaskDialog
           key={dialog.task.id}
@@ -280,8 +281,8 @@ export default function CalendarScreen() {
 /** What each colour means: goals (for tasks) and your event categories. */
 function Legend({ goals, categories, events, onEdit }: { goals: Goal[]; categories: EventCategory[]; events: CalendarEvent[]; onEdit: () => void }) {
   const { t } = useI18n()
-  // Events without a category (exams included) are listed together.
-  const loose = events.some((e) => !e.category_id || !categories.some((c) => c.id === e.category_id))
+  // Events with no colour at all (grey) are listed together.
+  const loose = events.some((e) => !e.color)
   return (
     <div className="stack-tight">
       <div className="legend small-text">
@@ -307,7 +308,7 @@ function Legend({ goals, categories, events, onEdit }: { goals: Goal[]; categori
         ))}
         {loose && (
           <span className="legend-item">
-            <span className="swatch striped" style={{ background: EVENT_COLOR }} /> {categories.length ? t.calendar.noCategory : t.calendar.eventsLegend}
+            <span className="swatch striped" style={{ background: EVENT_COLOR }} /> {t.calendar.noCategory}
           </span>
         )}
         <span className="muted">🚩 {t.calendar.kinds.deadline}</span>
@@ -322,13 +323,14 @@ function Legend({ goals, categories, events, onEdit }: { goals: Goal[]; categori
 // ---------- colour categories dialog ----------
 
 /** Create, rename, recolour and delete the event categories (e.g. Uni, Gym). */
-function CategoriesDialog({ categories, onClose }: { categories: EventCategory[]; onClose: () => void }) {
+function CategoriesDialog({ categories, goals, onClose }: { categories: EventCategory[]; goals: Goal[]; onClose: () => void }) {
   const { t } = useI18n()
   const c = t.calendar
   const [name, setName] = useState('')
   const add = async () => {
     if (!name.trim()) return
-    const used = new Set(categories.map((x) => x.color))
+    // A new area gets a colour no area or goal uses yet.
+    const used = new Set([...categories.map((x) => x.color), ...goals.map((g, i) => goalColorOf(g, i))])
     await repo.createCategory(name.trim(), PICKER_COLORS.find((col) => !used.has(col)) ?? PICKER_COLORS[0])
     setName('')
   }
@@ -338,14 +340,20 @@ function CategoriesDialog({ categories, onClose }: { categories: EventCategory[]
   return (
     <Modal title={c.categoriesTitle} onClose={onClose}>
       <p className="muted small-text">{c.categoriesHint}</p>
-      {categories.map((cat) => (
+      {categories.map((cat, i) => (
         <div key={cat.id} className="category-row stack-tight">
+          {!cat.fixed && categories[i - 1]?.fixed && <h3>{c.yourAreas}</h3>}
           <div className="row spread">
             <TextField className="grow" ariaLabel={c.categoryName} value={cat.name} required onSave={(n) => repo.updateCategory(cat.id, { name: n })} />
-            <button className="link danger" onClick={() => remove(cat)}>
-              {t.common.delete}
-            </button>
+            {cat.fixed ? (
+              <span className="muted small-text">🔒 {c.fixedTag}</span>
+            ) : (
+              <button className="link danger" onClick={() => remove(cat)}>
+                {t.common.delete}
+              </button>
+            )}
           </div>
+          {cat.fixed && <p className="muted small-text">{c.areaHints[cat.fixed]}</p>}
           <ColorPicker
             value={cat.color}
             auto={cat.color}
@@ -700,11 +708,11 @@ function EventDialog({
         </div>
         <span className="muted small-text">{c.kindHint}</span>
       </div>
-      {categories.length > 0 && (
+      {categories.some(isPickableArea) && (
         <div className="field">
           <span>{c.category}</span>
           <div className="row">
-            {[null, ...categories].map((cat) => {
+            {[null, ...categories.filter(isPickableArea)].map((cat) => {
               const on = (f.category_id ?? null) === (cat?.id ?? null)
               return (
                 <button
