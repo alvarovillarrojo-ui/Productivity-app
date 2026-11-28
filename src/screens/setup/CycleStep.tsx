@@ -3,6 +3,7 @@ import { addDays, cycleEnd, isMonday, isValidDate, mondayOf } from '../../logic/
 import NumberField from '../../components/NumberField'
 import { useI18n } from '../../i18n'
 import type { StepProps } from './stepProps'
+import { DateInput } from '../../components/DateTimeInput'
 
 export default function CycleStep({ draft, change }: StepProps) {
   const { t, date } = useI18n()
@@ -20,7 +21,7 @@ export default function CycleStep({ draft, change }: StepProps) {
       </label>
       <label className="field">
         <span>{c.startDate}</span>
-        <input type="date" value={draft.startDate} onChange={(e) => change({ startDate: e.target.value })} />
+        <DateInput value={draft.startDate} onChange={(v) => change({ startDate: v })} />
       </label>
       {suggestion && (
         <p className="warn-box">

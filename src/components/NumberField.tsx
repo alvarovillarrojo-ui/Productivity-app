@@ -1,5 +1,11 @@
 // A number input where "empty" means null (e.g. "no minimum").
+//
+// It is a text field (with the number keyboard on phones) rather than the
+// browser's number field: that one dropped the comma, so "3,5" became 35 or
+// was emptied. Here "3,5" and "3.5" both mean three and a half.
 import { useEffect, useState } from 'react'
+import { useI18n } from '../i18n'
+import { formatDecimal, isDecimalDraft, parseDecimal } from '../logic/numbers'
 
 interface Props {
   value: number | null
@@ -13,31 +19,35 @@ interface Props {
   disabled?: boolean
 }
 
-export default function NumberField({ value, onChange, min = 0, max, step = 0.5, placeholder, ariaLabel, className, disabled }: Props) {
-  // Keep the typed text locally so "1." or "" can be typed without jumping.
-  const [text, setText] = useState(value === null ? '' : String(value))
+export default function NumberField({ value, onChange, min = 0, max, placeholder, ariaLabel, className, disabled }: Props) {
+  const { lang } = useI18n()
+  // Keep the typed text locally so "3," or "" can be typed without jumping.
+  const [text, setText] = useState(formatDecimal(value, lang))
   useEffect(() => {
-    if (value !== (text === '' ? null : Number(text))) setText(value === null ? '' : String(value))
+    if (value !== parseDecimal(text)) setText(formatDecimal(value, lang))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
+  const outOfRange = (n: number | null) => n !== null && (n < min || (max !== undefined && n > max))
+
   return (
     <input
-      type="number"
+      type="text"
       inputMode="decimal"
+      autoComplete="off"
       className={className ?? 'num'}
       value={text}
-      min={min}
-      max={max}
-      step={step}
       placeholder={placeholder}
       aria-label={ariaLabel}
+      aria-invalid={outOfRange(parseDecimal(text)) || undefined}
       disabled={disabled}
       onChange={(e) => {
-        setText(e.target.value)
-        const n = e.target.value === '' ? null : Number(e.target.value)
-        onChange(n === null || Number.isNaN(n) ? null : n)
+        const typed = e.target.value.replace(/\s/g, '')
+        if (!isDecimalDraft(typed)) return // ignore letters, a second comma…
+        setText(typed)
+        onChange(parseDecimal(typed))
       }}
+      onBlur={() => setText(formatDecimal(parseDecimal(text), lang))}
     />
   )
 }

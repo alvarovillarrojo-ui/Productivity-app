@@ -7,6 +7,7 @@ import type { Cycle, Goal, Tactic } from '../data/types'
 import { useI18n } from '../i18n'
 import NumberField from './NumberField'
 import TacticSelect from './TacticSelect'
+import { DateInput } from './DateTimeInput'
 
 interface Props {
   cycle: Cycle
@@ -62,13 +63,12 @@ export default function QuickAdd({ cycle, week, goals, tactics, minDate, maxDate
         onChange={(e) => setTitle(e.target.value)}
       />
       <TacticSelect goals={goals} tactics={tactics} value={chosen} onChange={setTacticId} />
-      <input
-        type="date"
+      <DateInput
         aria-label={t.tasks.dateOptional}
         min={minDate}
         max={maxDate}
         value={date}
-        onChange={(e) => setDate(e.target.value)}
+        onChange={(v) => setDate(v)}
       />
       <NumberField className="num small" ariaLabel={t.tasks.hoursOptional} placeholder="h" value={hours} onChange={setHours} />
       <button className="btn primary" type="submit" disabled={!title.trim() || !dateOk}>

@@ -36,6 +36,7 @@ import { isBlock } from '../logic/taskActions'
 import { difficultTopics, examDates, nextExam, overallAverage, studyBreakdown, studyHours, subjectGrades, topicProgress, type StudyBreakdown } from '../logic/study'
 import StudyTargetSelect, { type StudyTarget } from '../components/StudyTargetSelect'
 import { addDays, defaultWeek, mondayOf, todayISO } from '../logic/weeks'
+import { DateInput, TimeInput } from '../components/DateTimeInput'
 
 const DEFAULT_GRADE_GOAL = 9
 const UPCOMING_DAYS = 30
@@ -396,10 +397,10 @@ function ExamRow({ exam, past }: { exam: Exam; past: boolean }) {
           <TextField ariaLabel={s.examTitle} placeholder={s.kinds[exam.kind]} value={exam.title} onSave={(title) => save({ title })} />
         </td>
         <td>
-          <input type="date" value={exam.date} onChange={(e) => e.target.value && save({ date: e.target.value })} />
+          <DateInput value={exam.date} onChange={(v) => v && save({ date: v })} />
         </td>
         <td>
-          <input type="time" step={900} value={exam.start_time ?? ''} onChange={(e) => save({ start_time: e.target.value || null })} />
+          <TimeInput value={exam.start_time ?? ''} onChange={(v) => save({ start_time: v || null })} />
         </td>
         <td className="num-col">
           <NumberField className="num small" step={5} max={100} value={exam.weight} placeholder="–" onChange={(v) => save({ weight: v })} />
@@ -438,13 +439,11 @@ function ExamRow({ exam, past }: { exam: Exam; past: boolean }) {
                       value={d.title}
                       onSave={(title) => change(d.id, { title })}
                     />
-                    <input type="date" aria-label={s.date} value={d.date} onChange={(e) => e.target.value && change(d.id, { date: e.target.value })} />
-                    <input
-                      type="time"
+                    <DateInput aria-label={s.date} value={d.date} onChange={(v) => v && change(d.id, { date: v })} />
+                    <TimeInput
                       aria-label={s.time}
-                      step={900}
                       value={d.start_time ?? ''}
-                      onChange={(e) => change(d.id, { start_time: e.target.value || null })}
+                      onChange={(v) => change(d.id, { start_time: v || null })}
                     />
                     <button
                       className="link danger"
@@ -617,7 +616,7 @@ function HoursCard({
           <div className="row">
             <label className="field">
               <span>{s.date}</span>
-              <input type="date" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} />
+              <DateInput value={day} onChange={(v) => v && setDay(v)} />
             </label>
             <label className="field">
               <span>{s.logHours}</span>

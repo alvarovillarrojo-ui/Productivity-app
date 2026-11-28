@@ -37,6 +37,7 @@ import {
   type CalendarItem,
 } from '../logic/calendar'
 import { addDays, formatWeekday, isValidDate, todayISO, weekDates, weekNumberOf, weekStart } from '../logic/weeks'
+import { DateInput, TimeInput } from '../components/DateTimeInput'
 
 /** Height of one hour in the week view, in pixels. */
 const HOUR_PX = 48
@@ -633,17 +634,17 @@ function EventDialog({
       <div className="row">
         <label className="field">
           <span>{c.date}</span>
-          <input type="date" value={f.date} onChange={(e) => e.target.value && set({ date: e.target.value })} />
+          <DateInput value={f.date} onChange={(v) => v && set({ date: v })} />
         </label>
         {!allDay && (
           <>
             <label className="field">
               <span>{c.start}</span>
-              <input type="time" step={900} value={f.start_time ?? ''} onChange={(e) => set({ start_time: e.target.value })} />
+              <TimeInput value={f.start_time ?? ''} onChange={(v) => set({ start_time: v })} />
             </label>
             <label className="field">
               <span>{c.end}</span>
-              <input type="time" step={900} value={f.end_time ?? ''} onChange={(e) => set({ end_time: e.target.value })} />
+              <TimeInput value={f.end_time ?? ''} onChange={(v) => set({ end_time: v })} />
             </label>
           </>
         )}
@@ -673,7 +674,7 @@ function EventDialog({
         {f.repeat_weekly && (
           <label className="field">
             <span>{c.until}</span>
-            <input type="date" min={f.date} value={f.repeat_until ?? ''} onChange={(e) => set({ repeat_until: e.target.value || null })} />
+            <DateInput min={f.date} value={f.repeat_until ?? ''} onChange={(v) => set({ repeat_until: v || null })} />
           </label>
         )}
       </div>
@@ -837,7 +838,7 @@ function TaskDialog({
         </label>
         <label className="field">
           <span>{c.start}</span>
-          <input type="time" step={900} value={start} onChange={(e) => setStart(e.target.value)} />
+          <TimeInput value={start} onChange={(v) => setStart(v)} />
         </label>
         <label className="field">
           <span>{c.duration}</span>

@@ -15,6 +15,7 @@ import { isValidTime } from '../logic/calendar'
 import ColorPicker from '../components/ColorPicker'
 import { goalColor } from '../components/colors'
 import { useLive } from '../data/useLive'
+import { DateInput, TimeInput } from '../components/DateTimeInput'
 
 export default function GoalsScreen() {
   const { t } = useI18n()
@@ -136,7 +137,7 @@ function CycleCard({ cycle }: { cycle: Cycle }) {
         </label>
         <label className="field">
           <span>{t.goalsScreen.start}</span>
-          <input type="date" value={cycle.start_date} onChange={(e) => changeStart(e.target.value)} />
+          <DateInput value={cycle.start_date} onChange={(v) => changeStart(v)} />
         </label>
         <label className="field">
           <span>{t.goalsScreen.weeks}</span>
@@ -375,7 +376,7 @@ function TacticSchedule({ tactic }: { tactic: Tactic }) {
       <div className="row">
         <label className="field">
           <span>{s.time}</span>
-          <input type="time" step={900} value={time} onChange={(e) => setTime(e.target.value)} />
+          <TimeInput value={time} onChange={(v) => setTime(v)} />
         </label>
         <label className="field">
           <span>{s.hours}</span>

@@ -32,6 +32,7 @@ import { buildClaudePrompt } from '../logic/claudePrompt'
 import { buildSubjectsPrompt } from '../logic/subjectsPrompt'
 import { parseSubjectsFile, planCounts, planSubjectsImport, type SubjectsPlan } from '../logic/subjectsImport'
 import NumberField from '../components/NumberField'
+import { DateInput } from '../components/DateTimeInput'
 
 const SECTIONS = ['backup', 'restore', 'export', 'claude', 'import', 'subjects', 'ics'] as const
 
@@ -482,7 +483,7 @@ function PlanWithClaude() {
       <div className="row">
         <label className="field">
           <span>{m.start}</span>
-          <input type="date" value={start} onChange={(e) => e.target.value && setStart(e.target.value)} />
+          <DateInput value={start} onChange={(v) => v && setStart(v)} />
         </label>
         <label className="field">
           <span>{m.hours}</span>
@@ -710,7 +711,7 @@ function IcsSection() {
         </label>
         <label className="row small-text">
           <span>{m.from}</span>
-          <input type="date" value={from} onChange={(e) => e.target.value && setFrom(e.target.value)} />
+          <DateInput value={from} onChange={(v) => v && setFrom(v)} />
         </label>
       </div>
       {looksWrong && <p className="bad">{m.notIcs}</p>}

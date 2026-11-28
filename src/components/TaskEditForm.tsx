@@ -7,6 +7,7 @@ import NumberField from './NumberField'
 import TacticSelect from './TacticSelect'
 import SubjectSelect from './SubjectSelect'
 import StudyTargetSelect from './StudyTargetSelect'
+import { DateInput, TimeInput } from './DateTimeInput'
 
 interface Props {
   task: Task
@@ -60,22 +61,19 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
         <div className="row">
           <label className="field">
             <span>{t.tasks.edit.date}</span>
-            <input
-              type="date"
+            <DateInput
               min={minDate}
               max={maxDate}
               value={form.planned_date ?? ''}
-              onChange={(e) => set({ planned_date: e.target.value || null })}
+              onChange={(v) => set({ planned_date: v || null })}
             />
           </label>
           <label className="field">
             <span>{t.tasks.edit.startTime}</span>
-            <input
-              type="time"
-              step={900}
+            <TimeInput
               disabled={!form.planned_date}
               value={form.start_time ?? ''}
-              onChange={(e) => set({ start_time: e.target.value || null })}
+              onChange={(v) => set({ start_time: v || null })}
             />
           </label>
           <label className="field">

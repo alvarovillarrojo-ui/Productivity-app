@@ -29,6 +29,7 @@ import DeadlinesCard from '../components/DeadlinesCard'
 import { checkSet, isPlanned, missedLastTime } from '../logic/habits'
 import { executionPoints, formatHours, formatPct, isDue, weekExecution } from '../logic/metrics'
 import { addDays, cycleEnd, cyclePosition, daysBetween, defaultWeek, todayISO, weekEnd } from '../logic/weeks'
+import { TimeInput } from '../components/DateTimeInput'
 
 /** From this hour on, the closing is shown first. */
 const CLOSING_FROM_HOUR = 16
@@ -201,8 +202,8 @@ function Opening({ cycle, today, entry, nowMin }: { cycle: Cycle; today: string;
           )}
           <label className="row small-text muted">
             <span>{d.windowLabel}</span>
-            <input type="time" step={900} value={window.start} onChange={(e) => setWindow({ start: e.target.value })} />
-            <input type="time" step={900} value={window.end} onChange={(e) => setWindow({ end: e.target.value })} />
+            <TimeInput value={window.start} onChange={(v) => setWindow({ start: v })} />
+            <TimeInput value={window.end} onChange={(v) => setWindow({ end: v })} />
           </label>
         </div>
       </div>
