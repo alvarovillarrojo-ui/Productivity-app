@@ -14,6 +14,7 @@ import type {
   CalendarEvent,
   Cycle,
   DayEntry,
+  EventCategory,
   Exam,
   FocusSession,
   Subject,
@@ -462,6 +463,32 @@ export async function importIcsEvents(events: IcsEvent[], kind: 'class' | 'deadl
   })
 }
 
+// ---------- event colour categories ----------
+
+export async function listCategories(): Promise<EventCategory[]> {
+  return (await db.categories.toArray()).sort((a, b) => a.sort_order - b.sort_order)
+}
+
+export async function createCategory(name: string, color: string): Promise<EventCategory> {
+  const category: EventCategory = { id: newId(), name, color, sort_order: await db.categories.count() }
+  await db.categories.add(category)
+  return category
+}
+
+export async function updateCategory(id: string, changes: Partial<Omit<EventCategory, 'id'>>): Promise<void> {
+  await db.categories.update(id, changes)
+}
+
+/** Deletes a category. Its events keep the colour they had, without a category. */
+export async function deleteCategory(id: string): Promise<void> {
+  await db.transaction('rw', db.categories, db.events, async () => {
+    const category = await db.categories.get(id)
+    if (!category) return
+    await db.events.filter((e) => e.category_id === id).modify({ category_id: null, color: category.color })
+    await db.categories.delete(id)
+  })
+}
+
 // ---------- focus (pomodoro) ----------
 
 /** Focus sessions on or after `from`. */
@@ -664,7 +691,7 @@ export async function listAllFocusSessions(): Promise<FocusSession[]> {
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */

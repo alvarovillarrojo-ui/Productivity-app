@@ -11,7 +11,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCalendarEvents } from '../components/useCalendarEvents'
 import * as repo from '../data/repo'
 import { useActiveCycle, useCycleTasks, useGoals, useTactics } from '../data/hooks'
-import type { CalendarEvent, Cycle, Goal, ISODate, Tactic, Task } from '../data/types'
+import type { CalendarEvent, Cycle, EventCategory, Goal, ISODate, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import Modal from '../components/Modal'
 import NumberField from '../components/NumberField'
@@ -20,8 +20,9 @@ import StatusButtons, { StatusBadge } from '../components/StatusButtons'
 import { isBlock } from '../logic/taskActions'
 import SubjectSelect from '../components/SubjectSelect'
 import CausePicker from '../components/CausePicker'
-import { EVENT_COLOR, eventColorOf, goalColorOf } from '../components/colors'
+import { EVENT_COLOR, eventColorOf, goalColorOf, PICKER_COLORS } from '../components/colors'
 import ColorPicker from '../components/ColorPicker'
+import TextField from '../components/TextField'
 import {
   addMonths,
   calendarItems,
@@ -44,8 +45,14 @@ const OTHER_COLOR = '#94a3b8'
 
 type Dialog =
   | { kind: 'new'; date: ISODate; time: string }
-  | { kind: 'event'; event: CalendarEvent | null; date: ISODate; time: string | null }
+  | {
+      kind: 'event'
+      event: CalendarEvent | null
+      date: ISODate
+      time: string | null
+    }
   | { kind: 'task'; task: Task; date: ISODate; time: string }
+  | { kind: 'categories' }
 
 export default function CalendarScreen() {
   const { t, locale, date: fmtDate } = useI18n()
@@ -61,7 +68,7 @@ export default function CalendarScreen() {
   const goals = useGoals(cycle?.id)
   const tactics = useTactics(cycle?.id)
   const tasks = useCycleTasks(cycle?.id)
-  const { events, subjectOfEvent } = useCalendarEvents()
+  const { events, categories, subjectOfEvent } = useCalendarEvents()
   const navigate = useNavigate()
   const [dialog, setDialog] = useState<Dialog | null>(null)
 
@@ -77,8 +84,18 @@ export default function CalendarScreen() {
     const subjectId = item.kind === 'event' ? subjectOfEvent(item.event!.id) : null
     if (subjectId) return navigate(`/students/${subjectId}`)
     return item.kind === 'event'
-      ? setDialog({ kind: 'event', event: item.event!, date: item.date, time: item.event!.start_time })
-      : setDialog({ kind: 'task', task: item.task!, date: item.date, time: item.task!.start_time ?? '09:00' })
+      ? setDialog({
+          kind: 'event',
+          event: item.event!,
+          date: item.date,
+          time: item.event!.start_time,
+        })
+      : setDialog({
+          kind: 'task',
+          task: item.task!,
+          date: item.date,
+          time: item.task!.start_time ?? '09:00',
+        })
   }
 
   const days = weekDates(date)
@@ -138,7 +155,7 @@ export default function CalendarScreen() {
           <p className="muted small-text">
             {c.clickSlot} <Link to="/data?action=ics">{c.importIcs}</Link>
           </p>
-          <Legend goals={goals} hasEvents={events.length > 0} />
+          <Legend goals={goals} categories={categories} events={events} onEdit={() => setDialog({ kind: 'categories' })} />
           {inCycle && (
             <div className="card">
               <h2>{c.unscheduled(unplaced.length)}</h2>
@@ -152,9 +169,16 @@ export default function CalendarScreen() {
                       <button
                         key={task.id}
                         className="chip"
-                        style={{ borderLeft: `4px solid ${colorOf({ kind: 'task', task } as CalendarItem)}` }}
+                        style={{
+                          borderLeft: `4px solid ${colorOf({ kind: 'task', task } as CalendarItem)}`,
+                        }}
                         onClick={() =>
-                          setDialog({ kind: 'task', task, date: task.planned_date ?? (days.includes(today) ? today : days[0]), time: '09:00' })
+                          setDialog({
+                            kind: 'task',
+                            task,
+                            date: task.planned_date ?? (days.includes(today) ? today : days[0]),
+                            time: '09:00',
+                          })
                         }
                       >
                         {task.status === 'done' ? '✓ ' : ''}
@@ -177,11 +201,21 @@ export default function CalendarScreen() {
           onDay={(d) => go('week', d)}
         />
       )}
-      {view === 'month' && <Legend goals={goals} hasEvents={events.length > 0} />}
+      {view === 'month' && <Legend goals={goals} categories={categories} events={events} onEdit={() => setDialog({ kind: 'categories' })} />}
 
       {dialog?.kind === 'new' && (
         <Modal title={c.newAt(`${fmtDate(dialog.date)} · ${dialog.time}`)} onClose={() => setDialog(null)}>
-          <button className="btn primary" onClick={() => setDialog({ kind: 'event', event: null, date: dialog.date, time: dialog.time })}>
+          <button
+            className="btn primary"
+            onClick={() =>
+              setDialog({
+                kind: 'event',
+                event: null,
+                date: dialog.date,
+                time: dialog.time,
+              })
+            }
+          >
             + {c.newEvent}
           </button>
           <h3>{c.placeTask}</h3>
@@ -193,7 +227,18 @@ export default function CalendarScreen() {
             ) : (
               <div className="row">
                 {options.map((task) => (
-                  <button key={task.id} className="chip" onClick={() => setDialog({ kind: 'task', task, date: dialog.date, time: dialog.time })}>
+                  <button
+                    key={task.id}
+                    className="chip"
+                    onClick={() =>
+                      setDialog({
+                        kind: 'task',
+                        task,
+                        date: dialog.date,
+                        time: dialog.time,
+                      })
+                    }
+                  >
                     {task.title}
                   </button>
                 ))}
@@ -203,8 +248,9 @@ export default function CalendarScreen() {
         </Modal>
       )}
       {dialog?.kind === 'event' && (
-        <EventDialog event={dialog.event} date={dialog.date} time={dialog.time} onClose={() => setDialog(null)} />
+        <EventDialog event={dialog.event} date={dialog.date} time={dialog.time} categories={categories} onClose={() => setDialog(null)} />
       )}
+      {dialog?.kind === 'categories' && <CategoriesDialog categories={categories} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'task' && cycle && (
         <TaskDialog
           key={dialog.task.id}
@@ -223,28 +269,103 @@ export default function CalendarScreen() {
 
 // ---------- legend ----------
 
-/** What each colour means. Goal colours can be changed in Goals. */
-function Legend({ goals, hasEvents }: { goals: Goal[]; hasEvents: boolean }) {
+/** What each colour means: goals (for tasks) and your event categories. */
+function Legend({ goals, categories, events, onEdit }: { goals: Goal[]; categories: EventCategory[]; events: CalendarEvent[]; onEdit: () => void }) {
   const { t } = useI18n()
+  // Events without a category (exams included) are listed together.
+  const loose = events.some((e) => !e.category_id || !categories.some((c) => c.id === e.category_id))
   return (
-    <div className="legend small-text">
-      {goals.map((g, i) => (
-        <span key={g.id} className="legend-item">
-          <span className="swatch" style={{ background: goalColorOf(g, i) }} /> {g.name}
-        </span>
-      ))}
-      <span className="legend-item">
-        <span className="swatch" style={{ background: OTHER_COLOR }} /> {t.common.other}
-      </span>
-      {hasEvents && (
+    <div className="stack-tight">
+      <div className="legend small-text">
+        <span className="muted">{t.calendar.legendTasks}</span>
+        {goals.map((g, i) => (
+          <span key={g.id} className="legend-item">
+            <span className="swatch" style={{ background: goalColorOf(g, i) }} /> {g.name}
+          </span>
+        ))}
         <span className="legend-item">
-          <span className="swatch striped" style={{ background: EVENT_COLOR }} /> {t.calendar.eventsLegend}
+          <span className="swatch" style={{ background: OTHER_COLOR }} /> {t.common.other}
         </span>
-      )}
-      <Link to="/goals" className="muted">
-        {t.calendar.changeColors}
-      </Link>
+        <Link to="/goals" className="muted">
+          {t.calendar.changeColors}
+        </Link>
+      </div>
+      <div className="legend small-text">
+        <span className="muted">{t.calendar.legendEvents}</span>
+        {categories.map((c) => (
+          <span key={c.id} className="legend-item">
+            <span className="swatch striped" style={{ background: c.color }} /> {c.name}
+          </span>
+        ))}
+        {loose && (
+          <span className="legend-item">
+            <span className="swatch striped" style={{ background: EVENT_COLOR }} /> {categories.length ? t.calendar.noCategory : t.calendar.eventsLegend}
+          </span>
+        )}
+        <span className="muted">🚩 {t.calendar.kinds.deadline}</span>
+        <button className="link" onClick={onEdit}>
+          {t.calendar.editCategories}
+        </button>
+      </div>
     </div>
+  )
+}
+
+// ---------- colour categories dialog ----------
+
+/** Create, rename, recolour and delete the event categories (e.g. Uni, Gym). */
+function CategoriesDialog({ categories, onClose }: { categories: EventCategory[]; onClose: () => void }) {
+  const { t } = useI18n()
+  const c = t.calendar
+  const [name, setName] = useState('')
+  const add = async () => {
+    if (!name.trim()) return
+    const used = new Set(categories.map((x) => x.color))
+    await repo.createCategory(name.trim(), PICKER_COLORS.find((col) => !used.has(col)) ?? PICKER_COLORS[0])
+    setName('')
+  }
+  const remove = async (cat: EventCategory) => {
+    if (confirm(c.confirmDeleteCategory(cat.name))) await repo.deleteCategory(cat.id)
+  }
+  return (
+    <Modal title={c.categoriesTitle} onClose={onClose}>
+      <p className="muted small-text">{c.categoriesHint}</p>
+      {categories.map((cat) => (
+        <div key={cat.id} className="category-row stack-tight">
+          <div className="row spread">
+            <TextField className="grow" ariaLabel={c.categoryName} value={cat.name} required onSave={(n) => repo.updateCategory(cat.id, { name: n })} />
+            <button className="link danger" onClick={() => remove(cat)}>
+              {t.common.delete}
+            </button>
+          </div>
+          <ColorPicker
+            value={cat.color}
+            auto={cat.color}
+            label={c.color}
+            autoLabel={c.color}
+            hideAuto
+            onChange={(color) => color && repo.updateCategory(cat.id, { color })}
+          />
+        </div>
+      ))}
+      <form
+        className="row"
+        onSubmit={(e) => {
+          e.preventDefault()
+          add()
+        }}
+      >
+        <input className="grow" value={name} placeholder={c.categoryPlaceholder} aria-label={c.categoryName} onChange={(e) => setName(e.target.value)} />
+        <button className="btn primary" type="submit">
+          + {c.addCategory}
+        </button>
+      </form>
+      <div className="row">
+        <button className="btn" onClick={onClose}>
+          {t.common.close}
+        </button>
+      </div>
+    </Modal>
   )
 }
 
@@ -266,7 +387,10 @@ function WeekView({
   onSlot: (date: ISODate, time: string) => void
 }) {
   const { t, locale } = useI18n()
-  const timed = items.filter((i) => i.start !== null) as (CalendarItem & { start: number; end: number })[]
+  const timed = items.filter((i) => i.start !== null) as (CalendarItem & {
+    start: number
+    end: number
+  })[]
   const startHour = Math.min(DAY_START_HOUR, ...timed.map((i) => Math.floor(i.start / 60)))
   const endHour = Math.max(DAY_END_HOUR, ...timed.map((i) => Math.ceil(i.end / 60)))
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i)
@@ -414,11 +538,7 @@ function MonthView({
       {grid.map((d) => {
         const dayItems = items.filter((i) => i.date === d)
         return (
-          <button
-            key={d}
-            className={`month-cell${d.startsWith(month) ? '' : ' out'}${d === today ? ' today' : ''}`}
-            onClick={() => onDay(d)}
-          >
+          <button key={d} className={`month-cell${d.startsWith(month) ? '' : ' out'}${d === today ? ' today' : ''}`} onClick={() => onDay(d)}>
             <span className="month-day">{Number(d.slice(8))}</span>
             {dayItems.slice(0, MAX).map((i) => (
               <span key={i.key} className={`month-item${i.task?.status === 'done' ? ' done' : ''}`}>
@@ -437,7 +557,19 @@ function MonthView({
 
 // ---------- event dialog ----------
 
-function EventDialog({ event, date, time, onClose }: { event: CalendarEvent | null; date: ISODate; time: string | null; onClose: () => void }) {
+function EventDialog({
+  event,
+  date,
+  time,
+  categories,
+  onClose,
+}: {
+  event: CalendarEvent | null
+  date: ISODate
+  time: string | null
+  categories: EventCategory[]
+  onClose: () => void
+}) {
   const { t } = useI18n()
   const c = t.calendar
   const start = time ?? '09:00'
@@ -462,7 +594,11 @@ function EventDialog({ event, date, time, onClose }: { event: CalendarEvent | nu
     if (!allDay && (!f.start_time || !f.end_time || !isValidTime(f.start_time) || !isValidTime(f.end_time) || f.end_time <= f.start_time)) {
       return setError(c.endBeforeStart)
     }
-    const data = { ...f, title: f.title.trim(), repeat_until: f.repeat_weekly ? f.repeat_until || null : null }
+    const data = {
+      ...f,
+      title: f.title.trim(),
+      repeat_until: f.repeat_weekly ? f.repeat_until || null : null,
+    }
     if (event) await repo.updateEvent(event.id, data)
     else await repo.createEvent(data)
     onClose()
@@ -503,7 +639,14 @@ function EventDialog({ event, date, time, onClose }: { event: CalendarEvent | nu
           type="checkbox"
           checked={allDay}
           onChange={(e) =>
-            set(e.target.checked ? { start_time: null, end_time: null } : { start_time: start, end_time: fromMinutes(toMinutes(start) + 60) })
+            set(
+              e.target.checked
+                ? { start_time: null, end_time: null }
+                : {
+                    start_time: start,
+                    end_time: fromMinutes(toMinutes(start) + 60),
+                  },
+            )
           }
         />
         {c.allDayCheck}
@@ -529,23 +672,47 @@ function EventDialog({ event, date, time, onClose }: { event: CalendarEvent | nu
         <span>{c.kindLabel}</span>
         <div className="seg">
           {(['class', 'deadline', 'other'] as const).map((k) => (
-            <button key={k} type="button" className={(f.kind ?? 'other') === k ? 'on' : undefined} aria-pressed={(f.kind ?? 'other') === k} onClick={() => set({ kind: k })}>
+            <button
+              key={k}
+              type="button"
+              className={(f.kind ?? 'other') === k ? 'on' : undefined}
+              aria-pressed={(f.kind ?? 'other') === k}
+              onClick={() => set({ kind: k })}
+            >
               {c.kinds[k]}
             </button>
           ))}
         </div>
         <span className="muted small-text">{c.kindHint}</span>
       </div>
-      <div className="field">
-        <span>{c.color}</span>
-        <ColorPicker
-          value={f.color ?? null}
-          auto={EVENT_COLOR}
-          label={c.color}
-          autoLabel={c.autoColor}
-          onChange={(color) => set({ color })}
-        />
-      </div>
+      {categories.length > 0 && (
+        <div className="field">
+          <span>{c.category}</span>
+          <div className="row">
+            {[null, ...categories].map((cat) => {
+              const on = (f.category_id ?? null) === (cat?.id ?? null)
+              return (
+                <button
+                  key={cat?.id ?? 'none'}
+                  type="button"
+                  className={on ? 'chip on' : 'chip'}
+                  aria-pressed={on}
+                  onClick={() => set(cat ? { category_id: cat.id, color: cat.color } : { category_id: null })}
+                >
+                  {cat && <span className="dot-color" style={{ background: cat.color }} />}
+                  {cat ? cat.name : c.noCategory}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {!f.category_id && (
+        <div className="field">
+          <span>{c.color}</span>
+          <ColorPicker value={f.color ?? null} auto={EVENT_COLOR} label={c.color} autoLabel={c.autoColor} onChange={(color) => set({ color })} />
+        </div>
+      )}
       {error && <p className="bad">{error}</p>}
       <div className="row spread">
         <div className="row">
@@ -596,7 +763,11 @@ function TaskDialog({
 
   const save = async () => {
     if (!isValidTime(start)) return setError(c.endBeforeStart)
-    await repo.updateTask(task.id, { planned_date: day, start_time: start, planned_hours: hours })
+    await repo.updateTask(task.id, {
+      planned_date: day,
+      start_time: start,
+      planned_hours: hours,
+    })
     onClose()
   }
   const unschedule = async () => {

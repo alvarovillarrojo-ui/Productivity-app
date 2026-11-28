@@ -87,7 +87,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [] })
   })
 })
 
@@ -180,7 +180,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -199,6 +199,7 @@ describe('backup data', () => {
       subjects: [],
       topics: [],
       exams: [],
+      categories: [],
       tasks: [
         {
           id: repo.newId(),
@@ -518,7 +519,7 @@ describe('day journal', () => {
     expect(await repo.getDay('2026-11-23')).toMatchObject({ must_do: 'task1', mode: 'planned', reflection: 'Good focus' })
     const all = await repo.exportAll()
     expect(all.days).toHaveLength(1)
-    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [] })
+    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [] })
     expect(await repo.getDay('2026-11-23')).toBeNull()
   })
 })
@@ -574,5 +575,21 @@ describe('task kind', () => {
     const auto = (await repo.listTasksForWeek(cycle.id, 1)).filter((t) => t.id !== mine.id)
     expect(auto.length).toBeGreaterThan(0)
     expect(auto.every((t) => t.kind === 'block')).toBe(true)
+  })
+})
+
+describe('event colour categories', () => {
+  it('deleting a category keeps its events’ colour', async () => {
+    const uni = await repo.createCategory('Uni', '#2a78d6')
+    const gym = await repo.createCategory('Gym', '#1baf7a')
+    expect((await repo.listCategories()).map((c) => c.name)).toEqual(['Uni', 'Gym'])
+    const ev = await repo.createEvent({
+      title: 'Class', date: '2026-11-30', start_time: '10:00', end_time: '11:00', repeat_weekly: false, repeat_until: null, notes: '', category_id: uni.id,
+    })
+    await repo.updateCategory(gym.id, { name: 'Gimnasio' })
+    await repo.deleteCategory(uni.id)
+    expect((await repo.listCategories()).map((c) => c.name)).toEqual(['Gimnasio'])
+    expect(await db.events.get(ev.id)).toMatchObject({ category_id: null, color: '#2a78d6' })
+    expect((await repo.exportAll()).categories).toHaveLength(1)
   })
 })

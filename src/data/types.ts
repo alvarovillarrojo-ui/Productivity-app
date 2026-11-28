@@ -197,9 +197,19 @@ export interface CalendarEvent {
    * deadlines appear in the deadlines radar. Missing = other.
    */
   kind?: EventKind
+  /** Its colour category (e.g. "Uni", "Gym"); its colour wins over `color`. */
+  category_id?: string | null
 
   created_at: string
   updated_at: string
+}
+
+/** A named colour for calendar events, e.g. "Uni" = blue, "Gym" = green. */
+export interface EventCategory {
+  id: string
+  name: string
+  color: string
+  sort_order: number
 }
 
 /** One focus (pomodoro) session, finished or stopped early. */
@@ -297,6 +307,8 @@ export interface AllData {
   subjects: Subject[]
   topics: Topic[]
   exams: Exam[]
+  /** Added in v0.6 (older backups: none). */
+  categories: EventCategory[]
 }
 
 /**

@@ -7,6 +7,7 @@ export default function ColorPicker({
   onChange,
   label,
   autoLabel,
+  hideAuto,
 }: {
   value: string | null
   /** The colour used when nothing is chosen (shown on the "auto" swatch). */
@@ -14,21 +15,25 @@ export default function ColorPicker({
   onChange: (color: string | null) => void
   label: string
   autoLabel: string
+  /** Don't offer the automatic colour (a colour must be chosen). */
+  hideAuto?: boolean
 }) {
   return (
     <div className="color-picker" role="radiogroup" aria-label={label}>
-      <button
-        type="button"
-        role="radio"
-        aria-checked={value === null}
-        aria-label={autoLabel}
-        title={autoLabel}
-        className={value === null ? 'swatch-btn auto on' : 'swatch-btn auto'}
-        style={{ background: auto }}
-        onClick={() => onChange(null)}
-      >
-        A
-      </button>
+      {!hideAuto && (
+        <button
+          type="button"
+          role="radio"
+          aria-checked={value === null}
+          aria-label={autoLabel}
+          title={autoLabel}
+          className={value === null ? 'swatch-btn auto on' : 'swatch-btn auto'}
+          style={{ background: auto }}
+          onClick={() => onChange(null)}
+        >
+          A
+        </button>
+      )}
       {PICKER_COLORS.map((c) => (
         <button
           key={c}

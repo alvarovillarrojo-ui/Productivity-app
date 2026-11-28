@@ -723,7 +723,7 @@ export function buildBackup(data: AllData, exportedAt: string): BackupFile {
   return { schema_version: SCHEMA_VERSION, kind: 'backup', app: APP_ID, exported_at: exportedAt, data }
 }
 
-type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind' | 'eventKindOptional' | 'taskKindOptional' | 'boolOptional'
+type FieldKind = 'id' | 'text' | 'textNull' | 'date' | 'dateNull' | 'int' | 'num' | 'numNull' | 'bool' | 'status' | 'cycleStatus' | 'countsOptional' | 'category' | 'weekdays' | 'time' | 'timeNull' | 'timeOptional' | 'weekdaysOptional' | 'numOptional' | 'textOptional' | 'color' | 'colorOptional' | 'modeNull' | 'topicStatus' | 'examKind' | 'eventKindOptional' | 'taskKindOptional' | 'boolOptional'
 
 const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   cycles: {
@@ -767,14 +767,15 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   focus_sessions: {
     id: 'id', task_id: 'textNull', task_title: 'text', date: 'date', started_at: 'text', minutes: 'num', completed: 'bool', subject_id: 'textOptional',
   },
+  categories: { id: 'id', name: 'text', color: 'color', sort_order: 'num' },
   events: {
     id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',
-    repeat_weekly: 'bool', repeat_until: 'dateNull', notes: 'text', ics_uid: 'textOptional', color: 'colorOptional', kind: 'eventKindOptional', created_at: 'text', updated_at: 'text',
+    repeat_weekly: 'bool', repeat_until: 'dateNull', notes: 'text', ics_uid: 'textOptional', color: 'colorOptional', kind: 'eventKindOptional', category_id: 'textOptional', created_at: 'text', updated_at: 'text',
   },
 }
 
 /** Lists that older backups may not have yet. */
-const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams']
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -803,6 +804,7 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
     case 'topicStatus': return v === 'todo' || v === 'progress' || v === 'mastered'
     case 'examKind': return EXAM_KINDS.includes(v as ExamKind)
     case 'modeNull': return v === null || v === 'planned' || v === 'reactive'
+    case 'color': return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)
     case 'colorOptional': return v === undefined || v === null || (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v))
     case 'textOptional': return v === undefined || v === null || typeof v === 'string'
     case 'numOptional': return v === undefined || v === null || (typeof v === 'number' && Number.isFinite(v))
@@ -888,6 +890,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       subjects: data.subjects.map((x) => pick(x, 'subjects')),
       topics: data.topics.map((x) => pick(x, 'topics')),
       exams: data.exams.map((x) => pick(x, 'exams')),
+      categories: data.categories.map((x) => pick(x, 'categories')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }
