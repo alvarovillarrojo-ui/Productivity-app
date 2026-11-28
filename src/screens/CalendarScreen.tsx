@@ -23,6 +23,7 @@ import CausePicker from '../components/CausePicker'
 import { EVENT_COLOR, eventColorOf, goalColorOf, PICKER_COLORS } from '../components/colors'
 import ColorPicker from '../components/ColorPicker'
 import TextField from '../components/TextField'
+import BlockTasks, { blockBadge } from '../components/BlockTasks'
 import {
   addMonths,
   calendarItems,
@@ -111,7 +112,10 @@ export default function CalendarScreen() {
   // Tasks of the cycle week shown, that aren't in the calendar at a time yet.
   const cycleWeek = cycle ? weekNumberOf(cycle, days[0]) : 0
   const inCycle = cycle !== null && cycleWeek >= 1 && cycleWeek <= cycle.length_weeks
-  const unplaced = inCycle ? tasks.filter((x) => x.week_number === cycleWeek && !(x.planned_date && x.start_time)) : []
+  // Tasks inside a block are shown by the block (☑ 1/2), not on their own.
+  const ids = new Set(tasks.map((x) => x.id))
+  const shown = tasks.filter((x) => !(x.block_id && ids.has(x.block_id)))
+  const unplaced = inCycle ? shown.filter((x) => x.week_number === cycleWeek && !(x.planned_date && x.start_time)) : []
 
   return (
     <section className="stack calendar">
@@ -147,8 +151,9 @@ export default function CalendarScreen() {
           <WeekView
             days={days}
             today={today}
-            items={calendarItems(events, tasks, days[0], days[6])}
+            items={calendarItems(events, shown, days[0], days[6])}
             colorOf={colorOf}
+            badgeOf={(i) => (i.task ? blockBadge(i.task.id, tasks) : '')}
             onItem={openItem}
             onSlot={(d, time) => setDialog({ kind: 'new', date: d, time })}
           />
@@ -196,7 +201,7 @@ export default function CalendarScreen() {
           grid={grid}
           month={date.slice(0, 7)}
           today={today}
-          items={calendarItems(events, tasks, grid[0], grid[41])}
+          items={calendarItems(events, shown, grid[0], grid[41])}
           colorOf={colorOf}
           onDay={(d) => go('week', d)}
         />
@@ -221,7 +226,7 @@ export default function CalendarScreen() {
           <h3>{c.placeTask}</h3>
           {(() => {
             const wk = cycle ? weekNumberOf(cycle, dialog.date) : 0
-            const options = tasks.filter((x) => x.week_number === wk && !(x.planned_date && x.start_time))
+            const options = shown.filter((x) => x.week_number === wk && !(x.planned_date && x.start_time))
             return options.length === 0 ? (
               <p className="muted">{c.noTasksToPlace}</p>
             ) : (
@@ -258,6 +263,7 @@ export default function CalendarScreen() {
           cycle={cycle}
           goals={goals}
           tactics={tactics}
+          tasks={tasks}
           date={dialog.date}
           time={dialog.time}
           onClose={() => setDialog(null)}
@@ -376,6 +382,7 @@ function WeekView({
   today,
   items,
   colorOf,
+  badgeOf,
   onItem,
   onSlot,
 }: {
@@ -383,6 +390,7 @@ function WeekView({
   today: ISODate
   items: CalendarItem[]
   colorOf: (i: CalendarItem) => string
+  badgeOf: (i: CalendarItem) => string
   onItem: (i: CalendarItem) => void
   onSlot: (date: ISODate, time: string) => void
 }) {
@@ -422,7 +430,7 @@ function WeekView({
             {items
               .filter((i) => i.date === d && i.start === null)
               .map((i) => (
-                <ItemButton key={i.key} item={i} color={colorOf(i)} onClick={() => onItem(i)} compact />
+                <ItemButton key={i.key} item={i} color={colorOf(i)} badge={badgeOf(i)} onClick={() => onItem(i)} compact />
               ))}
           </div>
         ))}
@@ -451,6 +459,7 @@ function WeekView({
                     key={i.key}
                     item={i}
                     color={colorOf(i)}
+                    badge={badgeOf(i)}
                     onClick={() => onItem(i)}
                     style={{
                       top: ((i.start - startHour * 60) / 60) * HOUR_PX,
@@ -478,9 +487,12 @@ function ItemButton({
   onClick,
   style,
   compact,
+  badge,
 }: {
   item: CalendarItem
   color: string
+  /** e.g. "☑ 1/2" for a block with tasks inside. */
+  badge?: string
   onClick: () => void
   style?: React.CSSProperties
   compact?: boolean
@@ -503,6 +515,7 @@ function ItemButton({
         {item.event?.kind === 'deadline' ? '🚩 ' : ''}
         {item.event?.repeat_weekly ? '↻ ' : ''}
         {title}
+        {badge ? <span className="cal-item-badge"> {badge}</span> : null}
       </span>
       {!compact && time && <span className="cal-item-time">{time}</span>}
     </button>
@@ -740,6 +753,7 @@ function TaskDialog({
   cycle,
   goals,
   tactics,
+  tasks,
   date,
   time,
   onClose,
@@ -748,6 +762,7 @@ function TaskDialog({
   cycle: Cycle
   goals: Goal[]
   tactics: Tactic[]
+  tasks: Task[]
   date: ISODate
   time: string
   onClose: () => void
@@ -799,6 +814,7 @@ function TaskDialog({
           {c.openInTasks}
         </Link>
       </div>
+      {isBlock(task, tactics) && <BlockTasks block={task} tasks={tasks} tactics={tactics} canAdd />}
       <div className="row">
         <SubjectSelect value={task.subject_id ?? null} onChange={(id) => repo.updateTask(task.id, { subject_id: id })} />
       </div>

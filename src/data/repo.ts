@@ -338,8 +338,12 @@ export async function setMissReason(id: string, cause: MissCause | null): Promis
   await updateTask(id, { miss_reason: cause })
 }
 
+/** Deletes a task. Tasks that were inside it (if it was a block) are kept, unlinked. */
 export async function deleteTask(id: string): Promise<void> {
-  await db.tasks.delete(id)
+  await db.transaction('rw', db.tasks, async () => {
+    await db.tasks.filter((t) => t.block_id === id).modify({ block_id: null })
+    await db.tasks.delete(id)
+  })
 }
 
 // ---------- settings (device-specific, not in backups) ----------

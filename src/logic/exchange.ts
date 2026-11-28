@@ -743,7 +743,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   tasks: {
     id: 'id', cycle_id: 'id', week_number: 'int', title: 'text', tactic_id: 'textNull',
     planned_date: 'dateNull', planned_hours: 'numNull', actual_hours: 'numNull', status: 'status',
-    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', subject_id: 'textOptional', kind: 'taskKindOptional', created_at: 'text', updated_at: 'text',
+    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', subject_id: 'textOptional', kind: 'taskKindOptional', block_id: 'textOptional', created_at: 'text', updated_at: 'text',
   },
   // Added in v0.2. Backups from v0.1 don't have these lists (= no habits).
   habits: {

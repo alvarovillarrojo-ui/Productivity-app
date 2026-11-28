@@ -671,6 +671,11 @@ export const es: Dict = {
     noneToday: 'Hoy no hay bloques planificados.',
     noDay: (n: number) => `Bloques sin día fijo esta semana (${n} pendientes), p. ej. carreras: marca los que hiciste hoy`,
     earlier: (n: number) => `${n} bloque(s) de días anteriores de esta semana sin marcar`,
+    insideTitle: 'Tareas en este bloque',
+    insideEmpty: 'Nada todavía: añade lo que harás en esta sesión.',
+    addExisting: '+ Meter una tarea de esta semana…',
+    newInside: 'O escribe una tarea nueva',
+    takeOut: (title: string) => `Sacar «${title}» del bloque`,
   },
 
   day: {

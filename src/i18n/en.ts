@@ -675,6 +675,11 @@ export const en = {
     noneToday: 'No blocks planned today.',
     noDay: (n: number) => `Blocks without a fixed day this week (${n} open), e.g. runs: mark the ones you did today`,
     earlier: (n: number) => `${n} block(s) from earlier this week still unmarked`,
+    insideTitle: 'Tasks in this block',
+    insideEmpty: 'Nothing yet: add what you will do in this session.',
+    addExisting: '+ Put a task of this week in it…',
+    newInside: 'Or write a new task',
+    takeOut: (title: string) => `Take “${title}” out of the block`,
   },
 
   day: {

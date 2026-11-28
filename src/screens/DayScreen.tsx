@@ -6,6 +6,7 @@
 // CLOSING (night): today's tasks to mark ✓ ½ ✗ (with the cause), the day
 // score, a one-line reflection, and the habits still open.
 // Before 16:00 the opening is shown first, after that the closing.
+import { Fragment } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as repo from '../data/repo'
 import { useActiveCycle, useCycleTasks, useGoals, useHabitChecks, useHabits, useTactics } from '../data/hooks'
@@ -13,6 +14,7 @@ import { useLive } from '../data/useLive'
 import type { Cycle, DayEntry, FocusSession, Goal, Tactic, Task } from '../data/types'
 import { useI18n } from '../i18n'
 import TaskRow from '../components/TaskRow'
+import BlockTasks from '../components/BlockTasks'
 import StatusButtons from '../components/StatusButtons'
 import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import { pctClass } from '../components/pctClass'
@@ -264,6 +266,13 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
   // Blocks without a day (e.g. "Run 3× per week"): marked here too, any day.
   const blocksNoDay = weekTasks.filter((x) => block(x) && x.planned_date === null && (x.status === 'todo' || x.updated_at.slice(0, 10) === today))
   const tasksToday = list.filter((x) => !block(x))
+  // The tasks placed inside a block, shown (and tickable) under it.
+  const inBlock = (x: Task) =>
+    weekTasks.some((y) => y.block_id === x.id) ? (
+      <li className="block-inside">
+        <BlockTasks block={x} tasks={weekTasks} tactics={tactics} />
+      </li>
+    ) : null
   const others = weekTasks.filter((x) => !block(x) && x.status === 'todo' && x.planned_date !== today && x.id !== mustDo?.id)
 
   // Day score: today's tasks that belong to a tactic.
@@ -286,7 +295,10 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
         ) : (
           <ul className="task-list">
             {blocksToday.map((x) => (
-              <TaskRow key={x.id} task={x} context={(x.id === mustDo?.id ? '⭐ ' : '') + label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} showDate={false} />
+              <Fragment key={x.id}>
+                <TaskRow task={x} context={(x.id === mustDo?.id ? '⭐ ' : '') + label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} showDate={false} />
+                {inBlock(x)}
+              </Fragment>
             ))}
           </ul>
         )}
@@ -295,7 +307,10 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
             <summary className="small-text">{t.blocks.noDay(blocksNoDay.filter((x) => x.status === 'todo').length)}</summary>
             <ul className="task-list">
               {blocksNoDay.map((x) => (
-                <TaskRow key={x.id} task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} />
+                <Fragment key={x.id}>
+                  <TaskRow task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} />
+                  {inBlock(x)}
+                </Fragment>
               ))}
             </ul>
           </details>
@@ -305,7 +320,10 @@ function Closing({ cycle, today, entry }: { cycle: Cycle; today: string; entry: 
             <summary className="small-text warn">{t.blocks.earlier(blocksEarlier.length)}</summary>
             <ul className="task-list">
               {blocksEarlier.map((x) => (
-                <TaskRow key={x.id} task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} />
+                <Fragment key={x.id}>
+                  <TaskRow task={x} context={label(x.tactic_id)} minimum={minimumOf(x.tactic_id, tactics)} />
+                  {inBlock(x)}
+                </Fragment>
               ))}
             </ul>
           </details>

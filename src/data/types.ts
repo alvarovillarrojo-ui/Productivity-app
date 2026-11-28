@@ -111,6 +111,8 @@ export interface Task {
    * todo = something you have to do (tasks you add). See logic/taskActions.
    */
   kind?: 'block' | 'todo'
+  /** For a task: the block (plan session) it will be done in, if any. */
+  block_id?: string | null
   notes: string
   created_at: string
   updated_at: string

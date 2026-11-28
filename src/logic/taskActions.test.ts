@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Tactic, Task, TaskStatus } from '../data/types'
-import { isBlock, planRecurring, unfinishedCopies, weeksToPrepare } from './taskActions'
+import { attachableTasks, isBlock, planRecurring, tasksInBlock, unfinishedCopies, weeksToPrepare } from './taskActions'
 
 const tactic = (id: string, name: string, freq: number | null, active = true): Tactic => ({
   id,
@@ -167,5 +167,22 @@ describe('blocks vs tasks', () => {
       [run],
     )
     expect(copies.map((c) => [c.title, c.kind])).toEqual([['Prepare slides', 'todo']])
+  })
+})
+
+describe('tasks inside a block', () => {
+  const study = tactic('st', 'Study', 3)
+  const block = task({ id: 'b1', tactic_id: 'st', kind: 'block' })
+  const other = task({ id: 'b2', tactic_id: 'st', kind: 'block' })
+  it('offers open to-dos of the same week that are not in another block', () => {
+    const free = task({ id: 'free', title: 'DCF exercise', kind: 'todo' })
+    const mine = task({ id: 'mine', title: 'Read ch. 3', kind: 'todo', block_id: 'b1' })
+    const inOther = task({ id: 'inOther', kind: 'todo', block_id: 'b2' })
+    const orphan = task({ id: 'orphan', kind: 'todo', block_id: 'gone' })
+    const done = task({ id: 'done', kind: 'todo', status: 'done' })
+    const nextWeek = task({ id: 'next', kind: 'todo', week_number: 2 })
+    const all = [block, other, free, mine, inOther, orphan, done, nextWeek]
+    expect(attachableTasks(block, all, [study]).map((t) => t.id)).toEqual(['free', 'orphan'])
+    expect(tasksInBlock('b1', all).map((t) => t.id)).toEqual(['mine'])
   })
 })

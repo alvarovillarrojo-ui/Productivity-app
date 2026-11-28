@@ -110,6 +110,27 @@ export function isBlock(task: Task, tactics: Tactic[]): boolean {
   return task.title === tactic.name || isNumberedCopy(task.title, tactic.name)
 }
 
+/** The tasks placed inside a block (what you will do in that session). */
+export const tasksInBlock = (blockId: string, tasks: Task[]): Task[] => tasks.filter((t) => t.block_id === blockId)
+
+/**
+ * Tasks that can be put inside `block`: open to-dos (not blocks) of the same
+ * cycle week that aren't in another block yet (a link to a block that no
+ * longer exists counts as free).
+ */
+export function attachableTasks(block: Task, tasks: Task[], tactics: Tactic[]): Task[] {
+  const ids = new Set(tasks.map((t) => t.id))
+  return tasks.filter(
+    (t) =>
+      t.id !== block.id &&
+      t.cycle_id === block.cycle_id &&
+      t.week_number === block.week_number &&
+      t.status === 'todo' &&
+      !isBlock(t, tactics) &&
+      (!t.block_id || !ids.has(t.block_id)),
+  )
+}
+
 /**
  * "Copy unfinished tasks to next week": every open (todo) task is copied to
  * the next week, with its date moved 7 days later. The original stays where

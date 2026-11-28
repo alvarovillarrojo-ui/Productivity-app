@@ -593,3 +593,14 @@ describe('event colour categories', () => {
     expect((await repo.exportAll()).categories).toHaveLength(1)
   })
 })
+
+describe('tasks inside a block', () => {
+  it('deleting a block keeps its tasks, unlinked', async () => {
+    const { cycle } = await seed()
+    const block = await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'Study', kind: 'block' })
+    const inside = await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'DCF exercise' })
+    await repo.updateTask(inside.id, { block_id: block.id })
+    await repo.deleteTask(block.id)
+    expect(await db.tasks.get(inside.id)).toMatchObject({ title: 'DCF exercise', block_id: null })
+  })
+})
