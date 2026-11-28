@@ -3,7 +3,8 @@
 // guides (see logic/subjectsPrompt.ts for the instructions it gets).
 //
 // FORMAT
-//   { "format": "12wt-subjects", "version": "1.0",
+//   { "format": "12wt-subjects", "version": "1.0" (also read as "schema_version"
+//     or "schemaVersion"; it may be left out),
 //     "subjects": [ { "name", "info"?, "weekly_hours_target"?,
 //       "topics"?: [ "Topic name" | { "name", "notes"? } ],
 //       "exams"?: [ { "kind", "title"?, "date", "time"?, "weight"?, "notes"?,
@@ -14,11 +15,11 @@
 // (same name, ignoring capitals) are skipped, so importing twice is harmless.
 // Pure functions (no database), tested in subjectsImport.test.ts.
 import { EXAM_KINDS, type Exam, type ExamKind, type ISODate, type Subject, type Topic } from '../data/types'
-import { nameKey, type DataIssue } from './exchange'
+import { nameKey, SUBJECTS_FORMAT, type DataIssue } from './exchange'
 import { isValidDate } from './weeks'
 import { isValidTime } from './calendar'
 
-export const SUBJECTS_FORMAT = '12wt-subjects'
+export { SUBJECTS_FORMAT }
 export const SUBJECTS_VERSION = '1.0'
 
 export interface FileTopic {
@@ -56,7 +57,11 @@ export function parseSubjectsFile(input: unknown): { issues: DataIssue[]; subjec
   }
   if (!isObj(input)) return { issues: [{ code: 'notObject' }], subjects: null }
   if (input.format !== SUBJECTS_FORMAT || !Array.isArray(input.subjects)) return { issues: [{ code: 'notSubjects' }], subjects: null }
-  if (input.version !== SUBJECTS_VERSION) return { issues: [{ code: 'version', detail: String(input.version) }], subjects: null }
+  // The prompt writes "version"; other spellings are accepted too. No version at all is fine.
+  const version = input.version ?? input.schema_version ?? input.schemaVersion
+  if (version !== undefined && version !== null && !['1', '1.0'].includes(String(version))) {
+    return { issues: [{ code: 'version', detail: String(version) }], subjects: null }
+  }
 
   const text = (v: unknown, path: string, required = false): string => {
     if (v === undefined || v === null) {

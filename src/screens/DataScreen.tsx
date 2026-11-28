@@ -16,6 +16,7 @@ import {
   backupFileName,
   buildBackup,
   buildWeekReport,
+  isSubjectsFile,
   parseBackup,
   parseImport,
   parseJson,
@@ -279,11 +280,35 @@ function ImportSection() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
   const [asNew, setAsNew] = useState(false)
+  // A subjects file pasted here goes to the subjects import instead.
+  const [subjects, setSubjects] = useState<SubjectsCheck | null>(null)
+  const [subjectsDone, setSubjectsDone] = useState(false)
 
   const check = async (value: string, newCycle = asNew) => {
     setDone(false)
+    setSubjectsDone(false)
     setError('')
+    const json = parseJson(value)
+    if (json.issues.length === 0 && isSubjectsFile(json.value)) {
+      setResult(null)
+      setSubjects(await checkSubjects(value))
+      return
+    }
+    setSubjects(null)
     setResult(await checkImport(value, newCycle))
+  }
+  const applySubjects = async () => {
+    const fresh = await checkSubjects(text)
+    setSubjects(fresh)
+    if (!fresh.plan) return
+    try {
+      await repo.importSubjects(fresh.plan)
+      setSubjectsDone(true)
+      setSubjects(null)
+      setText('')
+    } catch (e) {
+      setError((e as Error).message)
+    }
   }
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -329,6 +354,7 @@ function ImportSection() {
         onChange={(e) => {
           setText(e.target.value)
           setResult(null)
+          setSubjects(null)
         }}
       />
       <div className="row">
@@ -341,6 +367,7 @@ function ImportSection() {
             onClick={() => {
               setText('')
               setResult(null)
+              setSubjects(null)
               setAsNew(false)
             }}
           >
@@ -348,6 +375,18 @@ function ImportSection() {
           </button>
         )}
       </div>
+
+      {subjects && (
+        <>
+          <p className="muted small-text">{m.subjectsDetected}</p>
+          <SubjectsPreview result={subjects} onImport={applySubjects} />
+        </>
+      )}
+      {subjectsDone && (
+        <p className="flash">
+          {t.data.subjects.done} <Link to="/students">{t.data.subjects.goStudies}</Link>
+        </p>
+      )}
 
       {result && result.issues.length > 0 && <Issues title={m.problems} issues={result.issues} />}
 
@@ -479,7 +518,9 @@ function PlanWithClaude() {
 
 // ---------- 3c. import subjects (with Claude) ----------
 
-async function checkSubjects(text: string): Promise<{ issues: DataIssue[]; plan: SubjectsPlan | null }> {
+type SubjectsCheck = { issues: DataIssue[]; plan: SubjectsPlan | null }
+
+async function checkSubjects(text: string): Promise<SubjectsCheck> {
   const json = parseJson(text)
   if (json.issues.length > 0) return { issues: json.issues, plan: null }
   const parsed = parseSubjectsFile(json.value)
@@ -494,7 +535,7 @@ function SubjectsSection() {
   const prompt = buildSubjectsPrompt(lang, todayISO())
   const [copied, setCopied] = useState<'yes' | 'no' | null>(null)
   const [text, setText] = useState('')
-  const [result, setResult] = useState<{ issues: DataIssue[]; plan: SubjectsPlan | null } | null>(null)
+  const [result, setResult] = useState<SubjectsCheck | null>(null)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
@@ -531,10 +572,6 @@ function SubjectsSection() {
       setError((e as Error).message)
     }
   }
-
-  const plan = result?.plan
-  const counts = plan ? planCounts(plan) : null
-  const nothingNew = counts && counts.subjects + counts.topics + counts.exams === 0
 
   return (
     <>
@@ -590,8 +627,28 @@ function SubjectsSection() {
         )}
       </div>
 
-      {result && result.issues.length > 0 && <Issues title={t.data.import.problems} issues={result.issues} />}
+      {result && <SubjectsPreview result={result} onImport={apply} />}
+      {error && <p className="bad">{error}</p>}
+      {done && (
+        <p className="flash">
+          {m.done} <Link to="/students">{m.goStudies}</Link>
+        </p>
+      )}
+      <p className="muted small-text">🔒 {t.data.claude.privacy}</p>
+    </>
+  )
+}
 
+/** The problems, or what importing a subjects file will add, with the button. */
+function SubjectsPreview({ result, onImport }: { result: SubjectsCheck; onImport: () => void }) {
+  const { t } = useI18n()
+  const m = t.data.subjects
+  const plan = result.plan
+  const counts = plan ? planCounts(plan) : null
+  const nothingNew = counts && counts.subjects + counts.topics + counts.exams === 0
+  return (
+    <>
+      {result.issues.length > 0 && <Issues title={t.data.import.problems} issues={result.issues} />}
       {plan && counts && (
         <div className="preview">
           <ul>
@@ -605,19 +662,12 @@ function SubjectsSection() {
           {nothingNew ? (
             <p className="muted">{m.nothingNew}</p>
           ) : (
-            <button className="btn primary" onClick={apply}>
+            <button className="btn primary" onClick={onImport}>
               {m.button}
             </button>
           )}
         </div>
       )}
-      {error && <p className="bad">{error}</p>}
-      {done && (
-        <p className="flash">
-          {m.done} <Link to="/students">{m.goStudies}</Link>
-        </p>
-      )}
-      <p className="muted small-text">🔒 {t.data.claude.privacy}</p>
     </>
   )
 }

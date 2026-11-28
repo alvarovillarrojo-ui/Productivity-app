@@ -31,6 +31,10 @@ import { isMonday, isValidDate, weekEnd, weekStart } from './weeks'
 import { isValidTime } from './calendar'
 
 export const SCHEMA_VERSION = '1.0'
+/** The subjects file (logic/subjectsImport.ts) says this in its "format". */
+export const SUBJECTS_FORMAT = '12wt-subjects'
+/** A subjects file goes only to the subjects import, never to the plan import or restore. */
+export const isSubjectsFile = (v: unknown): boolean => isObj(v) && v.format === SUBJECTS_FORMAT
 const APP_ID = 'twelve-week-tracker'
 const STATUSES: TaskStatus[] = ['todo', 'done', 'partial', 'missed']
 export const MAX_FREQUENCY = 14
@@ -68,6 +72,7 @@ export type DataIssueCode =
   | 'link' // restore: a record points to something that isn't there
   | 'duplicateId' // restore: two records share an id
   | 'manyActive' // restore: more than one active cycle
+  | 'subjectsFile' // plan import / restore: this is a subjects file
   | 'notSubjects' // subjects import: not a subjects file, or no subjects
   | 'examKind' // subjects import: unknown exam type
 
@@ -402,6 +407,7 @@ export function parseImport(
 ): { issues: DataIssue[]; plan: ImportPlan | null } {
   const r = new Reader()
   if (!isObj(input)) return { issues: [{ code: 'notObject' }], plan: null }
+  if (isSubjectsFile(input)) return { issues: [{ code: 'subjectsFile' }], plan: null }
   if (input.schema_version !== SCHEMA_VERSION) {
     return { issues: [{ code: 'version', detail: String(input.schema_version ?? '') }], plan: null }
   }
@@ -840,6 +846,7 @@ function fieldOk(kind: FieldKind, v: unknown): boolean {
 export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllData | null; exportedAt: string | null } {
   const fail = (issues: DataIssue[]) => ({ issues, data: null, exportedAt: null })
   if (!isObj(input)) return fail([{ code: 'notObject' }])
+  if (isSubjectsFile(input)) return fail([{ code: 'subjectsFile' }])
   if (input.kind !== 'backup' || !isObj(input.data)) return fail([{ code: 'notBackup' }])
   if (input.schema_version !== SCHEMA_VERSION) return fail([{ code: 'version', detail: String(input.schema_version ?? '') }])
 

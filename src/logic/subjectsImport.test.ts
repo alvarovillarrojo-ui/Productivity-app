@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Exam, Subject, Topic } from '../data/types'
-import { parseJson } from './exchange'
+import { parseBackup, parseImport, parseJson } from './exchange'
 import { parseSubjectsFile, planCounts, planSubjectsImport } from './subjectsImport'
 import { buildSubjectsPrompt, SUBJECTS_EXAMPLE } from './subjectsPrompt'
 
@@ -24,6 +24,27 @@ describe('subjects file', () => {
       expect(p).toContain('2026-11-28')
       expect(p).toContain('"format": "12wt-subjects"')
     }
+  })
+  it('reads the version as "version", "schema_version" or "schemaVersion" (or none)', () => {
+    const { version: _v, ...noVersion } = SUBJECTS_EXAMPLE
+    for (const extra of [{}, { schema_version: '1.0' }, { schemaVersion: '1.0' }, { version: 1 }]) {
+      expect(parseSubjectsFile({ ...noVersion, ...extra }).issues).toEqual([])
+    }
+    expect(parseSubjectsFile({ ...noVersion, schemaVersion: '3.0' }).issues).toEqual([{ code: 'version', detail: '3.0' }])
+  })
+  it('accepts decimal or empty weights, empty times, past dates and mixed topics', () => {
+    const r = parseSubjectsFile(
+      file([{ name: 'Econometría', topics: ['1. Intro', { name: '2. MCO', notes: 'supuestos' }], exams: [
+        { kind: 'quiz', title: 'Quiz 1', date: '2026-10-07', time: null, weight: 7.5 },
+        { kind: 'other', title: 'Participación', date: '2026-11-02', weight: null },
+      ] }]),
+    )
+    expect(r.issues).toEqual([])
+    expect(r.subjects![0].exams.map((e) => e.weight)).toEqual([7.5, null])
+  })
+  it('a subjects file is never read as a plan or a backup', () => {
+    expect(parseImport(SUBJECTS_EXAMPLE, null).issues).toEqual([{ code: 'subjectsFile' }])
+    expect(parseBackup(SUBJECTS_EXAMPLE).issues).toEqual([{ code: 'subjectsFile' }])
   })
   it('explains what is wrong', () => {
     expect(parseSubjectsFile({ schema_version: '1.0', goals: [] }).issues).toEqual([{ code: 'notSubjects' }])

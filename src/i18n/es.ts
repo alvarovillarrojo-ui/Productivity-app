@@ -374,6 +374,7 @@ export const es: Dict = {
       title: 'Importar',
       hint: 'Añade objetivos, tácticas y tareas desde un archivo JSON (esquema 1.0, ver docs/import_schema.md). Nunca se cambia ni se borra nada de lo que ya hay.',
       chooseFile: 'Elegir archivo JSON',
+      subjectsDetected: 'Es un archivo de asignaturas: añade asignaturas, temas y exámenes a Estudios.',
       paste: '…o pega el JSON aquí (también la respuesta entera de Claude)',
       check: 'Comprobar',
       clear: 'Borrar',
@@ -398,7 +399,7 @@ export const es: Dict = {
       switch (i.code) {
         case 'invalidJson': return `Esto no es JSON válido (${i.detail}).`
         case 'notObject': return `${at || 'El archivo '}debe ser un objeto { … }.`
-        case 'version': return `schema_version «${i.detail}» desconocida. Esta app lee la versión «1.0».`
+        case 'version': return `Versión de archivo «${i.detail}» desconocida. Esta app lee la versión «1.0».`
         case 'nothing': return 'El archivo no tiene ciclo, objetivos ni tareas.'
         case 'missingCycle': return 'No hay ningún ciclo activo, así que el archivo debe incluir un «cycle» (name, start_date, length_weeks).'
         case 'list': return `${at}debe ser una lista [ … ].`
@@ -424,6 +425,7 @@ export const es: Dict = {
         case 'record': return `${at}falta o no es válido.`
         case 'link': return `${at}apunta a algo que no está en la copia.`
         case 'duplicateId': return `${at}usa un id que aparece dos veces.`
+        case 'subjectsFile': return 'Esto es un archivo de asignaturas. Impórtalo en Datos → Importa tus asignaturas con Claude.'
         case 'manyActive': return 'La copia tiene más de un ciclo activo.'
         case 'notSubjects': return 'Esto no es un archivo de asignaturas (necesita "format": "12wt-subjects" y una lista "subjects").'
         case 'examKind': return `${at}tipo desconocido «${i.detail}». Usa quiz, midterm, final, assignment, project, group u other.`

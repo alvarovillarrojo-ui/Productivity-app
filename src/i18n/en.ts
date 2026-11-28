@@ -375,6 +375,7 @@ export const en = {
       title: 'Import',
       hint: 'Add goals, tactics and tasks from a JSON file (schema 1.0, see docs/import_schema.md). Existing data is never changed or deleted.',
       chooseFile: 'Choose JSON file',
+      subjectsDetected: 'This is a subjects file: it adds subjects, topics and exams to Studies.',
       paste: '…or paste JSON here (also Claude’s whole answer)',
       check: 'Check',
       clear: 'Clear',
@@ -399,7 +400,7 @@ export const en = {
       switch (i.code) {
         case 'invalidJson': return `This is not valid JSON (${i.detail}).`
         case 'notObject': return `${at || 'The file '}should be an object { … }.`
-        case 'version': return `Unknown schema_version “${i.detail}”. This app reads version “1.0”.`
+        case 'version': return `Unknown file version “${i.detail}”. This app reads version “1.0”.`
         case 'nothing': return 'The file has no cycle, goals or tasks.'
         case 'missingCycle': return 'There is no active cycle, so the file must include a “cycle” (name, start_date, length_weeks).'
         case 'list': return `${at}should be a list [ … ].`
@@ -425,6 +426,7 @@ export const en = {
         case 'record': return `${at}missing or invalid.`
         case 'link': return `${at}points to something that isn’t in the backup.`
         case 'duplicateId': return `${at}uses an id that appears twice.`
+        case 'subjectsFile': return 'This is a subjects file. Import it in Data → Import your subjects with Claude.'
         case 'manyActive': return 'The backup has more than one active cycle.'
         case 'notSubjects': return 'This is not a subjects file (it needs "format": "12wt-subjects" and a list of "subjects").'
         case 'examKind': return `${at}unknown type “${i.detail}”. Use quiz, midterm, final, assignment, project, group or other.`
