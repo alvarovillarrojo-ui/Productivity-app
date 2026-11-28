@@ -87,7 +87,7 @@ describe('cycles', () => {
     await repo.createTask({ cycle_id: cycle.id, week_number: 1, title: 'x', tactic_id: tactic.id })
     await repo.deleteCycle(cycle.id)
     const all = await repo.exportAll()
-    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [] })
+    expect(all).toEqual({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] })
   })
 })
 
@@ -180,7 +180,7 @@ describe('backup data', () => {
 
   it('settings survive a restore', async () => {
     await repo.setSetting('lastBackupAt', '2026-01-01T00:00:00.000Z')
-    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [] })
+    await repo.replaceAll({ cycles: [], goals: [], tactics: [], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] })
     expect(await repo.getSetting('lastBackupAt')).toBe('2026-01-01T00:00:00.000Z')
   })
 
@@ -200,6 +200,7 @@ describe('backup data', () => {
       topics: [],
       exams: [],
       categories: [],
+      study_logs: [],
       tasks: [
         {
           id: repo.newId(),
@@ -519,7 +520,7 @@ describe('day journal', () => {
     expect(await repo.getDay('2026-11-23')).toMatchObject({ must_do: 'task1', mode: 'planned', reflection: 'Good focus' })
     const all = await repo.exportAll()
     expect(all.days).toHaveLength(1)
-    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [] })
+    await repo.replaceAll({ ...all, days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] })
     expect(await repo.getDay('2026-11-23')).toBeNull()
   })
 })
@@ -602,5 +603,26 @@ describe('tasks inside a block', () => {
     await repo.updateTask(inside.id, { block_id: block.id })
     await repo.deleteTask(block.id)
     expect(await db.tasks.get(inside.id)).toMatchObject({ title: 'DCF exercise', block_id: null })
+  })
+})
+
+describe('study time logged by hand', () => {
+  it('is listed newest first and deleted with its subject', async () => {
+    const s = await repo.createSubject('Macro')
+    await repo.createStudyLog({ subject_id: s.id, topic_id: null, exam_id: null, date: '2026-11-20', hours: 1, note: '' })
+    await repo.createStudyLog({ subject_id: s.id, topic_id: null, exam_id: null, date: '2026-11-24', hours: 2, note: 'Library' })
+    expect((await repo.listStudyLogs(s.id)).map((l) => l.hours)).toEqual([2, 1])
+    expect((await repo.exportAll()).study_logs).toHaveLength(2)
+    await repo.deleteSubject(s.id)
+    expect(await repo.listStudyLogs()).toEqual([])
+  })
+  it('a free pomodoro remembers the topic', async () => {
+    const s = await repo.createSubject('Macro')
+    const T0 = Date.UTC(2026, 10, 24, 9, 0)
+    const settings = { focus: 25, shortBreak: 5, longBreak: 15, longEvery: 4 }
+    await repo.setFocusState({ ...startFocus(null, null, settings, T0), subjectId: s.id, topicId: 'tp' })
+    await repo.focusTick(T0 + 25 * 60_000)
+    const [session] = await repo.listAllFocusSessions()
+    expect(session).toMatchObject({ subject_id: s.id, topic_id: 'tp', exam_id: null })
   })
 })

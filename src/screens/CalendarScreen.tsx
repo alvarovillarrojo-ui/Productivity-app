@@ -19,6 +19,7 @@ import { minimumOf, tacticLabel } from '../components/TacticSelect'
 import StatusButtons, { StatusBadge } from '../components/StatusButtons'
 import { isBlock } from '../logic/taskActions'
 import SubjectSelect from '../components/SubjectSelect'
+import StudyTargetSelect from '../components/StudyTargetSelect'
 import CausePicker from '../components/CausePicker'
 import { EVENT_COLOR, eventColorOf, goalColorOf, PICKER_COLORS } from '../components/colors'
 import ColorPicker from '../components/ColorPicker'
@@ -816,7 +817,12 @@ function TaskDialog({
       </div>
       {isBlock(task, tactics) && <BlockTasks block={task} tasks={tasks} tactics={tactics} canAdd />}
       <div className="row">
-        <SubjectSelect value={task.subject_id ?? null} onChange={(id) => repo.updateTask(task.id, { subject_id: id })} />
+        <SubjectSelect value={task.subject_id ?? null} onChange={(id) => repo.updateTask(task.id, { subject_id: id, topic_id: null, exam_id: null })} />
+        <StudyTargetSelect
+          subjectId={task.subject_id ?? null}
+          value={{ topic_id: task.topic_id ?? null, exam_id: task.exam_id ?? null }}
+          onChange={(target) => repo.updateTask(task.id, target)}
+        />
       </div>
       <div className="row">
         <label className="field">

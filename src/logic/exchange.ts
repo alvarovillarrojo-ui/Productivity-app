@@ -743,7 +743,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
   tasks: {
     id: 'id', cycle_id: 'id', week_number: 'int', title: 'text', tactic_id: 'textNull',
     planned_date: 'dateNull', planned_hours: 'numNull', actual_hours: 'numNull', status: 'status',
-    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', subject_id: 'textOptional', kind: 'taskKindOptional', block_id: 'textOptional', created_at: 'text', updated_at: 'text',
+    miss_reason: 'textNull', notes: 'text', start_time: 'timeOptional', subject_id: 'textOptional', topic_id: 'textOptional', exam_id: 'textOptional', kind: 'taskKindOptional', block_id: 'textOptional', created_at: 'text', updated_at: 'text',
   },
   // Added in v0.2. Backups from v0.1 don't have these lists (= no habits).
   habits: {
@@ -765,8 +765,9 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
     date: 'date', must_do: 'textNull', mode: 'modeNull', reflection: 'text', opened_at: 'textNull', closed_at: 'textNull',
   },
   focus_sessions: {
-    id: 'id', task_id: 'textNull', task_title: 'text', date: 'date', started_at: 'text', minutes: 'num', completed: 'bool', subject_id: 'textOptional',
+    id: 'id', task_id: 'textNull', task_title: 'text', date: 'date', started_at: 'text', minutes: 'num', completed: 'bool', subject_id: 'textOptional', topic_id: 'textOptional', exam_id: 'textOptional',
   },
+  study_logs: { id: 'id', subject_id: 'id', topic_id: 'textNull', exam_id: 'textNull', date: 'date', hours: 'num', note: 'text', created_at: 'text' },
   categories: { id: 'id', name: 'text', color: 'color', sort_order: 'num' },
   events: {
     id: 'id', title: 'text', date: 'date', start_time: 'timeNull', end_time: 'timeNull',
@@ -775,7 +776,7 @@ const FIELDS: Record<keyof AllData, Record<string, FieldKind>> = {
 }
 
 /** Lists that older backups may not have yet. */
-const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories']
+const OPTIONAL_TABLES: (keyof AllData)[] = ['habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs']
 
 function fieldOk(kind: FieldKind, v: unknown): boolean {
   switch (kind) {
@@ -880,6 +881,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
   const subjectIds = new Set(data.subjects.map((s) => s.id))
   data.topics.forEach((x, i) => subjectIds.has(x.subject_id) || r.add('link', `data.topics[${i}].subject_id`))
   data.exams.forEach((x, i) => subjectIds.has(x.subject_id) || r.add('link', `data.exams[${i}].subject_id`))
+  data.study_logs.forEach((x, i) => subjectIds.has(x.subject_id) || r.add('link', `data.study_logs[${i}].subject_id`))
   if (data.cycles.filter((c) => c.status === 'active').length > 1) r.add('manyActive')
   if (r.issues.length > 0) return fail(r.issues)
 
@@ -906,6 +908,7 @@ export function parseBackup(input: unknown): { issues: DataIssue[]; data: AllDat
       topics: data.topics.map((x) => pick(x, 'topics')),
       exams: data.exams.map((x) => pick(x, 'exams')),
       categories: data.categories.map((x) => pick(x, 'categories')),
+      study_logs: data.study_logs.map((x) => pick(x, 'study_logs')),
     },
     exportedAt: typeof input.exported_at === 'string' ? input.exported_at : null,
   }

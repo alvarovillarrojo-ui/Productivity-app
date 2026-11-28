@@ -4,10 +4,12 @@
 //     exams that already have a grade. If no weights are given, a simple
 //     average. The overall average is the mean of the subjects' averages.
 //   - STUDY HOURS of a subject: actual hours of tasks linked to it, plus free
-//     pomodoros (no task) given that subject. Pomodoros on a task are already
-//     in the task's hours, so they are not counted twice.
+//     pomodoros (no task) given that subject, plus time logged by hand.
+//     Pomodoros on a task are already in the task's hours, so they are not
+//     counted twice. Each of them can name a topic or an exam/project, which
+//     gives the hours per topic and per exam (studyBreakdown).
 //   - EXAMS also appear in the calendar and the deadlines radar, as events.
-import type { CalendarEvent, Deliverable, Exam, FocusSession, ISODate, Subject, Task, Topic } from '../data/types'
+import type { CalendarEvent, Deliverable, Exam, FocusSession, ISODate, StudyLog, Subject, Task, Topic } from '../data/types'
 import { daysBetween } from './weeks'
 
 export interface GradeSummary {
@@ -42,23 +44,90 @@ export function overallAverage(averages: (number | null)[]): number | null {
   return known.length ? known.reduce((s, a) => s + a, 0) / known.length : null
 }
 
+/** Which tasks, pomodoros and logs count (e.g. this week); all by default. */
+export interface StudyRange {
+  task?: (t: Task) => boolean
+  session?: (s: FocusSession) => boolean
+  log?: (l: StudyLog) => boolean
+}
+
+/** One piece of study time: hours, and what it was for. */
+interface StudyPiece {
+  hours: number
+  topic_id: string | null
+  exam_id: string | null
+}
+
+/** All study time of a subject, from tasks, free pomodoros and logs. */
+function studyPieces(subjectId: string, tasks: Task[], sessions: FocusSession[], logs: StudyLog[], inRange: StudyRange): StudyPiece[] {
+  const piece = (hours: number, x: { topic_id?: string | null; exam_id?: string | null }): StudyPiece => ({
+    hours,
+    topic_id: x.topic_id ?? null,
+    exam_id: x.exam_id ?? null,
+  })
+  return [
+    ...tasks.filter((t) => t.subject_id === subjectId && (inRange.task?.(t) ?? true)).map((t) => piece(t.actual_hours ?? 0, t)),
+    ...sessions
+      .filter((s) => s.task_id === null && s.subject_id === subjectId && (inRange.session?.(s) ?? true))
+      .map((s) => piece(s.minutes / 60, s)),
+    ...logs.filter((l) => l.subject_id === subjectId && (inRange.log?.(l) ?? true)).map((l) => piece(l.hours, l)),
+  ]
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100
+
 /**
- * Study hours of a subject. `inRange` decides which tasks/sessions count
+ * Study hours of a subject. `inRange` decides which tasks/sessions/logs count
  * (e.g. this week); by default all of them.
  */
-export function studyHours(
+export function studyHours(subjectId: string, tasks: Task[], sessions: FocusSession[], inRange: StudyRange = {}, logs: StudyLog[] = []): number {
+  return round2(studyPieces(subjectId, tasks, sessions, logs, inRange).reduce((s, p) => s + p.hours, 0))
+}
+
+export interface StudyBreakdown {
+  /** Hours per topic id (only topics that still exist). */
+  topics: Map<string, number>
+  /** Hours per exam/project id (only ones that still exist). */
+  exams: Map<string, number>
+  /** Hours not linked to a topic or exam (or linked to a deleted one). */
+  general: number
+  total: number
+}
+
+/** A subject's study hours split by topic and by exam/project. */
+export function studyBreakdown(
   subjectId: string,
+  topics: Topic[],
+  exams: Exam[],
   tasks: Task[],
   sessions: FocusSession[],
-  inRange: { task?: (t: Task) => boolean; session?: (s: FocusSession) => boolean } = {},
-): number {
-  const fromTasks = tasks
-    .filter((t) => t.subject_id === subjectId && (inRange.task?.(t) ?? true))
-    .reduce((s, t) => s + (t.actual_hours ?? 0), 0)
-  const fromFocus = sessions
-    .filter((s) => s.task_id === null && s.subject_id === subjectId && (inRange.session?.(s) ?? true))
-    .reduce((sum, s) => sum + s.minutes / 60, 0)
-  return Math.round((fromTasks + fromFocus) * 100) / 100
+  logs: StudyLog[],
+  inRange: StudyRange = {},
+): StudyBreakdown {
+  const topicIds = new Set(topics.map((t) => t.id))
+  const examIds = new Set(exams.map((e) => e.id))
+  const r: StudyBreakdown = { topics: new Map(), exams: new Map(), general: 0, total: 0 }
+  const add = (m: Map<string, number>, id: string, h: number) => m.set(id, round2((m.get(id) ?? 0) + h))
+  for (const p of studyPieces(subjectId, tasks, sessions, logs, inRange)) {
+    if (p.hours <= 0) continue
+    r.total += p.hours
+    if (p.topic_id && topicIds.has(p.topic_id)) add(r.topics, p.topic_id, p.hours)
+    else if (p.exam_id && examIds.has(p.exam_id)) add(r.exams, p.exam_id, p.hours)
+    else r.general += p.hours
+  }
+  r.total = round2(r.total)
+  r.general = round2(r.general)
+  return r
+}
+
+/** What a piece of study was for, as one value for a <select>: "topic:id", "exam:id" or "". */
+export const studyTargetKey = (x: { topic_id?: string | null; exam_id?: string | null }): string =>
+  x.topic_id ? `topic:${x.topic_id}` : x.exam_id ? `exam:${x.exam_id}` : ''
+
+/** The opposite of studyTargetKey. */
+export function parseStudyTarget(key: string): { topic_id: string | null; exam_id: string | null } {
+  const [kind, id] = [key.slice(0, key.indexOf(':')), key.slice(key.indexOf(':') + 1)]
+  return { topic_id: kind === 'topic' && id ? id : null, exam_id: kind === 'exam' && id ? id : null }
 }
 
 /** One date of an exam: its main date, or one of its deliverables. */

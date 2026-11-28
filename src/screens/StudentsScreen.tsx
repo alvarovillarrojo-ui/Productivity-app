@@ -17,6 +17,7 @@ import {
   type Exam,
   type ExamKind,
   type FocusSession,
+  type StudyLog,
   type Subject,
   type Task,
   type Topic,
@@ -32,7 +33,8 @@ import { goalColor } from '../components/colors'
 import { subjectColorOf } from '../components/useCalendarEvents'
 import { formatHours, formatPct } from '../logic/metrics'
 import { isBlock } from '../logic/taskActions'
-import { difficultTopics, examDates, nextExam, overallAverage, studyHours, subjectGrades, topicProgress } from '../logic/study'
+import { difficultTopics, examDates, nextExam, overallAverage, studyBreakdown, studyHours, subjectGrades, topicProgress, type StudyBreakdown } from '../logic/study'
+import StudyTargetSelect, { type StudyTarget } from '../components/StudyTargetSelect'
 import { addDays, defaultWeek, mondayOf, todayISO } from '../logic/weeks'
 
 const DEFAULT_GRADE_GOAL = 9
@@ -52,6 +54,7 @@ function useStudyData() {
   const exams = useLive(() => repo.listExams(), [], [] as Exam[])
   const tasks = useLive(repo.listStudyTasks, [], [] as Task[])
   const sessions = useLive(repo.listAllFocusSessions, [], [] as FocusSession[])
+  const logs = useLive(() => repo.listStudyLogs(), [], [] as StudyLog[])
   const cycle = useActiveCycle() ?? null
   const today = todayISO()
   const monday = mondayOf(today)
@@ -61,8 +64,9 @@ function useStudyData() {
   const inWeek = {
     task: (t: Task) => (t.planned_date ? t.planned_date >= monday && t.planned_date <= sunday : !!cycle && t.cycle_id === cycle.id && t.week_number === week),
     session: (s: FocusSession) => s.date >= monday && s.date <= sunday,
+    log: (l: StudyLog) => l.date >= monday && l.date <= sunday,
   }
-  return { subjects, topics, exams, tasks, sessions, cycle, today, week, inWeek }
+  return { subjects, topics, exams, tasks, sessions, logs, cycle, today, week, inWeek }
 }
 
 export default function StudentsScreen() {
@@ -76,7 +80,7 @@ function Overview() {
   const { t, date } = useI18n()
   const s = t.students
   const navigate = useNavigate()
-  const { subjects, topics, exams, tasks, sessions, today, inWeek } = useStudyData()
+  const { subjects, topics, exams, tasks, sessions, logs, today, inWeek } = useStudyData()
   const goal = useLive(async () => (await repo.getSetting('gradeGoal')) ?? DEFAULT_GRADE_GOAL, [], DEFAULT_GRADE_GOAL)
   const [showArchived, setShowArchived] = useState(false)
 
@@ -84,7 +88,7 @@ function Overview() {
   const archived = subjects.filter((x) => x.archived)
   const avgOf = (id: string) => subjectGrades(exams.filter((e) => e.subject_id === id)).average
   const overall = overallAverage(active.map((x) => avgOf(x.id)))
-  const weekHours = active.reduce((sum, x) => sum + studyHours(x.id, tasks, sessions, inWeek), 0)
+  const weekHours = active.reduce((sum, x) => sum + studyHours(x.id, tasks, sessions, inWeek, logs), 0)
   const upcoming = examDates(exams.filter((e) => active.some((x) => x.id === e.subject_id))).filter(
     (d) => d.date >= today && d.date <= addDays(today, UPCOMING_DAYS),
   )
@@ -158,7 +162,7 @@ function Overview() {
               color={subjectColor(x, indexOf(x))}
               exams={exams.filter((e) => e.subject_id === x.id)}
               topics={topics.filter((tp) => tp.subject_id === x.id)}
-              hoursWeek={studyHours(x.id, tasks, sessions, inWeek)}
+              hoursWeek={studyHours(x.id, tasks, sessions, inWeek, logs)}
               today={today}
             />
           ))}
@@ -231,7 +235,7 @@ function SubjectPage({ id }: { id: string }) {
   const { t } = useI18n()
   const s = t.students
   const navigate = useNavigate()
-  const { subjects, topics, exams, tasks, sessions, cycle, today, week, inWeek } = useStudyData()
+  const { subjects, topics, exams, tasks, sessions, logs, cycle, today, week, inWeek } = useStudyData()
   const subject = subjects.find((x) => x.id === id)
   if (subjects.length > 0 && !subject) {
     return (
@@ -249,8 +253,9 @@ function SubjectPage({ id }: { id: string }) {
   const myTopics = topics.filter((x) => x.subject_id === id)
   const grades = subjectGrades(mine)
   const next = nextExam(mine, today)
-  const hoursWeek = studyHours(id, tasks, sessions, inWeek)
-  const hoursTotal = studyHours(id, tasks, sessions)
+  const hoursWeek = studyHours(id, tasks, sessions, inWeek, logs)
+  const hoursTotal = studyHours(id, tasks, sessions, {}, logs)
+  const breakdown = studyBreakdown(id, myTopics, mine, tasks, sessions, logs)
   const save = (changes: Partial<Subject>) => repo.updateSubject(id, changes)
 
   const remove = async () => {
@@ -312,7 +317,16 @@ function SubjectPage({ id }: { id: string }) {
       </div>
 
       <ExamsCard subjectId={id} exams={mine} today={today} />
-      <TopicsCard subjectId={id} topics={myTopics} />
+      <TopicsCard subjectId={id} topics={myTopics} hours={breakdown.topics} />
+      <HoursCard
+        subjectId={id}
+        topics={myTopics}
+        exams={mine}
+        breakdown={breakdown}
+        logs={logs.filter((l) => l.subject_id === id)}
+        today={today}
+        color={color}
+      />
       {cycle && <StudyTasksCard subjectId={id} cycle={cycle} week={week} tasks={tasks.filter((x) => x.subject_id === id && inWeek.task(x))} />}
       <p className="muted small-text">{s.hoursHint}</p>
     </section>
@@ -456,7 +470,7 @@ function ExamRow({ exam, past }: { exam: Exam; past: boolean }) {
 
 // ---------- topics ----------
 
-function TopicsCard({ subjectId, topics }: { subjectId: string; topics: Topic[] }) {
+function TopicsCard({ subjectId, topics, hours }: { subjectId: string; topics: Topic[]; hours: Map<string, number> }) {
   const { t } = useI18n()
   const s = t.students
   const [name, setName] = useState('')
@@ -490,7 +504,7 @@ function TopicsCard({ subjectId, topics }: { subjectId: string; topics: Topic[] 
       ) : (
         <ul className="topic-list">
           {shown.map((x) => (
-            <TopicRow key={x.id} topic={x} />
+            <TopicRow key={x.id} topic={x} hours={hours.get(x.id) ?? 0} />
           ))}
         </ul>
       )}
@@ -498,7 +512,7 @@ function TopicsCard({ subjectId, topics }: { subjectId: string; topics: Topic[] 
   )
 }
 
-function TopicRow({ topic }: { topic: Topic }) {
+function TopicRow({ topic, hours }: { topic: Topic; hours: number }) {
   const { t } = useI18n()
   const s = t.students
   const [open, setOpen] = useState(topic.notes !== '')
@@ -509,6 +523,7 @@ function TopicRow({ topic }: { topic: Topic }) {
       <div className="row spread">
         <TextField className="topic-name grow" ariaLabel={s.topics} value={topic.name} required onSave={(name) => save({ name })} />
         <div className="row">
+          {hours > 0 && <span className="muted small-text">⏱ {formatHours(hours)}</span>}
           <div className="seg">
             {statuses.map((st) => (
               <button key={st} className={topic.status === st ? 'on' : undefined} aria-pressed={topic.status === st} onClick={() => save({ status: st })}>
@@ -533,6 +548,136 @@ function TopicRow({ topic }: { topic: Topic }) {
       </div>
       {open && <TextField multiline rows={2} className="textarea" placeholder={s.notesPlaceholder} value={topic.notes} onSave={(notes) => save({ notes })} />}
     </li>
+  )
+}
+
+// ---------- hours by topic / exam, and time logged by hand ----------
+
+function HoursCard({
+  subjectId,
+  topics,
+  exams,
+  breakdown,
+  logs,
+  today,
+  color,
+}: {
+  subjectId: string
+  topics: Topic[]
+  exams: Exam[]
+  breakdown: StudyBreakdown
+  logs: StudyLog[]
+  today: string
+  color: string
+}) {
+  const { t, date } = useI18n()
+  const s = t.students
+  const [open, setOpen] = useState(false)
+  const [day, setDay] = useState(today)
+  const [hours, setHours] = useState<number | null>(null)
+  const [target, setTarget] = useState<StudyTarget>({ topic_id: null, exam_id: null })
+  const [note, setNote] = useState('')
+  const [error, setError] = useState('')
+
+  // One line per topic / exam with hours, plus "subject in general"; most hours first.
+  const rows = [
+    ...topics.filter((x) => breakdown.topics.has(x.id)).map((x) => ({ key: x.id, label: x.name, hours: breakdown.topics.get(x.id)! })),
+    ...exams.filter((x) => breakdown.exams.has(x.id)).map((x) => ({ key: x.id, label: `📅 ${x.title || s.kinds[x.kind]}`, hours: breakdown.exams.get(x.id)! })),
+    ...(breakdown.general > 0 ? [{ key: 'general', label: s.general, hours: breakdown.general }] : []),
+  ].sort((a, b) => b.hours - a.hours)
+  const max = Math.max(0, ...rows.map((r) => r.hours))
+  const labelOf = (l: StudyLog) => {
+    const tp = l.topic_id ? topics.find((x) => x.id === l.topic_id) : undefined
+    const ex = l.exam_id ? exams.find((x) => x.id === l.exam_id) : undefined
+    return tp ? tp.name : ex ? ex.title || s.kinds[ex.kind] : s.general
+  }
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (hours === null || hours <= 0) return setError(s.needHours)
+    await repo.createStudyLog({ subject_id: subjectId, ...target, date: day, hours, note: note.trim() })
+    setHours(null)
+    setNote('')
+    setError('')
+    setOpen(false)
+  }
+
+  return (
+    <div className="card stack">
+      <div className="row spread">
+        <h2>{s.byTarget}</h2>
+        {!open && (
+          <button className="btn" onClick={() => setOpen(true)}>
+            {s.logTime}
+          </button>
+        )}
+      </div>
+      {open && (
+        <form className="log-form stack-tight" onSubmit={save}>
+          <div className="row">
+            <label className="field">
+              <span>{s.date}</span>
+              <input type="date" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>{s.logHours}</span>
+              <NumberField className="num small" step={0.25} min={0} value={hours} placeholder="1.5" onChange={setHours} />
+            </label>
+            <label className="field">
+              <span>{s.studyFor}</span>
+              <StudyTargetSelect subjectId={subjectId} value={target} onChange={setTarget} />
+            </label>
+            <label className="field grow">
+              <span>{s.logNote}</span>
+              <input value={note} placeholder={s.logNotePlaceholder} onChange={(e) => setNote(e.target.value)} />
+            </label>
+          </div>
+          {error && <p className="bad">{error}</p>}
+          <div className="row">
+            <button className="btn primary" type="submit">
+              {t.common.save}
+            </button>
+            <button className="btn" type="button" onClick={() => setOpen(false)}>
+              {t.common.cancel}
+            </button>
+          </div>
+        </form>
+      )}
+      {rows.length === 0 ? (
+        <p className="muted">{s.noHoursYet}</p>
+      ) : (
+        <ul className="hours-list">
+          {rows.map((r) => (
+            <li key={r.key}>
+              <span className="hours-label">{r.label}</span>
+              <span className="mini-bar hours-bar">
+                <span style={{ width: `${max ? (r.hours / max) * 100 : 0}%`, background: color }} />
+              </span>
+              <strong className="hours-value">{formatHours(r.hours)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted small-text">{s.byTargetHint}</p>
+      {logs.length > 0 && (
+        <details>
+          <summary className="small-text">
+            {s.logged} ({logs.length})
+          </summary>
+          <ul className="log-list small-text">
+            {logs.map((l) => (
+              <li key={l.id}>
+                {date(l.date)} · <strong>{formatHours(l.hours)}</strong> · {labelOf(l)}
+                {l.note && <span className="muted"> · {l.note}</span>}{' '}
+                <button className="link danger" aria-label={t.common.delete} onClick={() => confirm(s.confirmDeleteLog) && repo.deleteStudyLog(l.id)}>
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   )
 }
 

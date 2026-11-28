@@ -16,6 +16,7 @@ import NumberField from '../components/NumberField'
 import { useFocusState, useNow } from '../components/FocusRunner'
 import { unlockSound } from '../components/sound'
 import SubjectSelect from '../components/SubjectSelect'
+import StudyTargetSelect, { type StudyTarget } from '../components/StudyTargetSelect'
 import {
   DEFAULT_FOCUS_SETTINGS,
   focusMinutesDone,
@@ -47,6 +48,7 @@ export default function FocusScreen() {
   const [chosen, setChosen] = useState<string | null | undefined>(params.get('task') ?? undefined)
   const [message, setMessage] = useState('')
   const [freeSubject, setFreeSubject] = useState<string | null>(null)
+  const [freeTarget, setFreeTarget] = useState<StudyTarget>({ topic_id: null, exam_id: null })
 
   // During a round or break the timer decides the task; between rounds the
   // dropdown does (so you can switch task for the next pomodoro).
@@ -66,7 +68,12 @@ export default function FocusScreen() {
   const start = async () => {
     unlockSound()
     setMessage('')
-    await repo.setFocusState({ ...startFocus(state, taskId, settings, Date.now()), subjectId: taskId ? null : freeSubject })
+    await repo.setFocusState({
+      ...startFocus(state, taskId, settings, Date.now()),
+      subjectId: taskId ? null : freeSubject,
+      topicId: taskId ? null : freeTarget.topic_id,
+      examId: taskId ? null : freeTarget.exam_id,
+    })
   }
   const stop = async (save: boolean) => {
     const saved = await repo.stopFocus(Date.now(), save)
@@ -102,7 +109,25 @@ export default function FocusScreen() {
       {taskId === null && (
         <label className="field">
           <span>{t.students.subject}</span>
-          <SubjectSelect value={state?.subjectId ?? freeSubject} onChange={setFreeSubject} disabled={!between} />
+          <SubjectSelect
+            value={state?.subjectId ?? freeSubject}
+            onChange={(id) => {
+              setFreeSubject(id)
+              setFreeTarget({ topic_id: null, exam_id: null })
+            }}
+            disabled={!between}
+          />
+        </label>
+      )}
+      {taskId === null && (state?.subjectId ?? freeSubject) && (
+        <label className="field">
+          <span>{t.students.studyFor}</span>
+          <StudyTargetSelect
+            subjectId={state?.subjectId ?? freeSubject}
+            value={state?.subjectId ? { topic_id: state.topicId ?? null, exam_id: state.examId ?? null } : freeTarget}
+            onChange={setFreeTarget}
+            disabled={!between}
+          />
         </label>
       )}
 

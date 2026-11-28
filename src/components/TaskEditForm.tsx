@@ -6,6 +6,7 @@ import { useI18n } from '../i18n'
 import NumberField from './NumberField'
 import TacticSelect from './TacticSelect'
 import SubjectSelect from './SubjectSelect'
+import StudyTargetSelect from './StudyTargetSelect'
 
 interface Props {
   task: Task
@@ -37,6 +38,8 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
       actual_hours: form.actual_hours,
       notes: form.notes,
       subject_id: form.subject_id ?? null,
+      topic_id: form.subject_id ? (form.topic_id ?? null) : null,
+      exam_id: form.subject_id ? (form.exam_id ?? null) : null,
     })
     onClose()
   }
@@ -85,8 +88,18 @@ export default function TaskEditForm({ task, goals, tactics, minDate, maxDate, o
           </label>
           <label className="field">
             <span>{t.students.subject}</span>
-            <SubjectSelect value={form.subject_id ?? null} onChange={(id) => set({ subject_id: id })} />
+            <SubjectSelect value={form.subject_id ?? null} onChange={(id) => set({ subject_id: id, topic_id: null, exam_id: null })} />
           </label>
+          {form.subject_id && (
+            <label className="field">
+              <span>{t.students.studyFor}</span>
+              <StudyTargetSelect
+                subjectId={form.subject_id}
+                value={{ topic_id: form.topic_id ?? null, exam_id: form.exam_id ?? null }}
+                onChange={(target) => set(target)}
+              />
+            </label>
+          )}
           <label className="field grow">
             <span>{t.tasks.edit.notes}</span>
             <input value={form.notes} onChange={(e) => set({ notes: e.target.value })} />

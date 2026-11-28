@@ -105,6 +105,9 @@ export interface Task {
   miss_reason: string | null
   /** The subject studied in this task (Students tab), if any. */
   subject_id?: string | null
+  /** Within that subject: the topic, or the exam/project, it was for (one of them). */
+  topic_id?: string | null
+  exam_id?: string | null
   /**
    * block = a session of the plan, created automatically from a tactic: it
    * lives in the calendar and is marked in the night closing.
@@ -228,6 +231,22 @@ export interface FocusSession {
   completed: boolean
   /** For a free focus (no task): the subject studied, if chosen. */
   subject_id?: string | null
+  /** …and the topic or exam/project within it. */
+  topic_id?: string | null
+  exam_id?: string | null
+}
+
+/** Study time logged by hand (no task, no pomodoro), e.g. 1.5 h on a topic. */
+export interface StudyLog {
+  id: string
+  subject_id: string
+  /** The topic, or the exam/project, it was for (or neither). */
+  topic_id: string | null
+  exam_id: string | null
+  date: ISODate
+  hours: number
+  note: string
+  created_at: string
 }
 
 /** The opening/closing record of one day. */
@@ -325,6 +344,8 @@ export interface AllData {
   exams: Exam[]
   /** Added in v0.6 (older backups: none). */
   categories: EventCategory[]
+  /** Added in v0.6 (older backups: none). */
+  study_logs: StudyLog[]
 }
 
 /**

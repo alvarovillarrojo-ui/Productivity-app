@@ -15,6 +15,7 @@ import type {
   Cycle,
   DayEntry,
   EventCategory,
+  StudyLog,
   Exam,
   FocusSession,
   Subject,
@@ -505,7 +506,10 @@ export async function listFocusSessions(from: ISODate): Promise<FocusSession[]> 
  * Saves a focus session and adds its minutes to the task's actual hours.
  * Call inside a transaction on settings, focus_sessions and tasks.
  */
-async function saveFocusInTx(taskId: string | null, minutes: number, startedAt: string, completed: boolean, subjectId: string | null = null): Promise<void> {
+/** What a free pomodoro was for (subject → topic or exam/project). */
+type FocusFor = Pick<FocusState, 'subjectId' | 'topicId' | 'examId'>
+
+async function saveFocusInTx(taskId: string | null, minutes: number, startedAt: string, completed: boolean, study: FocusFor = {}): Promise<void> {
   if (minutes < 1) return
   const task = taskId ? await db.tasks.get(taskId) : undefined
   await db.focus_sessions.add({
@@ -516,7 +520,9 @@ async function saveFocusInTx(taskId: string | null, minutes: number, startedAt: 
     started_at: startedAt,
     minutes,
     completed,
-    subject_id: task ? null : subjectId,
+    subject_id: task ? null : (study.subjectId ?? null),
+    topic_id: task ? null : (study.topicId ?? null),
+    exam_id: task ? null : (study.examId ?? null),
   })
   if (task) {
     const hours = Math.round(((task.actual_hours ?? 0) + minutes / 60) * 100) / 100
@@ -548,7 +554,7 @@ export async function focusTick(nowMs: number): Promise<FocusState['phase'] | nu
     if (!state || state.endsAt === null || nowMs < state.endsAt) return null
     const settings = await getFocusSettings()
     const { state: next, record } = finishPhase(state, settings, state.endsAt)
-    if (record !== null && state.startedAt) await saveFocusInTx(state.taskId, record, state.startedAt, true, state.subjectId ?? null)
+    if (record !== null && state.startedAt) await saveFocusInTx(state.taskId, record, state.startedAt, true, state)
     await setFocusState(next)
     return state.phase
   })
@@ -560,7 +566,7 @@ export async function stopFocus(nowMs: number, save: boolean): Promise<number> {
     const state = await getFocusState()
     if (!state) return 0
     const minutes = save && state.startedAt ? focusMinutesDone(state, await getFocusSettings(), nowMs) : 0
-    if (minutes > 0) await saveFocusInTx(state.taskId, minutes, state.startedAt!, false, state.subjectId ?? null)
+    if (minutes > 0) await saveFocusInTx(state.taskId, minutes, state.startedAt!, false, state)
     await setFocusState(null)
     return minutes
   })
@@ -617,13 +623,14 @@ export async function updateSubject(id: string, changes: Partial<Omit<Subject, A
   await db.subjects.update(id, { ...changes, updated_at: now() })
 }
 
-/** Deletes a subject with its topics and exams; its tasks are kept (without subject). */
+/** Deletes a subject with its topics, exams and logged hours; its tasks are kept (without subject). */
 export async function deleteSubject(id: string): Promise<void> {
-  await db.transaction('rw', db.subjects, db.topics, db.exams, db.tasks, db.focus_sessions, async () => {
+  await db.transaction('rw', [db.subjects, db.topics, db.exams, db.tasks, db.focus_sessions, db.study_logs], async () => {
     await db.topics.where('subject_id').equals(id).delete()
     await db.exams.where('subject_id').equals(id).delete()
-    await db.tasks.where('subject_id').equals(id).modify({ subject_id: null })
-    await db.focus_sessions.filter((s) => s.subject_id === id).modify({ subject_id: null })
+    await db.study_logs.where('subject_id').equals(id).delete()
+    await db.tasks.where('subject_id').equals(id).modify({ subject_id: null, topic_id: null, exam_id: null })
+    await db.focus_sessions.filter((s) => s.subject_id === id).modify({ subject_id: null, topic_id: null, exam_id: null })
     await db.subjects.delete(id)
   })
 }
@@ -687,6 +694,24 @@ export async function listStudyTasks(): Promise<Task[]> {
   return db.tasks.filter((t) => !!t.subject_id).toArray()
 }
 
+// ---------- study time logged by hand ----------
+
+/** All logged study time (or one subject's), newest first. */
+export async function listStudyLogs(subjectId?: string): Promise<StudyLog[]> {
+  const list = subjectId ? await db.study_logs.where('subject_id').equals(subjectId).toArray() : await db.study_logs.toArray()
+  return list.sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at))
+}
+
+export async function createStudyLog(data: Omit<StudyLog, 'id' | 'created_at'>): Promise<StudyLog> {
+  const log: StudyLog = { ...data, id: newId(), created_at: now() }
+  await db.study_logs.add(log)
+  return log
+}
+
+export async function deleteStudyLog(id: string): Promise<void> {
+  await db.study_logs.delete(id)
+}
+
 /** All focus sessions (used for study hours of free focus). */
 export async function listAllFocusSessions(): Promise<FocusSession[]> {
   return db.focus_sessions.toArray()
@@ -695,7 +720,7 @@ export async function listAllFocusSessions(): Promise<FocusSession[]> {
 // ---------- whole database (backup / restore / import) ----------
 
 /** The tables a backup contains, in the order they are restored. */
-const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories'] as const
+const DATA_TABLES = ['cycles', 'goals', 'tactics', 'tasks', 'habits', 'habit_checks', 'events', 'focus_sessions', 'days', 'subjects', 'topics', 'exams', 'categories', 'study_logs'] as const
 const dataTables = () => DATA_TABLES.map((name) => db.table(name))
 
 /** Everything the user created, for a full backup. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Exam, FocusSession, Subject, Task, Topic } from '../data/types'
-import { difficultTopics, examEvents, examIdOfEvent, nextExam, overallAverage, studyHours, subjectGrades, topicProgress } from './study'
+import type { Exam, FocusSession, StudyLog, Subject, Task, Topic } from '../data/types'
+import { difficultTopics, examEvents, examIdOfEvent, nextExam, overallAverage, parseStudyTarget, studyBreakdown, studyHours, studyTargetKey, subjectGrades, topicProgress } from './study'
 
 const exam = (over: Partial<Exam>): Exam => ({
   id: Math.random().toString(), subject_id: 's', kind: 'final', title: '', date: '2027-01-14', start_time: null,
@@ -81,5 +81,43 @@ describe('projects with several dates', () => {
     expect(evs.every((e) => e.kind === 'deadline')).toBe(true)
     expect(evs.map((e) => examIdOfEvent(e.id))).toEqual(['g1', 'g1', 'g1'])
     expect(examIdOfEvent('abc')).toBeNull()
+  })
+})
+
+describe('hours per topic and per exam/project', () => {
+  const task = (over: Partial<Task>): Task => ({
+    id: Math.random().toString(), cycle_id: 'c', week_number: 1, title: '', tactic_id: null, planned_date: null,
+    planned_hours: null, actual_hours: null, status: 'done', miss_reason: null, notes: '', created_at: '', updated_at: '', subject_id: 's', ...over,
+  })
+  const session = (over: Partial<FocusSession>): FocusSession => ({
+    id: Math.random().toString(), task_id: null, task_title: '', date: '2026-11-24', started_at: '', minutes: 30, completed: true, subject_id: 's', ...over,
+  })
+  const log = (over: Partial<StudyLog>): StudyLog => ({
+    id: Math.random().toString(), subject_id: 's', topic_id: null, exam_id: null, date: '2026-11-24', hours: 1, note: '', created_at: '', ...over,
+  })
+  const topics: Topic[] = [{ id: 'wacc', subject_id: 's', name: 'WACC', status: 'todo', difficult: false, notes: '', sort_order: 0 }]
+  const exams = [exam({ id: 'case', kind: 'group' })]
+
+  it('adds tasks, free pomodoros and logged time, split by what they were for', () => {
+    const tasks = [task({ actual_hours: 2, topic_id: 'wacc' }), task({ actual_hours: 1 }), task({ actual_hours: 3, subject_id: 'other' })]
+    const sessions = [session({ minutes: 30, exam_id: 'case' }), session({ minutes: 25, task_id: 'x', topic_id: 'wacc' })]
+    const logs = [log({ hours: 1.5, exam_id: 'case' }), log({ hours: 0.5, topic_id: 'deleted-topic' }), log({ subject_id: 'other' })]
+    const b = studyBreakdown('s', topics, exams, tasks, sessions, logs)
+    expect(b.topics.get('wacc')).toBe(2)
+    expect(b.exams.get('case')).toBe(2)
+    expect(b.general).toBe(1.5) // the plain task + the log of a deleted topic
+    expect(b.total).toBe(5.5)
+    expect(studyHours('s', tasks, sessions, {}, logs)).toBe(5.5)
+  })
+  it('respects the range (e.g. this week)', () => {
+    const logs = [log({ date: '2026-11-24' }), log({ date: '2026-11-10' })]
+    expect(studyHours('s', [], [], { log: (l) => l.date >= '2026-11-23' }, logs)).toBe(1)
+  })
+  it('encodes the choice of topic or exam for a select', () => {
+    expect(studyTargetKey({ topic_id: 'a' })).toBe('topic:a')
+    expect(studyTargetKey({ exam_id: 'b' })).toBe('exam:b')
+    expect(studyTargetKey({})).toBe('')
+    expect(parseStudyTarget('exam:b')).toEqual({ topic_id: null, exam_id: 'b' })
+    expect(parseStudyTarget('')).toEqual({ topic_id: null, exam_id: null })
   })
 })

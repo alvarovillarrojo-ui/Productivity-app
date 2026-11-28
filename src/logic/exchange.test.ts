@@ -216,6 +216,7 @@ describe('backup', () => {
     exams: [{ id: 'ex1', subject_id: 's1', kind: 'final', title: 'Final', date: '2027-01-14', start_time: '18:30', weight: 60, grade: null, notes: '', created_at: 'x', updated_at: 'x' },
       { id: 'ex2', subject_id: 's1', kind: 'group', title: 'Case', date: '2027-01-20', start_time: null, weight: 30, grade: null, notes: '', deliverables: [{ id: 'dl1', title: 'Presentation', date: '2027-01-10', start_time: '10:00' }], created_at: 'x', updated_at: 'x' }],
     categories: [{ id: 'cat1', name: 'Uni', color: '#2a78d6', sort_order: 0 }],
+    study_logs: [{ id: 'sl1', subject_id: 's1', topic_id: 'tp1', exam_id: null, date: '2026-11-20', hours: 1.5, note: 'Library', created_at: 'x' }],
   }
 
   it('round-trips through JSON', () => {
@@ -237,6 +238,7 @@ describe('backup', () => {
     delete old.data.topics
     delete old.data.exams
     delete old.data.categories
+    delete old.data.study_logs
     const r = parseBackup(JSON.parse(JSON.stringify(old)))
     expect(r.issues).toEqual([])
     expect(r.data!.habits).toEqual([])
@@ -329,7 +331,7 @@ describe('tactic schedules in files', () => {
 
   it('backups keep the schedule', () => {
     const scheduled = { ...tactics[0], schedule_days: [1, 3], schedule_time: '09:00', schedule_hours: 1.5 }
-    const data = { cycles: [cycle], goals, tactics: [scheduled], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [] }
+    const data = { cycles: [cycle], goals, tactics: [scheduled], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] }
     const r = parseBackup(JSON.parse(JSON.stringify(buildBackup(data, 'x'))))
     expect(r.issues).toEqual([])
     expect(r.data!.tactics[0]).toEqual(scheduled)
@@ -404,7 +406,7 @@ describe('colours in backups', () => {
   it('keeps goal and event colours; rejects a bad colour', () => {
     const coloured = { ...goals[0], color: '#e34948' }
     const ev = { id: 'e1', title: 'Class', date: '2026-11-10', start_time: '09:00', end_time: '10:00', repeat_weekly: false, repeat_until: null, notes: '', color: '#0891b2', created_at: 'x', updated_at: 'x' }
-    const data = { cycles: [cycle], goals: [coloured], tactics, tasks: [], habits: [], habit_checks: [], events: [ev], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [] }
+    const data = { cycles: [cycle], goals: [coloured], tactics, tasks: [], habits: [], habit_checks: [], events: [ev], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] }
     const ok = parseBackup(JSON.parse(JSON.stringify(buildBackup(data, 'x'))))
     expect(ok.issues).toEqual([])
     expect(ok.data!.goals[0].color).toBe('#e34948')
@@ -427,7 +429,7 @@ describe('fail causes in files', () => {
 describe('show on Home in backups', () => {
   it('keeps the tactic switch and rejects a non-boolean', () => {
     const shown = { ...tactics[0], show_on_home: true }
-    const data = { cycles: [cycle], goals, tactics: [shown], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [] }
+    const data = { cycles: [cycle], goals, tactics: [shown], tasks: [], habits: [], habit_checks: [], events: [], focus_sessions: [], days: [], subjects: [], topics: [], exams: [], categories: [], study_logs: [] }
     const ok = parseBackup(JSON.parse(JSON.stringify(buildBackup(data, 'x'))))
     expect(ok.data!.tactics[0].show_on_home).toBe(true)
     const bad = buildBackup({ ...data, tactics: [{ ...shown, show_on_home: 'yes' as unknown as boolean }] }, 'x')
