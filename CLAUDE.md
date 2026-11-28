@@ -95,10 +95,10 @@ font bundled, indigo accent, CSS variables at the top.
   in Day → Closing; the block shows "☑ done/total" and its tasks are not
   repeated on their own in the calendar.
 - **Colours** (logic/areas.ts): tasks and blocks take their goal's colour.
-  Events take their area's colour ( table). The fixed areas are
-  Uni (also  events), Día a día, Viajes, Exámenes (all exams) and
-  Entregas (deliverables, projects, group work,  events). They have
-   set, are created at start, and can't be deleted. The user can add more.
+  Events take their area's colour (`categories` table). The fixed areas are
+  Uni (also `class` events), Día a día, Viajes, Exámenes (all exams) and
+  Entregas (deliverables, projects, group work, `deadline` events). They have
+  `fixed` set, are created at start, and can't be deleted. The user can add more.
 - **Calendar events** have a type (`class` / `deadline` / `other`).
   - Only deadlines and subject exams reach the **deadlines radar** (3 weeks;
     shown on Home and in Day → Opening).
